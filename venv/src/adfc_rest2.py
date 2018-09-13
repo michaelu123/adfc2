@@ -14,25 +14,20 @@ it will apply to the frame.
 import json
 import logging
 import sys
-import time
-import locale
 import os
-import xml.sax
+import tourRest
 
 logging.basicConfig(level=logging.DEBUG, filename = "adfc_rest1.log", filemode="w")
 logger = logging.getLogger("adfc-rest1")
 logger.info("cwd=%s", os.getcwd())
 
-# URL der Touren des KV Starnberg https://api-touren-termine.adfc.de/api/eventItems/search?unitKey=152085
-urlSta = "https://api-touren-termine.adfc.de/api/eventItems/search?unitKey="
 keySta = "152085"
 keyGau = "15208514"
 keyMuc = "152059"
-weekdays = [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
-useRest = False
-unitKey = keySta
-tpConn = None
+#useRest = False
+#unitKey = keySta
+#tpConn = None
 
 logger.info("1sta %s", __name__)
 try:
@@ -42,6 +37,7 @@ try:
     unitKey = scribus.valueDialog("Gliederung", "Bitte Nummer der Gliederung angeben")
     yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
     useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    from forPy2 import myprint
 except ImportError:
     import http.client as httplib
     import argparse
@@ -53,9 +49,8 @@ except ImportError:
     unitKey = args.nummer
     yOrN = args.useRest.lower()[0]
     useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    from forPy3 import myprint
 
-def myprint(*a):
-    print (*a, end='')
 
 class ScribusTest: # just log scribus calls
     def setStyle(self, style, frame):
@@ -105,22 +100,6 @@ class DatenTest: # just log data
         return "TextFrame"
     def getTextLength(self):
         return 0
-
-class SAXHandler(xml.sax.handler.ContentHandler):
-    def __init__(self):
-        self.r = []
-    def startElement(self, name, attrs):
-        pass
-    def endElement(self, name):
-        pass
-    def characters(self, content):
-        self.r.append(content)
-    def ignorableWhiteSpace(self, whitespace):
-        pass
-    def skippedEntity(self, name):
-        pass
-    def val(self):
-        return "".join(self.r)
 
 logger.info("2sta %s", __name__)
 if not useScribus:
@@ -200,174 +179,6 @@ def handleKopfzeileMehrtage(anfang, ende, kat, schwierig, strecke):
     scribus.setStyle('Radtour_kopfzeile',textbox)
     scribus.insertText('	'+kat+'	'+schwierig+'	'+strecke+'\n',-1,textbox)
 
-logger.info("3sta")
-
-def getAbfahrten(tourLocations):
-    abfahrten = []
-    for tourLoc in tourLocations:
-        type = tourLoc.get("type")
-        logger.debug("type %s", type)
-        if type != "Startpunkt" and type != "Treffpunkt":
-            continue
-        beginning = tourLoc.get("beginning")
-        logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
-        beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
-        beginning = beginning[11:16] # 14:00
-        name = tourLoc.get("name")
-        street = tourLoc.get("street")
-        city = tourLoc.get("city")
-        logger.debug("name %s street %s city %s", name, street, city)
-        loc = name + " " + city + ", " + street
-        abfahrt = (beginning, loc)
-        abfahrten.append(abfahrt)
-    return abfahrten
-
-def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
-    # scribus/Python2 does not support %z
-    beginning = beginning[0:19] # '2018-04-29T06:30:00'
-    d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
-    oldDay = d.tm_yday
-    if beginning.startswith("2018"):
-        begSZ = "2018-03-25"
-        endSZ = "2018-10-28"
-        sz = beginning >= begSZ and beginning < endSZ
-    elif beginning.startswith("2019"):
-        begSZ = "2019-03-31"
-        endSZ = "2019-10-27"
-        sz = beginning >= begSZ and beginning < endSZ
-    elif beginning.startswith("2020"):
-        begSZ = "2019-03-29"
-        endSZ = "2019-10-25"
-        sz = beginning >= begSZ and beginning < endSZ
-    else:
-        raise ValueError("year " + beginning + " not configured")
-    epochGmt = time.mktime(d)
-    epochMez = epochGmt + ((2 if sz else 1) * 3600)
-    mezTuple = time.localtime(epochMez)
-    newDay = mezTuple.tm_yday
-    mez = time.strftime("%Y-%m-%dT%H:%M:%S", mezTuple)
-    if oldDay != newDay:
-        raise ValueError("day rollover for tour %s from %s to %s", titel, beginning, mez)
-    return mez
-
-def removeHTML(s):
-    if s.find("<span") == -1:  # no HTML
-        return s
-    htmlHandler = SAXHandler()
-    xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
-    return htmlHandler.val()
-
-def getBeschreibung(eventItem):
-    desc = eventItem.get("description").replace("\n", " ")
-    desc = removeHTML(desc)
-    return desc
-
-def getSchwierigkeit(eventItem, itemTags):
-    kategorie = getKategorie(itemTags)
-    if kategorie == "Feierabendtour":
-        return "F"
-    if kategorie == "Halbtagestour" or kategorie == "Tagestour" or kategorie == "Mehrtagestour":
-        schwierigkeit = eventItem.get("cTourDifficulty")
-        return "*" * int(schwierigkeit + 0.5)  # ???
-    else:
-        raise ValueError("Unbekannte Kategorie " + kategorie)
-
-def getKategorie(itemTags):
-    for itemTag in itemTags:
-        tag = itemTag.get("tag")
-        category = itemTag.get("category")
-        if category == "Typen (nach Dauer und Tageslage)":
-            return tag
-    raise ValueError("Keine Kategorie definiert (z.B. Feierabendtour, Halbtagstour...)")
-
-def getZusatzInfo(itemTags):
-    besonders = []
-    weitere = []
-    zielgruppe = []
-    for itemTag in itemTags:
-        tag = itemTag.get("tag")
-        category = itemTag.get("category")
-        if category == "Besondere Charakteristik /Thema":
-            besonders.append(tag)
-        if category == "Weitere Eigenschaften":
-            weitere.append(tag)
-        if category == "Besondere Zielgruppe":
-            zielgruppe.append(tag)
-    if len(besonders) > 0:
-        besonders = "Besondere Charakteristik/Thema: " + ", ".join(besonders)
-    else:
-        besonders = ""
-    if len(weitere) > 0:
-        weitere = "Weitere Eigenschaften: " + ", ".join(weitere)
-    else:
-        weitere = ""
-    if len(zielgruppe) > 0:
-        zielgruppe = "Besondere Zielgruppe: " + ", ".join(zielgruppe)
-    else:
-        zielgruppe = ""
-    return [besonders, weitere, zielgruppe]
-
-def getStrecke(eventItem):
-    return str(eventItem.get("cTourLengthKm")) + " km"
-
-def getDatum(eventItem):
-    datum = eventItem.get("beginning")
-    beginning = convertToMEZOrMSZ(datum)
-    # fromisoformat defined in Python3.7, not used by Scribus
-    # date = datetime.fromisoformat(datum)
-    datum = str(datum[0:10])
-    logger.debug("datum <%s> ", str(datum))
-    date = time.strptime(datum, "%Y-%m-%d")
-    weekday = weekdays[date.tm_wday]
-    res =  weekday + ", " + datum[8:10] + "." + datum[5:7] + "." + datum[0:4]
-    return res
-
-def getEndDatum(eventItem):
-    enddatum = eventItem.get("end")
-    enddatum = convertToMEZOrMSZ(enddatum)
-    # fromisoformat defined in Python3.7, not used by Scribus
-    # enddate = datetime.fromisoformat(enddatum)
-    enddatum = str(enddatum[0:10])
-    #enddate = datetime.strptime(enddatum, "%Y-%m-%d")
-    enddate = time.strptime(enddatum, "%Y-%m-%d")
-    logger.debug("enddate %s %s ", type(enddate), str(enddate))
-    weekday = weekdays[enddate.tm_wday]
-    return weekday + ", " + enddatum[8:10] + "." + enddatum[5:7] + "." + enddatum[0:4]
-
-def getPersonen(eventItem):
-    """
-          Starnberg:
-                <Leiter>
-                    <Person>
-                      <Name>Martin Held</Name>
-                    </Person>
-                    <Person>
-                      <Name>Claus Piesch</Name>
-                    </Person>
-                    <Person>
-                      <Name>Jochen Twiehaus</Name>
-                    </Person>
-                    <Person>
-                      <Name><TelMobil>0171/2755036</TelMobil>Anton Maier</Name>
-                    </Person>
-                </Leiter>
-
-          tour.getElementsByTagName("Leiter")[0].getElementsByTagName("Person")
-          Json:
-
-    """
-    personen = []
-    organizer = eventItem.get("cOrganizingUserId")
-    if organizer is not None and len(organizer) > 0:
-        personen.append(organizer)
-    organizer2 = eventItem.get("cSecondOrganizingUserId")
-    if organizer2 is not None and len(organizer2) > 0:
-        if organizer2 != organizer:
-            personen.append(organizer2)
-    if len(personen) == 0:
-        logger.error("Tour %s hat keinen Tourleiter", titel )
-    return personen
-
 def handleTour(eventItemId):
     global tpConn
     jsonPath = "c:/temp/tpjson/" + eventItemId + ".json"
@@ -377,46 +188,44 @@ def handleTour(eventItemId):
         tpConn.request("GET", "/api/eventItems/" + eventItemId)
         resp = tpConn.getresponse()
         logger.debug("resp %d %s", resp.status, resp.reason)
-        tour = json.load(resp)
-        tour["eventItemFiles"] = None #save space
+        tourJS = json.load(resp)
+        tourJS["eventItemFiles"] = None #save space
         # if not os.path.exists(jsonPath):
         with open(jsonPath, "w") as jsonFile:
-            json.dump(tour, jsonFile, indent=4)
+            json.dump(tourJS, jsonFile, indent=4)
     else:
         with open(jsonPath, "r") as jsonFile:
-            tour = json.load(jsonFile)
+            tourJS = json.load(jsonFile)
 
-    tourLocations = tour.get("tourLocations")
-    itemTags = tour.get("itemTags")
-    eventItem = tour.get("eventItem")
+    tour = tourRest.Tour(logger, tourJS)
     try:
-        titel = eventItem.get("title")
+        titel = tour.getTitel()
         logger.info("Title %s", titel)
-        datum = getDatum(eventItem)
+        datum = tour.getDatum()
         logger.info("datum %s", datum)
 
-        abfahrten = getAbfahrten(tourLocations)
+        abfahrten = tour.getAbfahrten()
         if len(abfahrten) == 0:
             raise ValueError("kein Startpunkt in tour %s", titel)
             return
         logger.info("abfahrten %s ", str(abfahrten))
 
-        beschreibung = getBeschreibung(eventItem)
+        beschreibung = tour.getBeschreibung()
         logger.info("beschreibung %s", beschreibung)
-        zusatzinfo = getZusatzInfo(itemTags)
+        zusatzinfo = tour.getZusatzInfo()
         logger.info("zusatzinfo %s", str(zusatzinfo))
-        kategorie = getKategorie(itemTags)
+        kategorie = tour.getKategorie()
         logger.info("kategorie %s", kategorie)
-        schwierigkeit = getSchwierigkeit(eventItem, itemTags)
+        schwierigkeit = tour.getSchwierigkeit()
         logger.info("schwierigkeit %s", schwierigkeit)
-        strecke = getStrecke(eventItem)
+        strecke = tour.getStrecke()
         logger.info("strecke %s", strecke)
 
         if kategorie == 'Mehrtagestour':
-            enddatum = getEndDatum(eventItem)
+            enddatum = tour.getEndDatum()
             logger.info("enddatum %s", enddatum)
 
-        personen = getPersonen(eventItem)
+        personen = tour.getPersonen()
         logger.info("personen %s", str(personen))
     except Exception as e:
         logger.error("Fehler in der Tour %s: %s", titel, e)
