@@ -1,9 +1,11 @@
 # encoding: utf-8
 
+import os
 import json
 import logging
 import time
 import xml.sax
+from myLogger import logger
 
 weekdays = [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -65,8 +67,7 @@ def removeHTML(s):
     return htmlHandler.val()
 
 class Tour:
-    def __init__(self, logger, tourJS):
-        self.logger = logger
+    def __init__(self, tourJS):
         self.tourJS = tourJS
         self.tourLocations = tourJS.get("tourLocations")
         self.itemTags = tourJS.get("itemTags")
@@ -79,17 +80,17 @@ class Tour:
         abfahrten = []
         for tourLoc in self.tourLocations:
             type = tourLoc.get("type")
-            self.logger.debug("type %s", type)
+            logger.debug("type %s", type)
             if type != "Startpunkt" and type != "Treffpunkt":
                 continue
             beginning = tourLoc.get("beginning")
-            self.logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
+            logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
             beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
             beginning = beginning[11:16] # 14:00
             name = tourLoc.get("name")
             street = tourLoc.get("street")
             city = tourLoc.get("city")
-            self.logger.debug("name %s street %s city %s", name, street, city)
+            logger.debug("name %s street %s city %s", name, street, city)
             loc = name + " " + city + ", " + street
             abfahrt = (beginning, loc)
             abfahrten.append(abfahrt)
@@ -154,7 +155,7 @@ class Tour:
         # fromisoformat defined in Python3.7, not used by Scribus
         # date = datetime.fromisoformat(datum)
         datum = str(datum[0:10])
-        self.logger.debug("datum <%s> ", str(datum))
+        logger.debug("datum <%s> ", str(datum))
         date = time.strptime(datum, "%Y-%m-%d")
         weekday = weekdays[date.tm_wday]
         res =  weekday + ", " + datum[8:10] + "." + datum[5:7] + "." + datum[0:4]
@@ -168,7 +169,7 @@ class Tour:
         enddatum = str(enddatum[0:10])
         #enddate = datetime.strptime(enddatum, "%Y-%m-%d")
         enddate = time.strptime(enddatum, "%Y-%m-%d")
-        self.logger.debug("enddate %s %s ", type(enddate), str(enddate))
+        logger.debug("enddate %s %s ", type(enddate), str(enddate))
         weekday = weekdays[enddate.tm_wday]
         return weekday + ", " + enddatum[8:10] + "." + enddatum[5:7] + "." + enddatum[0:4]
 
@@ -203,6 +204,5 @@ class Tour:
             if organizer2 != organizer:
                 personen.append(organizer2)
         if len(personen) == 0:
-            self.logger.error("Tour %s hat keinen Tourleiter", titel )
+            logger.error("Tour %s hat keinen Tourleiter", titel )
         return personen
-
