@@ -15,12 +15,24 @@ import json
 import myLogger
 import sys
 import os
+import time
 import tourServer
+import textHandler
 
 keySta = "152085"
 keyGau = "15208514"
 keyMuc = "152059"
-py2 = False
+
+def toDate(dmy): # 21.09.2018
+    d = dmy[0:2]
+    m = dmy[3:5]
+    if len(dmy) == 10:
+        y = dmy[6:10]
+    else:
+        y = "20" + dmy[6:8]
+    if int(d) == 0 or int(d) > 31 or int(m) == 0 or int(m) > 12 or int(y) < 2000 or int(y) > 2100:
+        raise ValueError("Bitte Datum als dd.mm.jjjj angeben, nicht als " + dmy)
+    return y + "-" + m + "-" + d # 2018-09-21
 
 try:
     import scribusHandler
@@ -28,22 +40,66 @@ try:
     handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.TourServer(True, handler.getUseRest())
     unitKey = handler.getUnitKey()
+    start = handler.getStart()
+    end = handler.getEnd()
+    type = handler.getType()
+    rad = handler.getRad()
 except ImportError:
     import printHandler
     import http.client as httplib
     import argparse
     parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
+    parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true", help="Aktuelle Daten werden vom Server geholt")
+    parser.add_argument("-d", "--debug", dest="usePH", action="store_true", help="Debug Ausgabe")
+    parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles", default="A")
+    parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles", default="A")
     parser.add_argument("nummer", help="Gliederungsnummer, z.B. 152059 für München")
-    parser.add_argument("useRest", help="Sollen aktuelle Daten vom Server geholt werden? (j/n)")
+    parser.add_argument("start", help="Startdatum (TT.MM.YYYY)")
+    parser.add_argument("end", help="Endedatum (TT.MM.YYYY)")
     args = parser.parse_args()
     unitKey = args.nummer
-    yOrN = args.useRest.lower()[0]
-    useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    useRest = args.useRest
+    #    useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    start = args.start
+    end = args.end
+    type = args.type
+    radTyp = args.radTyp
     tourServerVar = tourServer.TourServer(False, useRest)
-    handler = printHandler.PrintHandler()
+    if args.usePH:
+        handler = printHandler.PrintHandler()
+    else:
+        handler = textHandler.TextHandler()
 
-touren = tourServerVar.getTouren(unitKey)
+start = toDate(start)
+end = toDate(end)
+
+if type == "R":
+    type = "Radtour"
+elif type == "T":
+    type = "Termin"
+elif type == "A":
+    type = "Alles"
+else:
+    raise ValueError("Typ muss R für Radtour, T für Termin, oder A für beides sein")
+
+if radTyp == "R":
+    radTyp = "Rennrad"
+elif radTyp == "T":
+    radTyp = "Tourenrad"
+elif radTyp == "M":
+    radTyp = "Mountainbike"
+elif radTyp == "A":
+    radTyp = "Alles"
+else:
+    raise ValueError("Rad muss R für Rennrad, T für Tourenrad, M für Mountainbike, oder A für alles sein")
+
+touren = tourServerVar.getTouren(unitKey, start, end, type)
 for tour in touren:
     eventItemId = tour.get("eventItemId");
     tour = tourServerVar.getTour(eventItemId)
-    handler.handleTour(tour)
+    if radTyp != "Alles" and tour.getRadTyp() != rad:
+        continue
+    if tour.isTermin():
+        handler.handleTermin(tour)
+    else:
+        handler.handleTour(tour)

@@ -16,6 +16,7 @@ class PrintHandler:
         uhrzeit = abfahrt[0]
         ort = abfahrt[1]
         logger.info("Abfahrt: uhrzeit=%s ort=%s", uhrzeit, ort)
+        self.scribus.insertText('Start: '+uhrzeit+', '+ort+'\n')
 
     def handleTextfeld(self, stil,textelement):
         logger.info("Textfeld: stil=%s text=%s", stil, textelement)
@@ -53,6 +54,8 @@ class PrintHandler:
         names = ", ".join(TLs)
         self.scribus.insertText(names)
         self.scribus.insertText('\n')
+        if len(TLs) == 0:
+            self.scribus.insertText("Fehler: Keine Tourleiter!\n")
 
     def handleTitel(self, tt):
         logger.info("Titel: titel=%s", tt)
@@ -80,13 +83,25 @@ class PrintHandler:
                 return
             logger.info("abfahrten %s ", str(abfahrten))
 
-            beschreibung = tour.getBeschreibung()
+            beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
-            schwierigkeit = tour.getSchwierigkeit()
+            radTyp = tour.getRadTyp()
+            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
+            if kategorie == "Feierabendtour":
+                schwierigkeit = "F"
+            elif radTyp == "Rennrad":
+                schwierigkeit = "RR"
+            elif radTyp == "Mountainbike":
+                schwierigkeit = "MTB"
+            else:
+                schwierigkeit = str(tour.getSchwierigkeit())
+                if schwierigkeit == "0":
+                    schwierigkeit = "1"
+                if schwierigkeit >= "1" and schwierigkeit <= "5":
+                    schwierigkeit = "*" * int(schwierigkeit)
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
             logger.info("strecke %s", strecke)
@@ -97,6 +112,9 @@ class PrintHandler:
 
             personen = tour.getPersonen()
             logger.info("personen %s", str(personen))
+            if len(personen) == 0:
+                logger.error("Tour %s hat keinen Tourleiter", titel)
+
         except Exception as e:
             logger.error("Fehler in der Tour %s: %s", titel, e)
             print("\nFehler in der Tour ", titel, ": ", e)
@@ -114,3 +132,5 @@ class PrintHandler:
         self.handleTourenleiter(personen)
         self.handleTextfeldList('Radtour_zusatzinfo',zusatzinfo)
 
+    def handleTermin(self, tour):
+        pass

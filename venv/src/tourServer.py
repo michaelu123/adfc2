@@ -16,7 +16,7 @@ class TourServer:
             import http.client
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
 
-    def getTouren(self, unitKey):
+    def getTouren(self, unitKey, start, end, type):
         jsonPath = "c:/temp/tpjson/search-" + unitKey + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/search?unitKey=" + unitKey)
@@ -36,11 +36,15 @@ class TourServer:
             if titel is None:
                 logger.error("Kein Titel für die Tour %s", str(item))
                 continue;
-            if item.get("eventType") != "Radtour":
+            if type != "Alles" and item.get("eventType") != type:
                 continue;
-            if item.get("beginning") is None:
+            beginning = item.get("beginning")
+            if beginning is None:
                 logger.error("Kein Beginn für die Tour %s", str(item))
-                continue;
+                continue
+            begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
+            if begDate < start or begDate > end:
+                continue
             # add other filter conditions here
             touren.append(item)
 

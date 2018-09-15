@@ -1,12 +1,18 @@
 # encoding: utf-8
 
 import scribus
-unitKey = scribus.valueDialog("Gliederung", "Bitte Nummer der Gliederung angeben")
-yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
-useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
 from myLogger import logger
 
+yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
+useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=alles (R/T/A)")
+rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike")
+unitKey = scribus.valueDialog("Gliederung", "Bitte Nummer der Gliederung angeben")
+start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
+end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
+
 global logger
+logger.info("scribus type=%s %s", type(scribus), str(scribus))
 
 class ScribusHandler:
     def __init__(self):
@@ -39,9 +45,16 @@ class ScribusHandler:
 
     def getUseRest(self):
         return useRest
-
     def getUnitKey(self):
         return unitKey
+    def getStart(self):
+        return start
+    def getEnd(self):
+        return end
+    def getType(self):
+        return type
+    def getRad(self):
+        return rad
 
     def addStyle(self, style, frame):
          try:
@@ -128,13 +141,25 @@ class ScribusHandler:
                 return
             logger.info("abfahrten %s ", str(abfahrten))
 
-            beschreibung = tour.getBeschreibung()
+            beschreibung = tour.getBeschreibung(True)
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
-            schwierigkeit = tour.getSchwierigkeit()
+            radTyp = tour.getRadTyp()
+            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
+            if kategorie == "Feierabendtour":
+                schwierigkeit = "F"
+            elif radTyp == "Rennrad":
+                schwierigkeit = "RR"
+            elif radTyp == "Mountainbike":
+                schwierigkeit = "MTB"
+            else:
+                schwierigkeit = str(tour.getSchwierigkeit())
+            if schwierigkeit == "0":
+                schwierigkeit = "1"
+            if schwierigkeit >= "1" and schwierigkeit <= "5":
+                schwierigkeit = "*" * int(schwierigkeit)
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
             logger.info("strecke %s", strecke)
@@ -145,6 +170,8 @@ class ScribusHandler:
 
             personen = tour.getPersonen()
             logger.info("personen %s", str(personen))
+            if len(personen) == 0:
+                logger.error("Tour %s hat keinen Tourleiter", titel)
         except Exception as e:
             logger.error("Fehler in der Tour %s: %s", titel, e)
             return
@@ -161,3 +188,5 @@ class ScribusHandler:
         self.handleTourenleiter(personen)
         self.handleTextfeldList('Radtour_zusatzinfo',zusatzinfo)
 
+    def handleTermin(self, tour):
+        pass

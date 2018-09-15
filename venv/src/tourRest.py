@@ -8,6 +8,7 @@ import xml.sax
 from myLogger import logger
 
 weekdays = [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+character = [ "", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
 
 def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
     # scribus/Python2 does not support %z
@@ -60,7 +61,7 @@ class SAXHandler(xml.sax.handler.ContentHandler):
         return "".join(self.r)
 
 def removeHTML(s):
-    if s.find("<span") == -1:  # no HTML
+    if s.find("<span") == -1 and s.find("<br>") == -1:  # no HTML
         return s
     htmlHandler = SAXHandler()
     xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
@@ -72,9 +73,10 @@ class Tour:
         self.tourLocations = tourJS.get("tourLocations")
         self.itemTags = tourJS.get("itemTags")
         self.eventItem = tourJS.get("eventItem")
+        self.titel = self.eventItem.get("title")
 
     def getTitel(self):
-        return self.eventItem.get("title")
+        return self.titel
 
     def getAbfahrten(self):
         abfahrten = []
@@ -96,28 +98,53 @@ class Tour:
             abfahrten.append(abfahrt)
         return abfahrten
 
-    def getBeschreibung(self):
-        desc = self.eventItem.get("description").replace("\n", " ")
+    def getBeschreibung(self, removeNL):
+        desc = self.eventItem.get("description")
+        if removeNL:
+            desc = desc.replace("\n", " ")
+        else:
+            desc = desc.replace("\n\n", "\n")
         desc = removeHTML(desc)
+        desc = desc.strip()
         return desc
 
+    def isTermin(self):
+        return self.eventItem.get("eventType") == "Termin"
+
     def getSchwierigkeit(self):
-        kategorie = self.getKategorie()
-        if kategorie == "Feierabendtour":
-            return "F"
-        if kategorie == "Halbtagestour" or kategorie == "Tagestour" or kategorie == "Mehrtagestour":
-            schwierigkeit = self.eventItem.get("cTourDifficulty")
-            return "*" * int(schwierigkeit + 0.5)  # ???
-        else:
-            raise ValueError("Unbekannte Kategorie " + kategorie)
+        if self.isTermin():
+            return "-"
+        schwierigkeit = self.eventItem.get("cTourDifficulty")
+        # apparently either 0 or between 1.0 and 5.0
+        i = int(schwierigkeit + 0.499)
+        return i # ["unbekannt", "einfach", "mittel", "schwer", "sehr schwer"][i] ??
 
     def getKategorie(self):
         for itemTag in self.itemTags:
             tag = itemTag.get("tag")
             category = itemTag.get("category")
-            if category == "Typen (nach Dauer und Tageslage)":
+            if category.startswith("Typen "):
                 return tag
+            if category.startswith("Radlertreff"):
+                return tag
+        if self.isTermin():
+            return "Termin"
         raise ValueError("Keine Kategorie definiert (z.B. Feierabendtour, Halbtagstour...)")
+
+    def getRadTyp(self):
+        # wenn nur Rennrad oder nur Mountainbike, dann dieses, sonst Tourenrad
+        l = 0
+        for itemTag in self.itemTags:
+            category = itemTag.get("category")
+            if category.startswith("Geeignet "):
+                l += 1
+        for itemTag in self.itemTags:
+            tag = itemTag.get("tag")
+            category = itemTag.get("category")
+            if category.startswith("Geeignet "):
+                if l == 1 and (tag == "Rennrad" or tag == "Mountainbike"):
+                    return tag
+        return "Tourenrad"
 
     def getZusatzInfo(self):
         besonders = []
@@ -147,7 +174,16 @@ class Tour:
         return [besonders, weitere, zielgruppe]
 
     def getStrecke(self):
-        return str(self.eventItem.get("cTourLengthKm")) + " km"
+        l = self.eventItem.get("cTourLengthKm")
+        return str(l) + " km"
+
+    def getHöhenmeter(self):
+        h = self.eventItem.get("cTourHeight")
+        return str(h)
+
+    def getCharacter(self):
+        c = self.eventItem.get("cTourSurface")
+        return character[c]
 
     def getDatum(self):
         datum = self.eventItem.get("beginning")
@@ -200,9 +236,6 @@ class Tour:
         if organizer is not None and len(organizer) > 0:
             personen.append(organizer)
         organizer2 = self.eventItem.get("cSecondOrganizingUserId")
-        if organizer2 is not None and len(organizer2) > 0:
-            if organizer2 != organizer:
-                personen.append(organizer2)
-        if len(personen) == 0:
-            logger.error("Tour %s hat keinen Tourleiter", titel )
+        if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
+            personen.append(organizer2)
         return personen
