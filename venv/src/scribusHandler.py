@@ -5,14 +5,12 @@ from myLogger import logger
 
 yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=alles (R/T/A)")
-rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike")
+type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=alles) (R/T/A)")
+rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
 unitKey = scribus.valueDialog("Gliederung", "Bitte Nummer der Gliederung angeben")
 start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
 end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
 
-global logger
-logger.info("scribus type=%s %s", type(scribus), str(scribus))
 
 class ScribusHandler:
     def __init__(self):

@@ -43,7 +43,7 @@ try:
     start = handler.getStart()
     end = handler.getEnd()
     type = handler.getType()
-    rad = handler.getRad()
+    radTyp = handler.getRad()
 except ImportError:
     import printHandler
     import http.client as httplib
@@ -97,9 +97,9 @@ touren = tourServerVar.getTouren(unitKey, start, end, type)
 for tour in touren:
     eventItemId = tour.get("eventItemId");
     tour = tourServerVar.getTour(eventItemId)
-    if radTyp != "Alles" and tour.getRadTyp() != rad:
-        continue
     if tour.isTermin():
         handler.handleTermin(tour)
     else:
+        if radTyp != "Alles" and tour.getRadTyp() != radTyp:
+            continue
         handler.handleTour(tour)

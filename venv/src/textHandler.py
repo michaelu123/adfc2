@@ -38,7 +38,7 @@ class TextHandler:
                 logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
                 print("Fehler: Tour {} hat keine Tourlänge".format(titel))
             logger.info("strecke %s", strecke)
-            höhenmeter = tour.getHöhenmeter()
+            hoehenmeter = tour.getHoehenmeter()
             character = tour.getCharacter()
 
             if kategorie == 'Mehrtagestour':
@@ -52,16 +52,16 @@ class TextHandler:
                 print("Fehler: Tour {} hat keinen Tourleiter".format(titel))
 
         except Exception as e:
-            logger.error("Fehler in der Tour %s: %s", titel, e)
+            logger.exception("Fehler in der Tour '%s': %s", titel, e)
             print("Fehler in der Tour '", titel, "': ", e)
             return
 
         print("{} ${} {} {}".format(titel, radTyp, tourNummer, tourTyp))
         print("{} ${}$ ${}".format(datum, strecke, schwierigkeit))
-        if höhenmeter != "0" and len(character) > 0:
-            print("${} m; {}".format(höhenmeter, character))
-        elif höhenmeter != "0":
-            print("${} m".format(höhenmeter))
+        if hoehenmeter != "0" and len(character) > 0:
+            print("${} m; {}".format(hoehenmeter, character))
+        elif hoehenmeter != "0":
+            print("${} m".format(hoehenmeter))
         elif len(character) > 0:
             print(character)
         for abfahrt in abfahrten:
@@ -78,15 +78,15 @@ class TextHandler:
         try:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            tourTyp = tour.getKategorie()
+            terminTyp = tour.getKategorie()
             datum = tour.getDatum()
-            logger.info("tourTyp %s datum %s", tourTyp, datum)
+            logger.info("terminTyp %s datum %s", terminTyp, datum)
 
-            abfahrten = tour.getAbfahrten()
-            if len(abfahrten) == 0:
+            zeiten = tour.getAbfahrten()
+            if len(zeiten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
                 return
-            logger.info("abfahrten %s ", str(abfahrten))
+            logger.info("zeiten %s ", str(zeiten))
 
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
@@ -96,14 +96,14 @@ class TextHandler:
             logger.info("kategorie %s", kategorie)
 
         except Exception as e:
-            logger.exception("Fehler in der Tour '%s': %s", titel, e)
-            print("\nFehler in der Tour '", titel, "': ", e)
+            logger.exception("Fehler im Termin '%s': %s", titel, e)
+            print("\nFehler im Termin '", titel, "': ", e)
             return
 
-        print("\n{} - {}".format(titel, tourTyp)) # tourTyp z.B. Stammtisch, entbehrlich?
+        print("\n{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
-        for abfahrt in abfahrten:
-            print("${} Uhr; {}".format(abfahrt[0], abfahrt[1]))
+        for zeit in zeiten:
+            print("${} Uhr; {}".format(zeit[0], zeit[1]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:

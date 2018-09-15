@@ -23,10 +23,12 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
         begSZ = "2019-03-31"
         endSZ = "2019-10-27"
         sz = beginning >= begSZ and beginning < endSZ
+    """ Zeitumstellung wird eh 2020 abgeschafft!?
     elif beginning.startswith("2020"):
-        begSZ = "2019-03-29"
-        endSZ = "2019-10-25"
+        begSZ = "2020-03-29"
+        endSZ = "2020-10-25"
         sz = beginning >= begSZ and beginning < endSZ
+    """
     else:
         raise ValueError("year " + beginning + " not configured")
     epochGmt = time.mktime(d)
@@ -41,31 +43,29 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
 class SAXHandler(xml.sax.handler.ContentHandler):
     def __init__(self):
         self.r = []
-
     def startElement(self, name, attrs):
         pass
-
     def endElement(self, name):
         pass
-
     def characters(self, content):
         self.r.append(content)
-
     def ignorableWhiteSpace(self, whitespace):
         pass
-
     def skippedEntity(self, name):
         pass
-
     def val(self):
         return "".join(self.r)
 
 def removeHTML(s):
-    if s.find("<span") == -1 and s.find("<br>") == -1:  # no HTML
+    if s.find("<span") == -1:  # no HTML
         return s
-    htmlHandler = SAXHandler()
-    xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
-    return htmlHandler.val()
+    try:
+        htmlHandler = SAXHandler()
+        xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
+        return htmlHandler.val()
+    except:
+        logger.exception("can not parse '%s'", s )
+        return s
 
 class Tour:
     def __init__(self, tourJS):
@@ -73,7 +73,8 @@ class Tour:
         self.tourLocations = tourJS.get("tourLocations")
         self.itemTags = tourJS.get("itemTags")
         self.eventItem = tourJS.get("eventItem")
-        self.titel = self.eventItem.get("title")
+        self.titel = self.eventItem.get("title").strip()
+        logger.info("eventItemId %s", self.eventItem.get("eventItemId"))
 
     def getTitel(self):
         return self.titel
@@ -101,8 +102,9 @@ class Tour:
     def getBeschreibung(self, removeNL):
         desc = self.eventItem.get("description")
         if removeNL:
-            desc = desc.replace("\n", " ")
+            desc = desc.replace("\n", "<br>").replace("<br><br>", "<br>")
         else:
+            desc = desc.replace("<br>", "\n")
             desc = desc.replace("\n\n", "\n")
         desc = removeHTML(desc)
         desc = desc.strip()
@@ -177,7 +179,7 @@ class Tour:
         l = self.eventItem.get("cTourLengthKm")
         return str(l) + " km"
 
-    def getHöhenmeter(self):
+    def getHoehenmeter(self):
         h = self.eventItem.get("cTourHeight")
         return str(h)
 
