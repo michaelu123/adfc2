@@ -23,12 +23,12 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
         begSZ = "2019-03-31"
         endSZ = "2019-10-27"
         sz = beginning >= begSZ and beginning < endSZ
-    """ Zeitumstellung wird eh 2020 abgeschafft!?
-    elif beginning.startswith("2020"):
-        begSZ = "2020-03-29"
-        endSZ = "2020-10-25"
-        sz = beginning >= begSZ and beginning < endSZ
-    """
+        """ Zeitumstellung wird eh 2020 abgeschafft!?
+        elif beginning.startswith("2020"):
+            begSZ = "2020-03-29"
+            endSZ = "2020-10-25"
+            sz = beginning >= begSZ and beginning < endSZ
+        """
     else:
         raise ValueError("year " + beginning + " not configured")
     epochGmt = time.mktime(d)

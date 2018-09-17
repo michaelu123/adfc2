@@ -21,7 +21,7 @@ class TourServer:
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/search?unitKey=" + unitKey)
             resp = self.tpConn.getresponse()
-            logger.debug("resp %s %s ", type(resp), str(resp))
+            logger.debug("http status  %d", resp.getcode())
             jsRoot = json.load(resp)
         else:
             resp = None

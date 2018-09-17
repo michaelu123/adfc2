@@ -1,6 +1,10 @@
 # encoding: utf-8
 
-import scribus
+try:
+    import scribus
+except ModuleNotFoundError:
+    raise ImportError
+
 from myLogger import logger
 
 yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]

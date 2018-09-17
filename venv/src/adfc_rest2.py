@@ -35,9 +35,13 @@ def toDate(dmy): # 21.09.2018
     return y + "-" + m + "-" + d # 2018-09-21
 
 try:
-    import scribusHandler
+    arg0 = sys.argv[0]
+    if arg0.find(".py") == -1:
+        raise ImportError
+    else:
+        import scribusHandler
     import httplib  # scribus seems to use Python 2
-    handler = scribusHandler.ScribusHandler()
+    #handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.TourServer(True, handler.getUseRest())
     unitKey = handler.getUnitKey()
     start = handler.getStart()
@@ -51,8 +55,8 @@ except ImportError:
     parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
     parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true", help="Aktuelle Daten werden vom Server geholt")
     parser.add_argument("-d", "--debug", dest="usePH", action="store_true", help="Debug Ausgabe")
-    parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles", default="A")
-    parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles", default="A")
+    parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles), default=A", default="A")
+    parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A", default="A")
     parser.add_argument("nummer", help="Gliederungsnummer, z.B. 152059 für München")
     parser.add_argument("start", help="Startdatum (TT.MM.YYYY)")
     parser.add_argument("end", help="Endedatum (TT.MM.YYYY)")
