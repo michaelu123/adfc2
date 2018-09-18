@@ -1,5 +1,7 @@
 from tkinter import *
 from tkinter.filedialog import asksaveasfilename
+from tkinter.simpledialog import askstring
+
 import myLogger
 import sys
 import os
@@ -26,27 +28,40 @@ class TxtWriter:
     def write(self, s):
         self.txt.insert("end", s)
 
+def key(event):
+    print("pressed", repr(event.char))
+
 class MyApp(Frame):
     def __init__(self, master):
         super().__init__(master)
         self.savFile = None
+        self.pos = None
+        self.searchVal = ""
         menuBar = Menu(master)
-
+        #master.bind("<Key>", key)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
-        menuFile.add_command(label = "Speichern", command=self.speichern)
-        menuFile.add_command(label = "Speichern unter", command=self.speichernUnter)
-        menuBar.add_cascade(label="Datei", menu=menuFile)
+        menuFile.add_command(label = "Speichern", command=self.store, accelerator="Ctrl+s")
+        master.bind_all("<Control-s>", self.store)
+        menuFile.add_command(label = "Speichern unter", command=self.storeas)
+        menuBar.add_cascade(label = "Datei", menu=menuFile)
 
         menuEdit = Menu(menuBar)
-        menuEdit.add_command(label = "Ausschneiden", command=self.cut)
-        menuEdit.add_command(label = "Kopieren", command=self.copy)
-        menuEdit.add_command(label = "Einfügen", command=self.paste)
-        menuBar.add_cascade(label="Bearbeiten", menu=menuEdit)
+        menuEdit.add_command(label = "Ausschneiden", command=self.cut, accelerator="Ctrl+x")
+        master.bind_all("<Control-x>", self.cut)
+        menuEdit.add_command(label = "Kopieren", command=self.copy, accelerator="Ctrl+c")
+        master.bind_all("<Control-c>", self.copy)
+        menuEdit.add_command(label = "Einfügen", command=self.paste, accelerator="Ctrl+v")
+        master.bind_all("<Control-v>", self.paste)
+        menuEdit.add_command(label = "Suchen", command=self.search, accelerator="Ctrl+f")
+        master.bind_all("<Control-f>", self.search)
+        menuEdit.add_command(label = "Erneut suchen", command=self.searchAgain, accelerator="F3")
+        master.bind_all("<F3>", self.searchAgain)
+        menuBar.add_cascade(label = "Bearbeiten", menu=menuEdit)
 
         self.createWidgets(master)
 
-    def speichern(self):
+    def store(self, *args):
         if self.savFile == None or self.savFile == "":
             self.fileHandler2()
             return
@@ -54,33 +69,45 @@ class MyApp(Frame):
             s = self.text.get("1.0", END)
             savFile.write(s)
 
-    def speichernUnter(self):
+    def storeas(self, *args):
         self.savFile = asksaveasfilename()
         if self.savFile == None or self.savFile == "":
             return
         self.fileHandler1()
 
-    def cut(self):
+    def cut(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
         self.clipboard_clear()
         self.clipboard_append(savedText)
         self.text.delete(SEL_FIRST, SEL_LAST)
 
-    def copy(self):
+    def copy(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
         self.clipboard_clear()
         self.clipboard_append(savedText)
 
-    def paste(self):
+    def paste(self, *args):
         savedText = self.clipboard_get()
         if savedText is None or savedText == "":
             return
         ranges = self.text.tag_ranges(SEL)
-        print("ranges=", ranges, "len ", len(ranges))
         if len(ranges) == 2:
-            self.text.replace(ranges[0], ranges[1], savedText)
+            self.text.replace(ranges.first, ranges.last, savedText)
         else:
             self.text.insert(INSERT, savedText)
+
+    def search(self, *args):
+        self.searchVal = askstring("Suchen", "Bitte Suchstring eingeben", initialvalue=self.searchVal)
+        if self.searchVal is None:
+            return
+        self.searchAgain()
+
+    def searchAgain(self, *args):
+        self.pos = self.text.search(self.searchVal, INSERT + "+1c", END)
+        if self.pos != "":
+            self.text.mark_set(INSERT, self.pos)
+            self.text.see(self.pos)
+        self.text.focus_set()
 
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
@@ -136,7 +163,7 @@ class MyApp(Frame):
         startBtn = Button(master, text="Start", command=self.starten)
 
         textContainer = Frame(master, borderwidth=1, relief="sunken")
-        self.text = Text(textContainer, wrap="none", borderwidth=0, width=100, height=50)
+        self.text = Text(textContainer, wrap="none", borderwidth=0, cursor="arrow") # width=100, height=40,
         textVsb = Scrollbar(textContainer, orient="vertical", command=self.text.yview)
         textHsb = Scrollbar(textContainer, orient="horizontal", command=self.text.xview)
         self.text.configure(yscrollcommand=textVsb.set, xscrollcommand=textHsb.set)
@@ -147,23 +174,24 @@ class MyApp(Frame):
         textContainer.grid_columnconfigure(0, weight=1)
 
         for x in range(4):
-            Grid.columnconfigure(master, x, weight=1)
-        for y in range(4):
-            Grid.rowconfigure(master, y, weight=1)
-        useRestCB.grid(row=0, column=0, padx=10,pady=10, sticky="w")
-        usePHCB.grid(row=0, column=1, padx=10,pady=10, sticky="w")
-        typenLF.grid(row=1, column=0,padx=10,pady=10, sticky="w")
-        radTypenLF.grid(row=1, column=1,padx=10,pady=10, sticky="w")
-        gliederungLB.grid(row=2, column=0,padx=10,pady=10, sticky="w")
-        gliederung.grid(row=2, column=1,padx=10,pady=10, sticky="w")
-        startDateLB.grid(row=3, column=0,padx=10,pady=10, sticky="w")
-        startDate.grid(row=3, column=1,padx=10,pady=10, sticky="w")
-        endDateLB.grid(row=3, column=2,padx=10,pady=10, sticky="w")
-        endDate.grid(row=3, column=3,padx=10,pady=10, sticky="w")
-        startBtn.grid(row=4, padx=10, pady=10, sticky="w")
-        textContainer.grid(row=5,columnspan = 4, padx=10,pady=10, sticky="ew")
-        self.text.insert("end", "111111111111111111111111111111111111111abc11111111111111111111111111111111111111111\n")
-        self.text.insert("end", "22222222222222222222222222222222222222222222222222222222222222222222222222222222\n")
+            Grid.columnconfigure(master, x, weight= 1 if x == 3 else 0)
+        for y in range(6):
+            Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
+        useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
+        usePHCB.grid(row=0, column=1, padx=5,pady=5, sticky="w")
+        typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
+        radTypenLF.grid(row=1, column=1,padx=5,pady=5, sticky="w")
+        gliederungLB.grid(row=2, column=0,padx=5,pady=5, sticky="w")
+        gliederung.grid(row=2, column=1,padx=5,pady=5, sticky="w")
+        startDateLB.grid(row=3, column=0,padx=5,pady=5, sticky="w")
+        startDate.grid(row=3, column=1,padx=5,pady=5, sticky="w")
+        endDateLB.grid(row=3, column=2,padx=5,pady=5, sticky="w")
+        endDate.grid(row=3, column=3,padx=5,pady=5, sticky="w")
+        startBtn.grid(row=4, padx=5, pady=5, sticky="w")
+        textContainer.grid(row=5,columnspan = 4, padx=5,pady=5, sticky="nsew")
+
+        self.pos = "1.0"
+        self.text.mark_set(INSERT, self.pos)
 
     def starten(self):
         useRest = self.useRestVar.get()
@@ -194,6 +222,9 @@ class MyApp(Frame):
                     if radTyp != "Alles" and tour.getRadTyp() != radTyp:
                         continue
                     handler.handleTour(tour)
+        self.pos = "1.0"
+        self.text.mark_set(INSERT, self.pos)
+        self.text.focus_set()
 
 root = Tk()
 app = MyApp(root)
