@@ -120,6 +120,14 @@ class MyApp(Frame):
             self.text.see(self.pos)
         self.text.focus_set()
 
+    def typHandler(self, *thargs):
+        typ = self.typVar.get()
+        for rtBtn in self.radTypBtns:
+            if typ == "Termin":
+                rtBtn.config(state=DISABLED)
+            else:
+                rtBtn.config(state=NORMAL)
+
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
         self.useRestVar.set(False)
@@ -135,7 +143,7 @@ class MyApp(Frame):
         typenLF["text"] = "Typen"
         self.typVar = StringVar()
         for typ in typen:
-            typRB = Radiobutton(typenLF, text=typ, value=typ, variable = self.typVar)# , command = self.typHandler)
+            typRB = Radiobutton(typenLF, text=typ, value=typ, variable = self.typVar, command = self.typHandler)
             if typ == "Alles":
                 typRB.select()
             else:
@@ -147,8 +155,10 @@ class MyApp(Frame):
         radTypenLF = LabelFrame(master)
         radTypenLF["text"] = "Fahrradtyp"
         self.radTypVar = StringVar()
+        self.radTypBtns = []
         for radTyp in radTypen:
             radTypRB = Radiobutton(radTypenLF, text=radTyp, value=radTyp, variable = self.radTypVar) #, command = self.radTypHandler)
+            self.radTypBtns.append(radTypRB)
             if radTyp == "Alles":
                 radTypRB.select()
             else:
