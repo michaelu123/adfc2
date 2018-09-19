@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+# printHandler produziert output a la KV Starnberg
 from myLogger import logger
 
 class DatenTest: # just log data

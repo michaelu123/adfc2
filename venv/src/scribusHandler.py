@@ -76,10 +76,10 @@ class ScribusHandler:
     def handleTextfeld(self, stil,textelement):
         logger.info("Textfeld: stil=%s text=%s", stil, textelement)
         if textelement != None:
-            scribus.setStyle(stil,self.textbox)
-            scribus.insertText(textelement+'\n',-1,self.textbox)
+            zeilen = textelement.split("\n")
+            self.handleTextfeldList(stil, zeilen)
 
-    def handleTextfeldList(self, stil,textList):
+    def handleTextfeldList(self, stil, textList):
         logger.info("TextfeldList: stil=%s text=%s", stil, str(textList))
         for text in textList:
             if len(text) == 0:

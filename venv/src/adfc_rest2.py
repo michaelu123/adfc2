@@ -41,7 +41,7 @@ try:
     else:
         import scribusHandler
     import httplib  # scribus seems to use Python 2
-    #handler = scribusHandler.ScribusHandler()
+    handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.TourServer(True, handler.getUseRest())
     unitKey = handler.getUnitKey()
     start = handler.getStart()

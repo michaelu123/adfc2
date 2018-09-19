@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter.filedialog import asksaveasfilename
 from tkinter.simpledialog import askstring
 
+# textHandler produziert output a la KV München
 import myLogger
 import sys
 import os
@@ -120,7 +121,7 @@ class MyApp(Frame):
             self.text.see(self.pos)
         self.text.focus_set()
 
-    def typHandler(self, *thargs):
+    def typHandler(self):
         typ = self.typVar.get()
         for rtBtn in self.radTypBtns:
             if typ == "Termin":

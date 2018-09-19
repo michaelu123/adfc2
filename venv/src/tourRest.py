@@ -67,6 +67,26 @@ def removeHTML(s):
         logger.exception("can not parse '%s'", s )
         return s
 
+# Clean text
+def normalizeText(t):
+    '''Rip off blank paragraphs, double spaces, html tags, quotes etc.'''
+    t = t.strip()
+    while t.count('\t'):
+        t = t.replace('\t', '')
+    while t.count('  '):
+        t = t.replace('  ', ' ')
+    while t.count('<br>'):
+        t = t.replace('<br>', '\n')
+    while t.count('\r'):  # DOS/Windows paragraph end.
+        t = t.replace('\r', '\n')  # Change by new line
+    while t.count(' \n'):
+        t = t.replace(' \n', '\n')
+    while t.count('\n '):
+        t = t.replace('\n ', '\n')
+    while t.count('\n\n'):
+        t = t.replace('\n\n', '\n')
+    return t
+
 class Tour:
     def __init__(self, tourJS):
         self.tourJS = tourJS
@@ -101,13 +121,13 @@ class Tour:
 
     def getBeschreibung(self, removeNL):
         desc = self.eventItem.get("description")
+        """
         if removeNL:
             desc = desc.replace("\n", "<br>").replace("<br><br>", "<br>")
         else:
-            desc = desc.replace("<br>", "\n")
-            desc = desc.replace("\n\n", "\n")
+        """
+        desc = normalizeText(desc)
         desc = removeHTML(desc)
-        desc = desc.strip()
         return desc
 
     def isTermin(self):
