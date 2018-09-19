@@ -28,8 +28,20 @@ class TxtWriter:
     def write(self, s):
         self.txt.insert("end", s)
 
-def key(event):
-    print("pressed", repr(event.char))
+class LabelEntry(Frame):
+    def __init__(self, master, labeltext, stringtext):
+        super().__init__(master)
+        self.label = Label(self, text=labeltext)
+        self.svar = StringVar()
+        self.svar.set(stringtext)
+        self.entry = Entry(self, textvariable=self.svar, width=10, borderwidth=2)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.label.grid(row=0, column=0,sticky="w")
+        self.entry.grid(row=0,column=1,sticky="w")
+
+    def get(self):
+        return self.svar.get()
 
 class MyApp(Frame):
     def __init__(self, master):
@@ -38,7 +50,6 @@ class MyApp(Frame):
         self.pos = None
         self.searchVal = ""
         menuBar = Menu(master)
-        #master.bind("<Key>", key)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
         menuFile.add_command(label = "Speichern", command=self.store, accelerator="Ctrl+s")
@@ -145,21 +156,9 @@ class MyApp(Frame):
             #radTypRB.pack(anchor="w")
             radTypRB.grid(sticky="w")
 
-        gliederungLB = Label(master, text="Gliederung bitte rechts eingeben:")
-        self.gliederungVar = StringVar()
-        self.gliederungVar.set("152085")
-        gliederung = Entry(master, textvariable=self.gliederungVar)
-
-        startDateLB = Label(master, text="Start Datum")
-        self.startDateVar = StringVar()
-        self.startDateVar.set("01.01.2018")
-        startDate = Entry(master, textvariable=self.startDateVar)
-
-        endDateLB = Label(master, text="Ende Datum")
-        self.endDateVar = StringVar()
-        self.endDateVar.set("31.12.2019")
-        endDate = Entry(master, textvariable=self.endDateVar)
-
+        self.gliederungLE = LabelEntry(master, "Gliederung:", "152085")
+        self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
+        self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
         startBtn = Button(master, text="Start", command=self.starten)
 
         textContainer = Frame(master, borderwidth=1, relief="sunken")
@@ -173,20 +172,18 @@ class MyApp(Frame):
         textContainer.grid_rowconfigure(0, weight=1)
         textContainer.grid_columnconfigure(0, weight=1)
 
-        for x in range(4):
-            Grid.columnconfigure(master, x, weight= 1 if x == 3 else 0)
+        for x in range(2):
+            Grid.columnconfigure(master, x, weight= 1 if x == 1 else 0)
         for y in range(6):
             Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
         useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
         usePHCB.grid(row=0, column=1, padx=5,pady=5, sticky="w")
         typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
         radTypenLF.grid(row=1, column=1,padx=5,pady=5, sticky="w")
-        gliederungLB.grid(row=2, column=0,padx=5,pady=5, sticky="w")
-        gliederung.grid(row=2, column=1,padx=5,pady=5, sticky="w")
-        startDateLB.grid(row=3, column=0,padx=5,pady=5, sticky="w")
-        startDate.grid(row=3, column=1,padx=5,pady=5, sticky="w")
-        endDateLB.grid(row=3, column=2,padx=5,pady=5, sticky="w")
-        endDate.grid(row=3, column=3,padx=5,pady=5, sticky="w")
+        self.gliederungLE.grid(row=2, column=0,padx=5,pady=5, sticky="w")
+        self.startDateLE.grid(row=3, column=0,padx=5,pady=5, sticky="w")
+        self.endDateLE.grid(row=3, column=1,padx=5,pady=5, sticky="w")
+
         startBtn.grid(row=4, padx=5, pady=5, sticky="w")
         textContainer.grid(row=5,columnspan = 4, padx=5,pady=5, sticky="nsew")
 
@@ -198,9 +195,9 @@ class MyApp(Frame):
         usePH = self.usePHVar.get()
         type = self.typVar.get()
         radTyp = self.radTypVar.get()
-        unitKey = self.gliederungVar.get().strip()
-        start = toDate(self.startDateVar.get().strip())
-        end = toDate(self.endDateVar.get().strip())
+        unitKey = self.gliederungLE.get().strip()
+        start = toDate(self.startDateLE.get().strip())
+        end = toDate(self.endDateLE.get().strip())
 
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)

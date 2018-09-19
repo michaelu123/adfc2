@@ -5,6 +5,7 @@ from myLogger import logger
 class TextHandler:
     def handleTour(self, tour):
         try:
+            print()
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             sep = titel.rfind("#")
@@ -36,8 +37,9 @@ class TextHandler:
             strecke = tour.getStrecke()
             if strecke == "0 km":
                 logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
-                print("Fehler: Tour {} hat keine Tourlänge".format(titel))
-            logger.info("strecke %s", strecke)
+                print("Fehler: Tour %s hat keine Tourlänge" % titel)
+            else:
+                logger.info("strecke %s", strecke)
             hoehenmeter = tour.getHoehenmeter()
             character = tour.getCharacter()
 
@@ -49,7 +51,7 @@ class TextHandler:
             logger.info("personen %s", str(personen))
             if len(personen) == 0:
                 logger.error("Fehler: Tour %s hat keinen Tourleiter", titel)
-                print("Fehler: Tour {} hat keinen Tourleiter".format(titel))
+                print("Fehler: Tour %s hat keinen Tourleiter" % titel)
 
         except Exception as e:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
@@ -72,7 +74,6 @@ class TextHandler:
                 continue
             print(info)
         print("Leitung: {}".format(", ".join(personen)))
-        print()
 
     def handleTermin(self, tour):
         try:

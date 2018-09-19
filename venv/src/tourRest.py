@@ -37,7 +37,7 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
     newDay = mezTuple.tm_yday
     mez = time.strftime("%Y-%m-%dT%H:%M:%S", mezTuple)
     if oldDay != newDay:
-        raise ValueError("day rollover for tour %s from %s to %s", titel, beginning, mez)
+        raise ValueError("day rollover for tour %s from %s to %s" % (titel, beginning, mez))
     return mez
 
 class SAXHandler(xml.sax.handler.ContentHandler):

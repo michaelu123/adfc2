@@ -54,8 +54,6 @@ class PrintHandler:
         names = ", ".join(TLs)
         self.scribus.insertText(names)
         self.scribus.insertText('\n')
-        if len(TLs) == 0:
-            self.scribus.insertText("Fehler: Keine Tourleiter!\n")
 
     def handleTitel(self, tt):
         logger.info("Titel: titel=%s", tt)
@@ -72,6 +70,7 @@ class PrintHandler:
 
     def handleTour(self, tour):
         try:
+            self.scribus.insertText('\n')
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             datum = tour.getDatum()
@@ -104,7 +103,11 @@ class PrintHandler:
                     schwierigkeit = "*" * int(schwierigkeit)
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
-            logger.info("strecke %s", strecke)
+            if strecke == "0 km":
+                logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
+                print("Fehler: Tour %s hat keine Tourlänge" % titel)
+            else:
+                logger.info("strecke %s", strecke)
 
             if kategorie == 'Mehrtagestour':
                 enddatum = tour.getEndDatum()
@@ -114,18 +117,18 @@ class PrintHandler:
             logger.info("personen %s", str(personen))
             if len(personen) == 0:
                 logger.error("Tour %s hat keinen Tourleiter", titel)
+                print("Fehler: Tour %s hat keinen Tourleiter" % titel)
 
         except Exception as e:
             logger.error("Fehler in der Tour %s: %s", titel, e)
             print("\nFehler in der Tour ", titel, ": ", e)
             return
 
-        self.scribus.insertText('\n')
         if kategorie == 'Mehrtagestour':
             self.handleKopfzeileMehrtage(datum, enddatum, kategorie, schwierigkeit, strecke)
         else:
             self.handleKopfzeile(datum, kategorie, schwierigkeit, strecke)
-            self.handleTitel(titel)
+        self.handleTitel(titel)
         for abfahrt in abfahrten:
             self.handleAbfahrt(abfahrt)
         self.handleTextfeld('Radtour_beschreibung',beschreibung)
