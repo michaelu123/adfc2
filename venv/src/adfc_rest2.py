@@ -98,6 +98,8 @@ else:
     raise ValueError("Rad muss R für Rennrad, T für Tourenrad, M für Mountainbike, oder A für alles sein")
 
 touren = tourServerVar.getTouren(unitKey, start, end, type)
+if len(touren) == 0:
+    handler.nothingFound()
 for tour in touren:
     eventItemId = tour.get("eventItemId");
     tour = tourServerVar.getTour(eventItemId)

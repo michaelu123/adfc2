@@ -12,6 +12,10 @@ class PrintHandler:
     def __init__(self):
         self.scribus = DatenTest()
 
+    def nothingFound(self):
+        logger.info("Nichts gefunden")
+        self.scribus.insertText("Nichts gefunden\n")
+
     def handleAbfahrt(self, abfahrt):
         # abfahrt = (beginning, loc)
         uhrzeit = abfahrt[0]

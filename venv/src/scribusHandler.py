@@ -65,6 +65,10 @@ class ScribusHandler:
              scribus.createParagraphStyle(style)
              scribus.setStyle(style, frame)
 
+    def nothingFound(self):
+        logger.info("Nichts gefunden")
+        self.scribus.insertText("Nichts gefunden\n")
+
     def handleAbfahrt(self, abfahrt):
         # abfahrt = (beginning, loc)
         uhrzeit = abfahrt[0]

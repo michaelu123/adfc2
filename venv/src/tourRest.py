@@ -72,7 +72,9 @@ def normalizeText(t):
     '''Rip off blank paragraphs, double spaces, html tags, quotes etc.'''
     t = t.strip()
     while t.count('\t'):
-        t = t.replace('\t', '')
+        t = t.replace('\t', ' ')
+    while t.count('\xa0'):
+        t = t.replace('\xa0', ' ')
     while t.count('  '):
         t = t.replace('  ', ' ')
     while t.count('<br>'):
@@ -138,8 +140,8 @@ class Tour:
             return "-"
         schwierigkeit = self.eventItem.get("cTourDifficulty")
         # apparently either 0 or between 1.0 and 5.0
-        i = int(schwierigkeit + 0.499)
-        return i # ["unbekannt", "einfach", "mittel", "schwer", "sehr schwer"][i] ??
+        i = int(schwierigkeit + 0.5)
+        return i # ["unbekannt", "sehr einfach, "einfach", "mittel", "schwer", "sehr schwer"][i] ??
 
     def getKategorie(self):
         for itemTag in self.itemTags:
@@ -261,3 +263,6 @@ class Tour:
         if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
             personen.append(organizer2)
         return personen
+
+    def getImagePreview(self):
+        return self.tourJS.get("imagePreview")

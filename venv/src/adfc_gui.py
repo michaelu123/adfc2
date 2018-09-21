@@ -10,6 +10,8 @@ import tourServer
 import textHandler
 import printHandler
 import contextlib
+import base64
+from PIL import ImageTk
 
 def toDate(dmy):  # 21.09.2018
     d = dmy[0:2]
@@ -50,6 +52,7 @@ class MyApp(Frame):
         self.savFile = None
         self.pos = None
         self.searchVal = ""
+        self.images = []
         menuBar = Menu(master)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
@@ -73,9 +76,14 @@ class MyApp(Frame):
 
         self.createWidgets(master)
 
+    def createPhoto(self, b64):
+        binary = base64.decodebytes(b64.encode())
+        photo = ImageTk.PhotoImage(data=binary)
+        return photo
+
     def store(self, *args):
         if self.savFile == None or self.savFile == "":
-            self.fileHandler2()
+            self.storeas()
             return
         with open(self.savFile, "w") as savFile:
             s = self.text.get("1.0", END)
@@ -85,7 +93,7 @@ class MyApp(Frame):
         self.savFile = asksaveasfilename()
         if self.savFile == None or self.savFile == "":
             return
-        self.fileHandler1()
+        self.store()
 
     def cut(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
@@ -209,6 +217,7 @@ class MyApp(Frame):
         unitKey = self.gliederungLE.get().strip()
         start = toDate(self.startDateLE.get().strip())
         end = toDate(self.endDateLE.get().strip())
+        self.images.clear()
 
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)
@@ -221,9 +230,17 @@ class MyApp(Frame):
 
         touren = tourServerVar.getTouren(unitKey, start, end, type)
         with contextlib.redirect_stdout(txtWriter):
+            if len(touren) == 0:
+                handler.nothingFound()
             for tour in touren:
-                eventItemId = tour.get("eventItemId");
-                tour = tourServerVar.getTour(eventItemId)
+                print()
+                tour = tourServerVar.getTour(tour)
+                img = tour.getImagePreview()
+                if img != None:
+                    photo = self.createPhoto(img)
+                    self.images.append(photo)  # see http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
+                    self.text.image_create(INSERT, image=photo)
+                    print()
                 if tour.isTermin():
                     handler.handleTermin(tour)
                 else:

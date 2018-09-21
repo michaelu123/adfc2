@@ -9,6 +9,7 @@ class TourServer:
     def __init__(self, py2, useResta):
         self.useRest = useResta
         self.tpConn = None
+        os.makedirs("c:/temp/tpjson", exist_ok = True)
         if py2:
             import httplib  # scribus seems to use Python 2
             self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
@@ -30,8 +31,10 @@ class TourServer:
 
         items = jsRoot.get("items")
         touren = []
+        if len(items) == 0:
+            return touren
         for item in iter(items):
-            item["imagePreview"] = ""  # save space
+            #item["imagePreview"] = ""  # save space
             titel = item.get("title")
             if titel is None:
                 logger.error("Kein Titel für die Tour %s", str(item))
@@ -58,8 +61,10 @@ class TourServer:
         touren.sort(key=tourdate)  # sortieren nach Datum
         return touren
 
-    def getTour(self, eventItemId):
+    def getTour(self, tour):
         global tpConn
+        eventItemId = tour.get("eventItemId");
+        imagePreview = tour.get("imagePreview")
         jsonPath = "c:/temp/tpjson/" + eventItemId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/" + eventItemId)
@@ -67,6 +72,7 @@ class TourServer:
             logger.debug("resp %d %s", resp.status, resp.reason)
             tourJS = json.load(resp)
             tourJS["eventItemFiles"] = None  # save space
+            tourJS["imagePreview"] = imagePreview
             # if not os.path.exists(jsonPath):
             with open(jsonPath, "w") as jsonFile:
                 json.dump(tourJS, jsonFile, indent=4)

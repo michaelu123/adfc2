@@ -3,9 +3,12 @@
 from myLogger import logger
 
 class TextHandler:
+    def nothingFound(self):
+        logger.info("Nichts gefunden")
+        print("Nichts gefunden")
+
     def handleTour(self, tour):
         try:
-            print()
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             sep = titel.rfind("#")
@@ -33,6 +36,8 @@ class TextHandler:
             kategorie = tour.getKategorie()
             logger.info("kategorie %s", kategorie)
             schwierigkeit = str(tour.getSchwierigkeit())
+            if schwierigkeit == "0":
+                schwierigkeit = "1"
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
             if strecke == "0 km":
@@ -101,7 +106,7 @@ class TextHandler:
             print("\nFehler im Termin '", titel, "': ", e)
             return
 
-        print("\n{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
             print("${} Uhr; {}".format(zeit[0], zeit[1]))
