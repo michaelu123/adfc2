@@ -28,11 +28,13 @@ class TourServer:
             resp = None
             with open(jsonPath, "r") as jsonFile:
                 jsRoot = json.load(jsonFile)
-
         items = jsRoot.get("items")
         touren = []
         if len(items) == 0:
             return touren
+        if not resp is None:  # and not os.path.exists(jsonPath):
+            with open(jsonPath, "w") as jsonFile:
+                json.dump(jsRoot, jsonFile, indent=4)
         for item in iter(items):
             #item["imagePreview"] = ""  # save space
             titel = item.get("title")
@@ -50,15 +52,6 @@ class TourServer:
                 continue
             # add other filter conditions here
             touren.append(item)
-
-        if not resp is None:  # and not os.path.exists(jsonPath):
-            with open(jsonPath, "w") as jsonFile:
-                json.dump(jsRoot, jsonFile, indent=4)
-
-        def tourdate(self):
-            return self.get("beginning")
-
-        touren.sort(key=tourdate)  # sortieren nach Datum
         return touren
 
     def getTour(self, tour):

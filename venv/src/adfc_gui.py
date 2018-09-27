@@ -37,7 +37,7 @@ class LabelEntry(Frame):
         self.label = Label(self, text=labeltext)
         self.svar = StringVar()
         self.svar.set(stringtext)
-        self.entry = Entry(self, textvariable=self.svar, width=10, borderwidth=2)
+        self.entry = Entry(self, textvariable=self.svar, width=len(stringtext) + 2, borderwidth=2)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.label.grid(row=0, column=0,sticky="w")
@@ -175,7 +175,7 @@ class MyApp(Frame):
             #radTypRB.pack(anchor="w")
             radTypRB.grid(sticky="w")
 
-        self.gliederungLE = LabelEntry(master, "Gliederung:", "152085")
+        self.gliederungLE = LabelEntry(master, "Gliederung(en):", "152085,15208501,15208507,15208512,15208514")
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
         startBtn = Button(master, text="Start", command=self.starten)
@@ -214,7 +214,7 @@ class MyApp(Frame):
         usePH = self.usePHVar.get()
         type = self.typVar.get()
         radTyp = self.radTypVar.get()
-        unitKey = self.gliederungLE.get().strip()
+        unitKeys = self.gliederungLE.get().split(",")
         start = toDate(self.startDateLE.get().strip())
         end = toDate(self.endDateLE.get().strip())
         self.images.clear()
@@ -228,7 +228,14 @@ class MyApp(Frame):
         else:
             handler = textHandler.TextHandler()
 
-        touren = tourServerVar.getTouren(unitKey, start, end, type)
+        touren = []
+        for unitKey in unitKeys:
+            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
+
+        def tourdate(self):
+            return self.get("beginning")
+        touren.sort(key=tourdate)  # sortieren nach Datum
+
         with contextlib.redirect_stdout(txtWriter):
             if len(touren) == 0:
                 handler.nothingFound()
