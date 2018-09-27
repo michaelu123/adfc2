@@ -9,7 +9,10 @@ class TourServer:
     def __init__(self, py2, useResta):
         self.useRest = useResta
         self.tpConn = None
-        os.makedirs("c:/temp/tpjson", exist_ok = True)
+        try:
+            os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
+        except:
+            pass
         if py2:
             import httplib  # scribus seems to use Python 2
             self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
@@ -20,9 +23,15 @@ class TourServer:
     def getTouren(self, unitKey, start, end, type):
         jsonPath = "c:/temp/tpjson/search-" + unitKey + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            self.tpConn.request("GET", "/api/eventItems/search?unitKey=" + unitKey)
+            if unitKey != None and unitKey != "":
+                self.tpConn.request("GET", "/api/eventItems/search?unitKey=" + unitKey)
+            else:
+                self.tpConn.request("GET", "/api/eventItems/search")
             resp = self.tpConn.getresponse()
-            logger.debug("http status  %d", resp.getcode())
+            try:
+                logger.debug("http status  %d", resp.getcode())
+            except: # Scribus/Python2.7 has no resp.getcode()
+                pass
             jsRoot = json.load(resp)
         else:
             resp = None
@@ -45,7 +54,10 @@ class TourServer:
                 continue;
             beginning = item.get("beginning")
             if beginning is None:
-                logger.error("Kein Beginn für die Tour %s", str(item))
+                logger.error("Kein Beginn für die Tour %s", titel)
+                continue
+            begDate = beginning[0:4]
+            if begDate < start[0:4] or begDate > end[0:4]:
                 continue
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:

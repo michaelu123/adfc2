@@ -43,7 +43,7 @@ try:
     import httplib  # scribus seems to use Python 2
     handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.TourServer(True, handler.getUseRest())
-    unitKey = handler.getUnitKey()
+    unitKeys = handler.getUnitKeys().split(",")
     start = handler.getStart()
     end = handler.getEnd()
     type = handler.getType()
@@ -57,11 +57,11 @@ except ImportError:
     parser.add_argument("-d", "--debug", dest="usePH", action="store_true", help="Debug Ausgabe")
     parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles), default=A", default="A")
     parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A", default="A")
-    parser.add_argument("nummer", help="Gliederungsnummer, z.B. 152059 für München")
+    parser.add_argument("nummer", help="Gliederungsnummer(n), z.B. 152059 für München, komma-separierte Liste")
     parser.add_argument("start", help="Startdatum (TT.MM.YYYY)")
     parser.add_argument("end", help="Endedatum (TT.MM.YYYY)")
     args = parser.parse_args()
-    unitKey = args.nummer
+    unitKeys = args.nummer.split(",")
     useRest = args.useRest
     #    useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
     start = args.start
@@ -97,12 +97,18 @@ elif radTyp == "A":
 else:
     raise ValueError("Rad muss R für Rennrad, T für Tourenrad, M für Mountainbike, oder A für alles sein")
 
-touren = tourServerVar.getTouren(unitKey, start, end, type)
+touren = []
+for unitKey in unitKeys:
+    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
+
+def tourdate(self):
+    return self.get("beginning")
+touren.sort(key=tourdate)  # sortieren nach Datum
+
 if len(touren) == 0:
     handler.nothingFound()
 for tour in touren:
-    eventItemId = tour.get("eventItemId");
-    tour = tourServerVar.getTour(eventItemId)
+    tour = tourServerVar.getTour(tour)
     if tour.isTermin():
         handler.handleTermin(tour)
     else:

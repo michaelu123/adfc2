@@ -11,7 +11,7 @@ yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt w
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
 type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=alles) (R/T/A)")
 rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
-unitKey = scribus.valueDialog("Gliederung", "Bitte Nummer der Gliederung angeben")
+unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
 start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
 end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
 
@@ -47,8 +47,8 @@ class ScribusHandler:
 
     def getUseRest(self):
         return useRest
-    def getUnitKey(self):
-        return unitKey
+    def getUnitKeys(self):
+        return unitKeys
     def getStart(self):
         return start
     def getEnd(self):
@@ -179,7 +179,7 @@ class ScribusHandler:
             if len(personen) == 0:
                 logger.error("Tour %s hat keinen Tourleiter", titel)
         except Exception as e:
-            logger.error("Fehler in der Tour %s: %s", titel, e)
+            logger.exception("Fehler in der Tour %s: %s", titel, e)
             return
 
         scribus.insertText('\n', -1, self.textbox)

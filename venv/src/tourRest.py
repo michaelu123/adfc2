@@ -37,7 +37,7 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
     newDay = mezTuple.tm_yday
     mez = time.strftime("%Y-%m-%dT%H:%M:%S", mezTuple)
     if oldDay != newDay:
-        raise ValueError("day rollover for tour %s from %s to %s" % (titel, beginning, mez))
+        logger.warning("day rollover from %s to %s", beginning, mez)
     return mez
 
 class SAXHandler(xml.sax.handler.ContentHandler):
@@ -73,8 +73,9 @@ def normalizeText(t):
     t = t.strip()
     while t.count('\t'):
         t = t.replace('\t', ' ')
-    while t.count('\xa0'):
-        t = t.replace('\xa0', ' ')
+    if type(t) == "str":  # crashes with Unicode/Scribus ??
+        while t.count('\xa0'):
+            t = t.replace('\xa0', ' ')
     while t.count('  '):
         t = t.replace('  ', ' ')
     while t.count('<br>'):
