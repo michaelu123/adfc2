@@ -11,7 +11,12 @@ import textHandler
 import printHandler
 import contextlib
 import base64
+import adfc_gliederungen
 from PIL import ImageTk
+
+name2num = {} # dict maps name to num
+num2name = {} # dict maps num to name
+
 
 def toDate(dmy):  # 21.09.2018
     d = dmy[0:2]
@@ -44,9 +49,30 @@ class LabelEntry(Frame):
         self.grid_columnconfigure(0, weight=1)
         self.label.grid(row=0, column=0,sticky="w")
         self.entry.grid(row=0,column=1,sticky="w")
-
     def get(self):
         return self.svar.get()
+
+class ListBoxSB(Frame):
+    def __init__(self, master, selFunc):
+        super().__init__(master)
+        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended")
+        self.gliederungLB.bind("<<ListboxSelect>>", selFunc)
+        self.entries = num2name.values()
+        self.entries = sorted(self.entries)
+        self.gliederungLB.insert("end", *self.entries)
+        self.lbVsb = Scrollbar(self, orient="vertical", command=self.gliederungLB.yview)
+        self.gliederungLB.configure(yscrollcommand=self.lbVsb.set)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.gliederungLB.grid(row=0, column=0,sticky="w")
+        self.lbVsb.grid(row=0,column=1,sticky="ns")
+    def curselection(self):
+        names = [ self.entries[i] for i in self.gliederungLB.curselection() ]
+        if "Alle" in names:
+            return "Alle"
+        s = ",".join( [name2num[name] for name in names] )
+        return s
 
 class MyApp(Frame):
     def __init__(self, master):
@@ -76,6 +102,9 @@ class MyApp(Frame):
         master.bind_all("<F3>", self.searchAgain)
         menuBar.add_cascade(label = "Bearbeiten", menu=menuEdit)
 
+        global num2name, name2num
+        num2name = adfc_gliederungen.gliederungDict
+        name2num = {num2name.get(k):k for k in num2name.keys() }
         self.createWidgets(master)
 
     def createPhoto(self, b64):
@@ -139,6 +168,10 @@ class MyApp(Frame):
             else:
                 rtBtn.config(state=NORMAL)
 
+    def gliederungSel(self, event):
+        sel = self.gliederungLB.curselection()
+        self.gliederungSvar.set(sel)
+
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
         self.useRestVar.set(False)
@@ -177,7 +210,12 @@ class MyApp(Frame):
             #radTypRB.pack(anchor="w")
             radTypRB.grid(sticky="w")
 
-        self.gliederungLE = LabelEntry(master, "Gliederung(en):", "152085,15208501,15208507,15208512,15208514")
+        # self.gliederungLE = LabelEntry(master, "Gliederung(en):", "152085,15208501,15208507,15208512,15208514")
+        self.gliederungLB = ListBoxSB(master, self.gliederungSel)
+        self.gliederungSvar = StringVar()
+        self.gliederungSvar.set("152085,15208501,15208507,15208512,15208514")
+        self.gliederungEN = Entry(master, textvariable=self.gliederungSvar, borderwidth=2, width=60)
+
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
         startBtn = Button(master, text="Start", command=self.starten)
@@ -196,17 +234,19 @@ class MyApp(Frame):
         for x in range(2):
             Grid.columnconfigure(master, x, weight= 1 if x == 1 else 0)
         for y in range(6):
-            Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
+            Grid.rowconfigure(master, y, weight= 1 if y == 5 or y == 2 else 0)
         useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
         usePHCB.grid(row=0, column=1, padx=5,pady=5, sticky="w")
         typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
         radTypenLF.grid(row=1, column=1,padx=5,pady=5, sticky="w")
-        self.gliederungLE.grid(row=2, column=0,padx=5,pady=5, sticky="w")
+        #self.gliederungLE.grid(row=2, column=0,padx=5,pady=5, sticky="w")
+        self.gliederungLB.grid(row=2, column=0,padx=5,pady=5, sticky="w")
+        self.gliederungEN.grid(row=2, column=1,padx=5,pady=5, sticky="w")
         self.startDateLE.grid(row=3, column=0,padx=5,pady=5, sticky="w")
         self.endDateLE.grid(row=3, column=1,padx=5,pady=5, sticky="w")
 
         startBtn.grid(row=4, padx=5, pady=5, sticky="w")
-        textContainer.grid(row=5,columnspan = 4, padx=5,pady=5, sticky="nsew")
+        textContainer.grid(row=5,columnspan = 2, padx=5,pady=5, sticky="nsew")
 
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
@@ -225,7 +265,7 @@ class MyApp(Frame):
         usePH = self.usePHVar.get()
         type = self.typVar.get()
         radTyp = self.radTypVar.get()
-        unitKeys = self.gliederungLE.get().split(",")
+        unitKeys = self.gliederungSvar.get().split(",")
         start = toDate(self.startDateLE.get().strip())
         end = toDate(self.endDateLE.get().strip())
         self.images.clear()
@@ -241,6 +281,8 @@ class MyApp(Frame):
 
         touren = []
         for unitKey in unitKeys:
+            if unitKey == "Alle":
+                unitKey = ""
             touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, not usePH))
 
         if isinstance(handler, textHandler.TextHandler) and (type == "Radtour" or type == "Alles"):
