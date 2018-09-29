@@ -73,6 +73,8 @@ class ListBoxSB(Frame):
             return "Alle"
         s = ",".join( [name2num[name] for name in names] )
         return s
+    def clearLB(self):
+        self.gliederungLB.selection_clear(0,len(self.entries))
 
 class MyApp(Frame):
     def __init__(self, master):
@@ -172,6 +174,9 @@ class MyApp(Frame):
         sel = self.gliederungLB.curselection()
         self.gliederungSvar.set(sel)
 
+    def clearLB(self, event):
+        self.gliederungLB.clearLB()
+
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
         self.useRestVar.set(False)
@@ -215,12 +220,13 @@ class MyApp(Frame):
         self.gliederungSvar = StringVar()
         self.gliederungSvar.set("152085,15208501,15208507,15208512,15208514")
         self.gliederungEN = Entry(master, textvariable=self.gliederungSvar, borderwidth=2, width=60)
+        self.gliederungEN.bind("<Key>", self.clearLB)
 
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
         startBtn = Button(master, text="Start", command=self.starten)
 
-        textContainer = Frame(master, borderwidth=1, relief="sunken")
+        textContainer = Frame(master, borderwidth=2, relief="sunken")
         self.text = Text(textContainer, wrap="none", borderwidth=0, cursor="arrow") # width=100, height=40,
         textVsb = Scrollbar(textContainer, orient="vertical", command=self.text.yview)
         textHsb = Scrollbar(textContainer, orient="horizontal", command=self.text.xview)
@@ -234,7 +240,7 @@ class MyApp(Frame):
         for x in range(2):
             Grid.columnconfigure(master, x, weight= 1 if x == 1 else 0)
         for y in range(6):
-            Grid.rowconfigure(master, y, weight= 1 if y == 5 or y == 2 else 0)
+            Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
         useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
         usePHCB.grid(row=0, column=1, padx=5,pady=5, sticky="w")
         typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
