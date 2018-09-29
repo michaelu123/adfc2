@@ -20,6 +20,8 @@ def toDate(dmy):  # 21.09.2018
         y = dmy[6:10]
     else:
         y = "20" + dmy[6:8]
+    if y < "2018":
+        raise ValueError("Kein Datum vor 2018 möglich")
     if int(d) == 0 or int(d) > 31 or int(m) == 0 or int(m) > 12 or int(y) < 2000 or int(y) > 2100:
         raise ValueError("Bitte Datum als dd.mm.jjjj angeben, nicht als " + dmy)
     return y + "-" + m + "-" + d  # 2018-09-21
@@ -209,6 +211,15 @@ class MyApp(Frame):
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
 
+    def insertImage(self, tour):
+        img = tour.getImagePreview()
+        if img != None:
+            print()
+            photo = self.createPhoto(img)
+            self.images.append(photo)  # see http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
+            self.text.image_create(INSERT, image=photo)
+            print()
+
     def starten(self):
         useRest = self.useRestVar.get()
         usePH = self.usePHVar.get()
@@ -230,7 +241,10 @@ class MyApp(Frame):
 
         touren = []
         for unitKey in unitKeys:
-            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
+            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, not usePH))
+
+        if isinstance(handler, textHandler.TextHandler) and (type == "Radtour" or type == "Alles"):
+            handler.calcNummern(tourServerVar)
 
         def tourdate(self):
             return self.get("beginning")
@@ -240,19 +254,14 @@ class MyApp(Frame):
             if len(touren) == 0:
                 handler.nothingFound()
             for tour in touren:
-                print()
                 tour = tourServerVar.getTour(tour)
-                img = tour.getImagePreview()
-                if img != None:
-                    photo = self.createPhoto(img)
-                    self.images.append(photo)  # see http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
-                    self.text.image_create(INSERT, image=photo)
-                    print()
                 if tour.isTermin():
+                    self.insertImage(tour)
                     handler.handleTermin(tour)
                 else:
                     if radTyp != "Alles" and tour.getRadTyp() != radTyp:
                         continue
+                    self.insertImage(tour)
                     handler.handleTour(tour)
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)

@@ -141,4 +141,5 @@ class PrintHandler:
         self.handleTextfeldList('Radtour_zusatzinfo',zusatzinfo)
 
     def handleTermin(self, tour):
+        print("Scribus für Termine nicht implementiert")
         pass

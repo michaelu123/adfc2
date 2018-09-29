@@ -1,6 +1,8 @@
 # encoding: utf-8
 
+import tourRest
 from myLogger import logger
+
 
 class TextHandler:
     def nothingFound(self):
@@ -11,12 +13,7 @@ class TextHandler:
         try:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            sep = titel.rfind("#")
-            if sep > 0:
-                tourNummer = titel[sep+1:].strip()
-                titel = titel[0:sep].strip()
-            else:
-                tourNummer = 999
+            tourNummer = tour.getNummer()
             radTyp = tour.getRadTyp()[0] # T,R,M
             tourTyp = tour.getKategorie()[0]
             if tourTyp == "T": # Tagestour
@@ -117,6 +114,28 @@ class TextHandler:
             print(info)
         print()
 
-"""
-TODO: In Beschreibung ** und NL, <br>, <span>
-"""
+    def calcNummern(self, tourServer):
+        def tourdate(self):
+            return self.get("beginning")
+        tourServer.alleTouren.sort(key=tourdate)  # sortieren nach Datum
+        yyyy = ""
+        for tourJS in tourServer.alleTouren:
+            datum = tourJS.get("beginning")
+            if datum[0:4] != yyyy:
+                yyyy = datum[0:4]
+                tnum = 100
+                rnum = 300
+                mnum = 400
+            tour = tourServer.getTour(tourJS)
+            radTyp = tour.getRadTyp()
+            if radTyp == "Rennrad":
+                num = rnum
+                rnum += 1
+            elif radTyp == "Mountainbike":
+                num = mnum
+                mnum += 1
+            else:
+                num = tnum
+                tnum += 1
+            tourJS["tourNummer"] = str(num)
+

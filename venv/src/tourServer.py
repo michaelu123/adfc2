@@ -9,6 +9,7 @@ class TourServer:
     def __init__(self, py2, useResta):
         self.useRest = useResta
         self.tpConn = None
+        self.alleTouren = []
         try:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
@@ -20,7 +21,7 @@ class TourServer:
             import http.client
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
 
-    def getTouren(self, unitKey, start, end, type):
+    def getTouren(self, unitKey, start, end, type, calcNum):
         jsonPath = "c:/temp/tpjson/search-" + unitKey + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             if unitKey != None and unitKey != "":
@@ -59,6 +60,8 @@ class TourServer:
             begDate = beginning[0:4]
             if begDate < start[0:4] or begDate > end[0:4]:
                 continue
+            if item.get("eventType") == "Radtour":
+                self.alleTouren.append(item)
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
                 continue
@@ -66,10 +69,10 @@ class TourServer:
             touren.append(item)
         return touren
 
-    def getTour(self, tour):
+    def getTour(self, tourJsSearch):
         global tpConn
-        eventItemId = tour.get("eventItemId");
-        imagePreview = tour.get("imagePreview")
+        eventItemId = tourJsSearch.get("eventItemId");
+        imagePreview = tourJsSearch.get("imagePreview")
         jsonPath = "c:/temp/tpjson/" + eventItemId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/" + eventItemId)
@@ -84,6 +87,7 @@ class TourServer:
         else:
             with open(jsonPath, "r") as jsonFile:
                 tourJS = json.load(jsonFile)
-        tour = tourRest.Tour(tourJS)
+        tour = tourRest.Tour(tourJS, tourJsSearch)
         return tour
+
 

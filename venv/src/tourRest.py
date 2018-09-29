@@ -57,7 +57,7 @@ class SAXHandler(xml.sax.handler.ContentHandler):
         return "".join(self.r)
 
 def removeHTML(s):
-    if s.find("<span") == -1:  # no HTML
+    if s.find("</") == -1:  # no HTML
         return s
     try:
         htmlHandler = SAXHandler()
@@ -70,29 +70,44 @@ def removeHTML(s):
 # Clean text
 def normalizeText(t):
     '''Rip off blank paragraphs, double spaces, html tags, quotes etc.'''
-    t = t.strip()
-    while t.count('\t'):
-        t = t.replace('\t', ' ')
-    if type(t) == "str":  # crashes with Unicode/Scribus ??
-        while t.count('\xa0'):
-            t = t.replace('\xa0', ' ')
-    while t.count('  '):
-        t = t.replace('  ', ' ')
-    while t.count('<br>'):
-        t = t.replace('<br>', '\n')
-    while t.count('\r'):  # DOS/Windows paragraph end.
-        t = t.replace('\r', '\n')  # Change by new line
-    while t.count(' \n'):
-        t = t.replace(' \n', '\n')
-    while t.count('\n '):
-        t = t.replace('\n ', '\n')
-    while t.count('\n\n'):
-        t = t.replace('\n\n', '\n')
+    changed = True
+    while changed:
+        changed = False
+        t = t.strip()
+        while t.count('**'):
+            t = t.replace('**', '')
+            changed = True
+        while t.count('\t'):
+            t = t.replace('\t', ' ')
+            changed = True
+        if isinstance(t, str):  # crashes with Unicode/Scribus ??
+            while t.count('\xa0'):
+                t = t.replace('\xa0', ' ')
+                changed = True
+        while t.count('  '):
+            t = t.replace('  ', ' ')
+            changed = True
+        while t.count('<br>'):
+            t = t.replace('<br>', '\n')
+            changed = True
+        while t.count('\r'):  # DOS/Windows paragraph end.
+            t = t.replace('\r', '\n')  # Change by new line
+            changed = True
+        while t.count(' \n'):
+            t = t.replace(' \n', '\n')
+            changed = True
+        while t.count('\n '):
+            t = t.replace('\n ', '\n')
+            changed = True
+        while t.count('\n\n'):
+            t = t.replace('\n\n', '\n')
+            changed = True
     return t
 
 class Tour:
-    def __init__(self, tourJS):
+    def __init__(self, tourJS, tourJSSearch):
         self.tourJS = tourJS
+        self.tourJSSearch = tourJSSearch
         self.tourLocations = tourJS.get("tourLocations")
         self.itemTags = tourJS.get("itemTags")
         self.eventItem = tourJS.get("eventItem")
@@ -101,6 +116,12 @@ class Tour:
 
     def getTitel(self):
         return self.titel
+
+    def getNummer(self):
+        num = self.tourJSSearch.get("tourNummer")
+        if num is None:
+            num = "999"
+        return num
 
     def getAbfahrten(self):
         abfahrten = []

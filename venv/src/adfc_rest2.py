@@ -30,6 +30,8 @@ def toDate(dmy): # 21.09.2018
         y = dmy[6:10]
     else:
         y = "20" + dmy[6:8]
+    if y < "2018":
+        raise ValueError("Kein Datum vor 2018 möglich")
     if int(d) == 0 or int(d) > 31 or int(m) == 0 or int(m) > 12 or int(y) < 2000 or int(y) > 2100:
         raise ValueError("Bitte Datum als dd.mm.jjjj angeben, nicht als " + dmy)
     return y + "-" + m + "-" + d # 2018-09-21
@@ -99,11 +101,13 @@ else:
 
 touren = []
 for unitKey in unitKeys:
-    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
+    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
 
 def tourdate(self):
     return self.get("beginning")
 touren.sort(key=tourdate)  # sortieren nach Datum
+if isinstance(handler, textHandler.TextHandler) and (type == "Radtour" or type == "Alles"):
+    handler.calcNummern(tourServerVar)
 
 if len(touren) == 0:
     handler.nothingFound()
