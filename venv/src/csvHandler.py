@@ -1,10 +1,34 @@
 # encoding: utf-8
 
 import tourRest
+import csv
+import sys
 from myLogger import logger
 
+schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 
-class TextHandler:
+
+class excel2(csv.Dialect):
+    """Describe the usual properties of Excel-generated CSV files."""
+    delimiter = ';'
+    quotechar = '"'
+    doublequote = True
+    skipinitialspace = False
+    lineterminator = '\r\n'
+    quoting = csv.QUOTE_MINIMAL
+
+
+class CsvHandler:
+    def __init__(self, f):
+        self.fieldNames = [ "Typ", "Titel", "Nummer", "Radtyp", "Tourtyp",
+            "Beginn", "Ende",
+            "Tourlänge", "Schwierigkeit", "Höhenmeter", "Charakter",
+            "Abfahrten", "Kurzbeschreibung", "Beschreibung", "ZusatzInfo", "Tourleiter"]
+
+        csv.register_dialect("excel2", excel2)
+        self.writer = csv.DictWriter(f, self.fieldNames, dialect="excel2")
+        self.writer.writeheader()
+
     def nothingFound(self):
         logger.info("Nichts gefunden")
         print("Nichts gefunden")
@@ -14,10 +38,8 @@ class TextHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            radTyp = tour.getRadTyp()[0] # T,R,M
-            tourTyp = tour.getKategorie()[0]
-            if tourTyp == "T": # Tagestour
-                tourTyp = "G"   # Ganztagstour...
+            radTyp = tour.getRadTyp()
+            tourTyp = tour.getKategorie()
             datum = tour.getDatum()
             logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
 
@@ -25,16 +47,17 @@ class TextHandler:
             if len(abfahrten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
             logger.info("abfahrten %s ", str(abfahrten))
-
+            abfahrten = "\n".join([ "{} Uhr; {}".format(abfahrt[0], abfahrt[1]) for abfahrt in abfahrten])
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
+            kurzbeschreibung = tour.getKurzbeschreibung()
+            logger.info("kurzbeschreibung %s", kurzbeschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
+            zusatzinfo = "\n".join(zusatzinfo)
             kategorie = tour.getKategorie()
             logger.info("kategorie %s", kategorie)
-            schwierigkeit = str(tour.getSchwierigkeit())
-            if schwierigkeit == "0":
-                schwierigkeit = "1"
+            schwierigkeit = schwierigkeitMap[tour.getSchwierigkeit()]
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
             if strecke == "0 km":
@@ -48,34 +71,28 @@ class TextHandler:
             if kategorie == 'Mehrtagestour':
                 enddatum = tour.getEndDatum()
                 logger.info("enddatum %s", enddatum)
+            else:
+                enddatum = ""
 
-            personen = tour.getPersonen()
-            logger.info("personen %s", str(personen))
-            if len(personen) == 0:
+            tourLeiter = tour.getPersonen()
+            logger.info("tourLeiter %s", str(tourLeiter))
+            if len(tourLeiter) == 0:
                 logger.error("Fehler: Tour %s hat keinen Tourleiter", titel)
                 print("Fehler: Tour %s hat keinen Tourleiter" % titel)
+            tourLeiter = ",".join(tourLeiter)
 
         except Exception as e:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             print("Fehler in der Tour '", titel, "': ", e)
             return
 
-        print("{} ${} {} {}".format(titel, radTyp, tourNummer, tourTyp))
-        print("{} ${}$ ${}".format(datum, strecke, schwierigkeit))
-        if hoehenmeter != "0" and len(character) > 0:
-            print("${} m; {}".format(hoehenmeter, character))
-        elif hoehenmeter != "0":
-            print("${} m".format(hoehenmeter))
-        elif len(character) > 0:
-            print(character)
-        for abfahrt in abfahrten:
-            print("${} Uhr; {}".format(abfahrt[0], abfahrt[1]))
-        print(beschreibung)
-        for info in zusatzinfo:
-            if len(info) == 0:
-                continue
-            print(info)
-        print("Leitung: {}".format(", ".join(personen)))
+        row = {
+            "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer, "Radtyp": radTyp, "Tourtyp": tourTyp,
+            "Beginn":datum, "Ende": enddatum,
+            "Tourlänge": strecke, "Schwierigkeit": schwierigkeit, "Höhenmeter":hoehenmeter, "Charakter":character,
+            "Abfahrten":abfahrten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
+            "ZusatzInfo":zusatzinfo, "Tourleiter":tourLeiter }
+        self.writer.writerow(row)
 
     def handleTermin(self, tour):
         try:
@@ -113,4 +130,3 @@ class TextHandler:
                 continue
             print(info)
         print()
-

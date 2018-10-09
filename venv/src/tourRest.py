@@ -145,13 +145,13 @@ class Tour:
 
     def getBeschreibung(self, removeNL):
         desc = self.eventItem.get("description")
-        """
-        if removeNL:
-            desc = desc.replace("\n", "<br>").replace("<br><br>", "<br>")
-        else:
-        """
         desc = normalizeText(desc)
         desc = removeHTML(desc)
+        return desc
+
+    def getKurzbeschreibung(self):
+        desc = self.eventItem.get("cShortDescription")
+        desc = normalizeText(desc)
         return desc
 
     def isTermin(self):
@@ -205,19 +205,18 @@ class Tour:
                 weitere.append(tag)
             if category == "Besondere Zielgruppe":
                 zielgruppe.append(tag)
+        zusatzinfo = []
         if len(besonders) > 0:
             besonders = "Besondere Charakteristik/Thema: " + ", ".join(besonders)
-        else:
-            besonders = ""
+            zusatzinfo.append(besonders)
         if len(weitere) > 0:
             weitere = "Weitere Eigenschaften: " + ", ".join(weitere)
-        else:
-            weitere = ""
+            zusatzinfo.append(weitere)
         if len(zielgruppe) > 0:
             zielgruppe = "Besondere Zielgruppe: " + ", ".join(zielgruppe)
-        else:
-            zielgruppe = ""
-        return [besonders, weitere, zielgruppe]
+            zusatzinfo.append(zielgruppe)
+        return zusatzinfo
+
 
     def getStrecke(self):
         l = self.eventItem.get("cTourLengthKm")

@@ -90,4 +90,29 @@ class TourServer:
         tour = tourRest.Tour(tourJS, tourJsSearch)
         return tour
 
+    def calcNummern(self):
+        def tourdate(self):
+            return self.get("beginning")
+        self.alleTouren.sort(key=tourdate)  # sortieren nach Datum
+        yyyy = ""
+        for tourJS in self.alleTouren:
+            datum = tourJS.get("beginning")
+            if datum[0:4] != yyyy:
+                yyyy = datum[0:4]
+                tnum = 100
+                rnum = 300
+                mnum = 400
+            tour = self.getTour(tourJS)
+            radTyp = tour.getRadTyp()
+            if radTyp == "Rennrad":
+                num = rnum
+                rnum += 1
+            elif radTyp == "Mountainbike":
+                num = mnum
+                mnum += 1
+            else:
+                num = tnum
+                tnum += 1
+            tourJS["tourNummer"] = str(num)
+
 

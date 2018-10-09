@@ -89,5 +89,6 @@ gliederungDict = {
 #"152995":  "andere LV (Bayern)",
 #"152999":  "Sonstige",
 "1":  "BV",
-"0":  "Alle"
+"0":  "Alle",
+"152": "LV Bayern"
 }

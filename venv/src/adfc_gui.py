@@ -9,10 +9,12 @@ import os
 import tourServer
 import textHandler
 import printHandler
+import csvHandler
 import contextlib
 import base64
 import adfc_gliederungen
 from PIL import ImageTk
+
 
 name2num = {} # dict maps name to num
 num2name = {} # dict maps num to name
@@ -34,7 +36,6 @@ def toDate(dmy):  # 21.09.2018
 class TxtWriter:
     def __init__(self, targ):
         self.txt = targ
-
     def write(self, s):
         self.txt.insert("end", s)
 
@@ -52,10 +53,27 @@ class LabelEntry(Frame):
     def get(self):
         return self.svar.get()
 
+class LabelOM(Frame):
+    def __init__(self, master, labeltext, options):
+        super().__init__(master)
+        self.options = options
+        self.label = Label(self, text=labeltext)
+        self.svar = StringVar()
+        self.svar.set(options[0])
+        self.optionMenu = OptionMenu(self, self.svar, *options)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.label.grid(row=0, column=0,sticky="w")
+        self.optionMenu.grid(row=0,column=1,sticky="w")
+    def get(self):
+        return self.svar.get()
+
 class ListBoxSB(Frame):
     def __init__(self, master, selFunc):
         super().__init__(master)
-        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended")
+        # for the "exportselection" param see
+        # https://stackoverflow.com/questions/10048609/how-to-keep-selections-highlighted-in-a-tkinter-listbox
+        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended", exportselection=False)
         self.gliederungLB.bind("<<ListboxSelect>>", selFunc)
         self.entries = num2name.values()
         self.entries = sorted(self.entries)
@@ -183,9 +201,7 @@ class MyApp(Frame):
         useRestCB = Checkbutton(master, text="Aktuelle Daten werden vom Server geholt", variable=self.useRestVar)
         # print("ur={}".format(self.useRestVar.get()))
 
-        self.usePHVar = BooleanVar()
-        self.usePHVar.set(False)
-        usePHCB = Checkbutton(master, text="Debug Ausgabe, ähnlich Scribus", variable=self.usePHVar)
+        self.formatOM = LabelOM(master, "AusgabeFormat:", ["Starnberg", "München", "Landshut"])
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -197,7 +213,6 @@ class MyApp(Frame):
                 typRB.select()
             else:
                 typRB.deselect()
-            #typRB.pack(anchor="w")
             typRB.grid(sticky="w")
 
         radTypen = ["Rennrad", "Tourenrad", "Mountainbike", "Alles" ]
@@ -212,10 +227,8 @@ class MyApp(Frame):
                 radTypRB.select()
             else:
                 radTypRB.deselect()
-            #radTypRB.pack(anchor="w")
             radTypRB.grid(sticky="w")
 
-        # self.gliederungLE = LabelEntry(master, "Gliederung(en):", "152085,15208501,15208507,15208512,15208514")
         self.gliederungLB = ListBoxSB(master, self.gliederungSel)
         self.gliederungSvar = StringVar()
         self.gliederungSvar.set("152085,15208501,15208507,15208512,15208514")
@@ -242,10 +255,9 @@ class MyApp(Frame):
         for y in range(6):
             Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
         useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
-        usePHCB.grid(row=0, column=1, padx=5,pady=5, sticky="w")
+        self.formatOM.grid(row=0, column=1, padx=5,pady=5, sticky="w")
         typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
         radTypenLF.grid(row=1, column=1,padx=5,pady=5, sticky="w")
-        #self.gliederungLE.grid(row=2, column=0,padx=5,pady=5, sticky="w")
         self.gliederungLB.grid(row=2, column=0,padx=5,pady=5, sticky="w")
         self.gliederungEN.grid(row=2, column=1,padx=5,pady=5, sticky="w")
         self.startDateLE.grid(row=3, column=0,padx=5,pady=5, sticky="w")
@@ -268,7 +280,6 @@ class MyApp(Frame):
 
     def starten(self):
         useRest = self.useRestVar.get()
-        usePH = self.usePHVar.get()
         type = self.typVar.get()
         radTyp = self.radTypVar.get()
         unitKeys = self.gliederungSvar.get().split(",")
@@ -280,8 +291,13 @@ class MyApp(Frame):
         txtWriter = TxtWriter(self.text)
 
         tourServerVar = tourServer.TourServer(False, useRest)
-        if usePH:
+        formatS = self.formatOM.get()
+        if formatS == "Starnberg":
             handler = printHandler.PrintHandler()
+        elif formatS == "München":
+            handler = textHandler.TextHandler()
+        elif formatS == "Landshut":
+            handler = csvHandler.CsvHandler(txtWriter)
         else:
             handler = textHandler.TextHandler()
 
@@ -289,10 +305,11 @@ class MyApp(Frame):
         for unitKey in unitKeys:
             if unitKey == "Alle":
                 unitKey = ""
-            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, not usePH))
+            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
 
-        if isinstance(handler, textHandler.TextHandler) and (type == "Radtour" or type == "Alles"):
-            handler.calcNummern(tourServerVar)
+        if (isinstance(handler, textHandler.TextHandler) or isinstance(handler, csvHandler.CsvHandler))\
+                and (type == "Radtour" or type == "Alles"):
+            tourServerVar.calcNummern()
 
         def tourdate(self):
             return self.get("beginning")
@@ -304,12 +321,14 @@ class MyApp(Frame):
             for tour in touren:
                 tour = tourServerVar.getTour(tour)
                 if tour.isTermin():
-                    self.insertImage(tour)
+                    if isinstance(handler, textHandler.TextHandler):
+                        self.insertImage(tour)
                     handler.handleTermin(tour)
                 else:
                     if radTyp != "Alles" and tour.getRadTyp() != radTyp:
                         continue
-                    self.insertImage(tour)
+                    if isinstance(handler, textHandler.TextHandler):
+                        self.insertImage(tour)
                     handler.handleTour(tour)
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
