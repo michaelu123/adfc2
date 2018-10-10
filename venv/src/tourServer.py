@@ -87,8 +87,26 @@ class TourServer:
         else:
             with open(jsonPath, "r") as jsonFile:
                 tourJS = json.load(jsonFile)
-        tour = tourRest.Tour(tourJS, tourJsSearch)
+        tour = tourRest.Tour(tourJS, tourJsSearch, self)
         return tour
+
+    def getUser(self, userId):
+        global tpConn
+        jsonPath = "c:/temp/tpjson/" + userId + ".json"
+        if self.useRest or not os.path.exists(jsonPath):
+            self.tpConn.request("GET", "/api/users/" + userId)
+            resp = self.tpConn.getresponse()
+            logger.debug("resp %d %s", resp.status, resp.reason)
+            userJS = json.load(resp)
+            userJS["simpleEventItems"] = None
+            # if not os.path.exists(jsonPath):
+            with open(jsonPath, "w") as jsonFile:
+                json.dump(userJS, jsonFile, indent=4)
+        else:
+            with open(jsonPath, "r") as jsonFile:
+                userJS = json.load(jsonFile)
+        user = tourRest.User(userJS)
+        return user
 
     def calcNummern(self):
         def tourdate(self):

@@ -39,7 +39,6 @@ class TextHandler:
             strecke = tour.getStrecke()
             if strecke == "0 km":
                 logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
-                print("Fehler: Tour %s hat keine Tourlänge" % titel)
             else:
                 logger.info("strecke %s", strecke)
             hoehenmeter = tour.getHoehenmeter()
@@ -53,11 +52,9 @@ class TextHandler:
             logger.info("personen %s", str(personen))
             if len(personen) == 0:
                 logger.error("Fehler: Tour %s hat keinen Tourleiter", titel)
-                print("Fehler: Tour %s hat keinen Tourleiter" % titel)
 
         except Exception as e:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
-            print("Fehler in der Tour '", titel, "': ", e)
             return
 
         print("{} ${} {} {}".format(titel, radTyp, tourNummer, tourTyp))
@@ -87,7 +84,7 @@ class TextHandler:
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
-                raise ValueError("kein Startpunkt in tour %s", titel)
+                raise ValueError("keine Anfangszeit für Termin %s", titel)
                 return
             logger.info("zeiten %s ", str(zeiten))
 
@@ -100,7 +97,6 @@ class TextHandler:
 
         except Exception as e:
             logger.exception("Fehler im Termin '%s': %s", titel, e)
-            print("\nFehler im Termin '", titel, "': ", e)
             return
 
         print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?

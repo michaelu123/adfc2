@@ -105,9 +105,10 @@ def normalizeText(t):
     return t
 
 class Tour:
-    def __init__(self, tourJS, tourJSSearch):
+    def __init__(self, tourJS, tourJSSearch, tourServer):
         self.tourJS = tourJS
         self.tourJSSearch = tourJSSearch
+        self.tourServer = tourServer
         self.tourLocations = tourJS.get("tourLocations")
         self.itemTags = tourJS.get("itemTags")
         self.eventItem = tourJS.get("eventItem")
@@ -255,35 +256,33 @@ class Tour:
         return weekday + ", " + enddatum[8:10] + "." + enddatum[5:7] + "." + enddatum[0:4]
 
     def getPersonen(self):
-        """
-              Starnberg:
-                    <Leiter>
-                        <Person>
-                          <Name>Martin Held</Name>
-                        </Person>
-                        <Person>
-                          <Name>Claus Piesch</Name>
-                        </Person>
-                        <Person>
-                          <Name>Jochen Twiehaus</Name>
-                        </Person>
-                        <Person>
-                          <Name><TelMobil>0171/2755036</TelMobil>Anton Maier</Name>
-                        </Person>
-                    </Leiter>
-
-              tour.getElementsByTagName("Leiter")[0].getElementsByTagName("Person")
-              Json:
-
-        """
         personen = []
         organizer = self.eventItem.get("cOrganizingUserId")
         if organizer is not None and len(organizer) > 0:
-            personen.append(organizer)
+            org = self.tourServer.getUser(organizer)
+            personen.append(str(org))
         organizer2 = self.eventItem.get("cSecondOrganizingUserId")
         if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
-            personen.append(organizer2)
+            org = self.tourServer.getUser(organizer2)
+            personen.append(str(org))
         return personen
 
     def getImagePreview(self):
         return self.tourJS.get("imagePreview")
+
+class User:
+    def __init__(self, userJS):
+        u = userJS.get("user")
+        self.firstName = u.get("firstName")
+        self.lastName = u.get("lastName")
+        try:
+            self.phone = u.get("cellPhone")
+            if self.phone == None or self.phone == "":
+                self.phone = userJS.get("temporaryContacts")[0].get("phone")
+        except:
+            self.phone = None
+    def __repr__(self):
+        name = self.firstName + " " + self.lastName
+        if self.phone != None and self.phone != "":
+            name += "(" + self.phone + ")"
+        return name

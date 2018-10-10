@@ -14,14 +14,14 @@ class excel2(csv.Dialect):
     quotechar = '"'
     doublequote = True
     skipinitialspace = False
-    lineterminator = '\r\n'
+    lineterminator = '\n'
     quoting = csv.QUOTE_MINIMAL
 
 
 class CsvHandler:
     def __init__(self, f):
         self.fieldNames = [ "Typ", "Titel", "Nummer", "Radtyp", "Tourtyp",
-            "Beginn", "Ende",
+            "Datum", "Endedatum",
             "Tourlänge", "Schwierigkeit", "Höhenmeter", "Charakter",
             "Abfahrten", "Kurzbeschreibung", "Beschreibung", "ZusatzInfo", "Tourleiter"]
 
@@ -62,7 +62,6 @@ class CsvHandler:
             strecke = tour.getStrecke()
             if strecke == "0 km":
                 logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
-                print("Fehler: Tour %s hat keine Tourlänge" % titel)
             else:
                 logger.info("strecke %s", strecke)
             hoehenmeter = tour.getHoehenmeter()
@@ -78,17 +77,15 @@ class CsvHandler:
             logger.info("tourLeiter %s", str(tourLeiter))
             if len(tourLeiter) == 0:
                 logger.error("Fehler: Tour %s hat keinen Tourleiter", titel)
-                print("Fehler: Tour %s hat keinen Tourleiter" % titel)
             tourLeiter = ",".join(tourLeiter)
 
         except Exception as e:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
-            print("Fehler in der Tour '", titel, "': ", e)
             return
 
         row = {
             "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer, "Radtyp": radTyp, "Tourtyp": tourTyp,
-            "Beginn":datum, "Ende": enddatum,
+            "Datum":datum, "Endedatum": enddatum,
             "Tourlänge": strecke, "Schwierigkeit": schwierigkeit, "Höhenmeter":hoehenmeter, "Charakter":character,
             "Abfahrten":abfahrten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
             "ZusatzInfo":zusatzinfo, "Tourleiter":tourLeiter }
@@ -104,29 +101,26 @@ class CsvHandler:
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
-                raise ValueError("kein Startpunkt in tour %s", titel)
+                raise ValueError("keine Anfangszeit für Termin %s", titel)
                 return
             logger.info("zeiten %s ", str(zeiten))
+            zeiten = "\n".join([ "{} Uhr; {}".format(zeit[0], zeit[1]) for zeit in zeiten])
 
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
+            kurzbeschreibung = tour.getKurzbeschreibung()
+            logger.info("kurzbeschreibung %s", kurzbeschreibung)
             zusatzinfo = tour.getZusatzInfo()
+            zusatzinfo = "\n".join(zusatzinfo)
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
 
         except Exception as e:
             logger.exception("Fehler im Termin '%s': %s", titel, e)
-            print("\nFehler im Termin '", titel, "': ", e)
             return
 
-        print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
-        print("{}".format(datum))
-        for zeit in zeiten:
-            print("${} Uhr; {}".format(zeit[0], zeit[1]))
-        print(beschreibung)
-        for info in zusatzinfo:
-            if len(info) == 0:
-                continue
-            print(info)
-        print()
+        row = {
+            "Typ":"Termin", "Titel":titel, "Tourtyp": terminTyp,
+            "Datum":datum,
+            "Abfahrten":zeiten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
+            "ZusatzInfo":zusatzinfo }
+        self.writer.writerow(row)

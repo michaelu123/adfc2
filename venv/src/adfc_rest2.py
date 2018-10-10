@@ -18,6 +18,8 @@ import os
 import time
 import tourServer
 import textHandler
+import csvHandler
+import printHandler
 
 keySta = "152085"
 keyGau = "15208514"
@@ -56,7 +58,7 @@ except ImportError:
     import argparse
     parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
     parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true", help="Aktuelle Daten werden vom Server geholt")
-    parser.add_argument("-d", "--debug", dest="usePH", action="store_true", help="Debug Ausgabe")
+    parser.add_argument("-f", "--format", dest="format", choices=["S", "M", "C"], help="Output format (S=Starnberg, M=München, C=CSV", default="S")
     parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles), default=A", default="A")
     parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A", default="A")
     parser.add_argument("nummer", help="Gliederungsnummer(n), z.B. 152059 für München, komma-separierte Liste")
@@ -71,10 +73,15 @@ except ImportError:
     type = args.type
     radTyp = args.radTyp
     tourServerVar = tourServer.TourServer(False, useRest)
-    if args.usePH:
+    format = args.format
+    if format == "S":
         handler = printHandler.PrintHandler()
-    else:
+    elif format == "M":
         handler = textHandler.TextHandler()
+    elif format == "C":
+        handler = csvHandler.CsvHandler(sys.stdout)
+    else:
+        handler = printHandler.PrintHandler()
 
 start = toDate(start)
 end = toDate(end)
@@ -106,8 +113,8 @@ for unitKey in unitKeys:
 def tourdate(self):
     return self.get("beginning")
 touren.sort(key=tourdate)  # sortieren nach Datum
-if isinstance(handler, textHandler.TextHandler) and (type == "Radtour" or type == "Alles"):
-    handler.calcNummern(tourServerVar)
+if (isinstance(handler, textHandler.TextHandler) or isinstance(handler, csvHandler.CsvHandler)) and (type == "Radtour" or type == "Alles"):
+    tourServerVar.calcNummern()
 
 if len(touren) == 0:
     handler.nothingFound()

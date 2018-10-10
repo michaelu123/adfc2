@@ -3,7 +3,7 @@
 import logging
 import os,sys
 
-logging.basicConfig(level=logging.DEBUG, filename="adfc_rest2.log", filemode="w")
+logging.basicConfig(level=logging.DEBUG, filename="adfc.log", filemode="w")
 global logger
-logger = logging.getLogger("adfc_rest2")
+logger = logging.getLogger("adfc")
 logger.info("cwd=%s", os.getcwd())

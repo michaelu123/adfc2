@@ -201,7 +201,7 @@ class MyApp(Frame):
         useRestCB = Checkbutton(master, text="Aktuelle Daten werden vom Server geholt", variable=self.useRestVar)
         # print("ur={}".format(self.useRestVar.get()))
 
-        self.formatOM = LabelOM(master, "AusgabeFormat:", ["Starnberg", "München", "Landshut"])
+        self.formatOM = LabelOM(master, "AusgabeFormat:", ["Starnberg", "München", "CSV"])
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -296,7 +296,7 @@ class MyApp(Frame):
             handler = printHandler.PrintHandler()
         elif formatS == "München":
             handler = textHandler.TextHandler()
-        elif formatS == "Landshut":
+        elif formatS == "CSV":
             handler = csvHandler.CsvHandler(txtWriter)
         else:
             handler = textHandler.TextHandler()
