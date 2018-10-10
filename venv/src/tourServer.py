@@ -3,6 +3,7 @@
 import os
 import json
 import tourRest
+import functools
 from myLogger import logger
 
 class TourServer:
@@ -90,6 +91,7 @@ class TourServer:
         tour = tourRest.Tour(tourJS, tourJsSearch, self)
         return tour
 
+    @functools.lru_cache(100)
     def getUser(self, userId):
         global tpConn
         jsonPath = "c:/temp/tpjson/" + userId + ".json"

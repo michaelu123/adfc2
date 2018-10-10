@@ -3,7 +3,7 @@ from tkinter.filedialog import asksaveasfilename
 from tkinter.simpledialog import askstring
 
 # textHandler produziert output a la KV München
-import myLogger
+from myLogger import logger
 import sys
 import os
 import tourServer
@@ -141,7 +141,10 @@ class MyApp(Frame):
             savFile.write(s)
 
     def storeas(self, *args):
-        self.savFile = asksaveasfilename()
+        format = self.formatOM.get()
+        self.savFile = asksaveasfilename(title="Select file", initialfile="adfc_export",
+            defaultextension=".csv" if format == "CSV" else ".txt",
+            filetypes=[("CSV", ".csv")] if format == "CSV" else [("TXT", ".txt")])
         if self.savFile == None or self.savFile == "":
             return
         self.store()
@@ -201,7 +204,7 @@ class MyApp(Frame):
         useRestCB = Checkbutton(master, text="Aktuelle Daten werden vom Server geholt", variable=self.useRestVar)
         # print("ur={}".format(self.useRestVar.get()))
 
-        self.formatOM = LabelOM(master, "AusgabeFormat:", ["Starnberg", "München", "CSV"])
+        self.formatOM = LabelOM(master, "AusgabeFormat:", ["München", "Starnberg", "CSV"])
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
