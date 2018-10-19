@@ -108,7 +108,6 @@ class TourServer:
                 return val
         global tpConn
         jsonPath = "c:/temp/tpjson/" + userId + ".json"
-        logger.error("getUser %s", userId)
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/users/" + userId)
             resp = self.tpConn.getresponse()
