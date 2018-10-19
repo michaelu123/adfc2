@@ -19,9 +19,11 @@ class TourServer:
         if py2:
             import httplib  # scribus seems to use Python 2
             self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+            self.cacheMem = {}  # for Python2
         else:
             import http.client
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+            self.cacheMem = None  # for Python3
             self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
 
     def getTouren(self, unitKey, start, end, type, calcNum):
@@ -100,8 +102,13 @@ class TourServer:
 
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
+        if self.cacheMem != None:
+            val = self.cacheMem.get(userId)
+            if val != None:
+                return val
         global tpConn
         jsonPath = "c:/temp/tpjson/" + userId + ".json"
+        logger.error("getUser %s", userId)
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/users/" + userId)
             resp = self.tpConn.getresponse()
@@ -115,6 +122,8 @@ class TourServer:
             with open(jsonPath, "r") as jsonFile:
                 userJS = json.load(jsonFile)
         user = tourRest.User(userJS)
+        if self.cacheMem != None:
+            self.cacheMem[userId] = user
         return user
 
     def calcNummern(self):
@@ -141,5 +150,4 @@ class TourServer:
                 num = tnum
                 tnum += 1
             tourJS["tourNummer"] = str(num)
-
 
