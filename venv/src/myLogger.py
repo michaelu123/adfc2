@@ -9,7 +9,8 @@ try:
 except:
     lvl = logging.ERROR
 logging.basicConfig(level=lvl, filename="adfc.log", filemode="w", datefmt="%d.%m %H:%M:%S",
-    style="{", format="{asctime} {levelname:5} {filename}:{funcName}:{lineno} {message}")
+#    style="{", format="{asctime} {levelname:5} {filename}:{funcName}:{lineno} {message}")
+    format = "%(asctime)s %(levelname)-5s %(filename)s:%(funcName)s:%(lineno)d %(message)s")
 global logger
 logger = logging.getLogger("adfc")
 logger.info("cwd=%s", os.getcwd())

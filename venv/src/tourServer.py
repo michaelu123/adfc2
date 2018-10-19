@@ -7,8 +7,9 @@ import functools
 from myLogger import logger
 
 class TourServer:
-    def __init__(self, py2, useResta):
+    def __init__(self, py2, useResta, includeSuba):
         self.useRest = useResta
+        self.includeSub = includeSuba
         self.tpConn = None
         self.alleTouren = []
         try:
@@ -21,14 +22,20 @@ class TourServer:
         else:
             import http.client
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+            self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
 
     def getTouren(self, unitKey, start, end, type, calcNum):
-        jsonPath = "c:/temp/tpjson/search-" + unitKey + ".json"
+        if unitKey != None and unitKey != "":
+            jsonPath = "c:/temp/tpjson/search-" + unitKey + ("_I" if self.includeSub else "") + ".json"
+        else:
+            jsonPath = "c:/temp/tpjson/search.json"
         if self.useRest or not os.path.exists(jsonPath):
+            req = "/api/eventItems/search"
             if unitKey != None and unitKey != "":
-                self.tpConn.request("GET", "/api/eventItems/search?unitKey=" + unitKey)
-            else:
-                self.tpConn.request("GET", "/api/eventItems/search")
+                req += "?unitKey=" + unitKey;
+                if self.includeSub:
+                    req += "&includeSubsidiary=true"
+            self.tpConn.request("GET", req)
             resp = self.tpConn.getresponse()
             try:
                 logger.debug("http status  %d", resp.getcode())
@@ -43,7 +50,7 @@ class TourServer:
         touren = []
         if len(items) == 0:
             return touren
-        if not resp is None:  # and not os.path.exists(jsonPath):
+        if not resp is None:  # a REST call result always overwrites jsonPath
             with open(jsonPath, "w") as jsonFile:
                 json.dump(jsRoot, jsonFile, indent=4)
         for item in iter(items):
@@ -91,7 +98,7 @@ class TourServer:
         tour = tourRest.Tour(tourJS, tourJsSearch, self)
         return tour
 
-    @functools.lru_cache(100)
+    # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
         global tpConn
         jsonPath = "c:/temp/tpjson/" + userId + ".json"

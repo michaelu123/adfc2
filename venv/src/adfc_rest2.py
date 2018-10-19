@@ -19,11 +19,6 @@ import time
 import tourServer
 import textHandler
 import csvHandler
-import printHandler
-
-keySta = "152085"
-keyGau = "15208514"
-keyMuc = "152059"
 
 def toDate(dmy): # 21.09.2018
     d = dmy[0:2]
@@ -46,7 +41,7 @@ try:
         import scribusHandler
     import httplib  # scribus seems to use Python 2
     handler = scribusHandler.ScribusHandler()
-    tourServerVar = tourServer.TourServer(True, handler.getUseRest())
+    tourServerVar = tourServer.TourServer(True, handler.getUseRest(), handler.getIncludeSub())
     unitKeys = handler.getUnitKeys().split(",")
     start = handler.getStart()
     end = handler.getEnd()
@@ -58,6 +53,7 @@ except ImportError:
     import argparse
     parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
     parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true", help="Aktuelle Daten werden vom Server geholt")
+    parser.add_argument("-u", "--unter", dest="includeSub", action="store_true", help="Untergliederungen einbeziehen")
     parser.add_argument("-f", "--format", dest="format", choices=["S", "M", "C"], help="Ausgabeformat (S=Starnberg, M=München, C=CSV", default="S")
     parser.add_argument("-t", "--type", dest="type", choices = ["R", "T", "A"], help="Typ (R=Radtour, T=Termin, A=alles), default=A", default="A")
     parser.add_argument("-r", "--rad", dest="radTyp", choices = ["R", "T", "M", "A"], help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A", default="A")
@@ -67,12 +63,12 @@ except ImportError:
     args = parser.parse_args()
     unitKeys = args.nummer.split(",")
     useRest = args.useRest
-    #    useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    includeSub = args.includeSub
     start = args.start
     end = args.end
     type = args.type
     radTyp = args.radTyp
-    tourServerVar = tourServer.TourServer(False, useRest)
+    tourServerVar = tourServer.TourServer(False, useRest, includeSub)
     format = args.format
     if format == "S":
         handler = printHandler.PrintHandler()

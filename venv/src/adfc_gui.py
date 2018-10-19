@@ -202,9 +202,12 @@ class MyApp(Frame):
         self.useRestVar = BooleanVar()
         self.useRestVar.set(False)
         useRestCB = Checkbutton(master, text="Aktuelle Daten werden vom Server geholt", variable=self.useRestVar)
-        # print("ur={}".format(self.useRestVar.get()))
 
-        self.formatOM = LabelOM(master, "AusgabeFormat:", ["München", "Starnberg", "CSV"])
+        self.includeSubVar = BooleanVar()
+        self.includeSubVar.set(True)
+        includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
+
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV"])
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -234,13 +237,13 @@ class MyApp(Frame):
 
         self.gliederungLB = ListBoxSB(master, self.gliederungSel)
         self.gliederungSvar = StringVar()
-        self.gliederungSvar.set("152085,15208501,15208507,15208512,15208514")
+        self.gliederungSvar.set("152085")
         self.gliederungEN = Entry(master, textvariable=self.gliederungSvar, borderwidth=2, width=60)
         self.gliederungEN.bind("<Key>", self.clearLB)
 
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
-        startBtn = Button(master, text="Start", command=self.starten)
+        startBtn = Button(master, text="Start", bg="red", command=self.starten)
 
         textContainer = Frame(master, borderwidth=2, relief="sunken")
         self.text = Text(textContainer, wrap="none", borderwidth=0, cursor="arrow") # width=100, height=40,
@@ -256,18 +259,19 @@ class MyApp(Frame):
         for x in range(2):
             Grid.columnconfigure(master, x, weight= 1 if x == 1 else 0)
         for y in range(6):
-            Grid.rowconfigure(master, y, weight= 1 if y == 5 else 0)
-        useRestCB.grid(row=0, column=0, padx=5,pady=5, sticky="w")
-        self.formatOM.grid(row=0, column=1, padx=5,pady=5, sticky="w")
-        typenLF.grid(row=1, column=0,padx=5,pady=5, sticky="w")
-        radTypenLF.grid(row=1, column=1,padx=5,pady=5, sticky="w")
-        self.gliederungLB.grid(row=2, column=0,padx=5,pady=5, sticky="w")
-        self.gliederungEN.grid(row=2, column=1,padx=5,pady=5, sticky="w")
-        self.startDateLE.grid(row=3, column=0,padx=5,pady=5, sticky="w")
-        self.endDateLE.grid(row=3, column=1,padx=5,pady=5, sticky="w")
+            Grid.rowconfigure(master, y, weight= 1 if y == 6 else 0)
+        useRestCB.grid(row=0, column=0, padx=5,pady=2, sticky="w")
+        includeSubCB.grid(row=0, column=1, padx=5,pady=2, sticky="w")
+        self.formatOM.grid(row=1, column=0, padx=5,pady=2, sticky="w")
+        typenLF.grid(row=2, column=0,padx=5,pady=2, sticky="w")
+        radTypenLF.grid(row=2, column=1,padx=5,pady=2, sticky="w")
+        self.gliederungLB.grid(row=3, column=0,padx=5,pady=2, sticky="w")
+        self.gliederungEN.grid(row=3, column=1,padx=5,pady=2, sticky="w")
+        self.startDateLE.grid(row=4, column=0,padx=5,pady=2, sticky="w")
+        self.endDateLE.grid(row=4, column=1,padx=5,pady=2, sticky="w")
 
-        startBtn.grid(row=4, padx=5, pady=5, sticky="w")
-        textContainer.grid(row=5,columnspan = 2, padx=5,pady=5, sticky="nsew")
+        startBtn.grid(row=5, padx=5, pady=2, sticky="w")
+        textContainer.grid(row=6,columnspan = 2, padx=5,pady=2, sticky="nsew")
 
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
@@ -283,6 +287,7 @@ class MyApp(Frame):
 
     def starten(self):
         useRest = self.useRestVar.get()
+        includeSub = self.includeSubVar.get()
         type = self.typVar.get()
         radTyp = self.radTypVar.get()
         unitKeys = self.gliederungSvar.get().split(",")
@@ -293,7 +298,7 @@ class MyApp(Frame):
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)
 
-        tourServerVar = tourServer.TourServer(False, useRest)
+        tourServerVar = tourServer.TourServer(False, useRest, includeSub)
         formatS = self.formatOM.get()
         if formatS == "Starnberg":
             handler = printHandler.PrintHandler()
