@@ -1,94 +1,33 @@
-gliederungDict = {
-"152003":  "KV Amberg-Sulzbach",
-"152005":  "KV Ansbach",
-"152007":  "KV Aschaffenburg-Miltenberg",
-"152009":  "KV Augsburg",
-"152011":  "KV Bad Kissingen",
-"152012":  "KV Bad Tölz-Wolfratshausen",
-"152013":  "KV Bamberg",
-"15201340":  "OG Obermain",
-"152015":  "KV Bayreuth",
-"152017":  "KV Berchtesgadener Land",
-"152018":  "KV Cham",
-"152019":  "KV Coburg",
-"152021":  "KV Dachau",
-"152022":  "KV Deggendorf",
-"152023":  "KV Dillingen/Donau",
-"152025":  "KV Donau-Ries",
-"15202501":  "OG Donauwörth",
-"152026":  "KV Ebersberg",
-"152028":  "KV Erding",
-"15202814":  "OG Isental",
-"152030":  "KV Erlangen",
-"152031":  "KV Forchheim",
-"152032":  "KV Freising",
-"15203204":  "OG Neufahrn/Eching",
-"152033":  "KV Freyung-Grafenau",
-"152034":  "KV Fürstenfeldbruck",
-"152035":  "KV Fürth",
-"152037":  "KV Garmisch-Partenkirchen",
-"152038":  "KV Günzburg-Dillingen",
-"152039":  "KV Haßberge",
-"152040":  "KV Hof",
-"152042":  "KV Ingolstadt",
-"152044":  "KV Kelheim",
-"152046":  "KV Kitzingen",
-"152047":  "KV Kronach",
-"152048":  "KV Kulmbach",
-"152049":  "KV Landsberg",
-"152050":  "KV Landshut/Dingolfing-Landau",
-"15205036":  "OG Dingolfing-Landau",
-"152053":  "KV Lindau",
-"152054":  "KV Main-Spessart",
-"152056":  "KV Miesbach",
-"152057":  "KV Miltenberg",
-"152058":  "KV Mühldorf",
-"152059":  "KV München",
-"152062":  "KV Neumarkt i.d.OPf",
-"152063":  "KV Neustadt a. d. Waldnaab",
-"152064":  "KV Neustadt/Aisch",
-"152065":  "KV Neu-Ulm",
-"15206514":  "OG Illertissen",
-"152067":  "KV Nürnberg",
-"152068":  "KV Kempten-Oberallgäu",
-"152069":  "KV Kaufbeuren-Ostallgäu",
-"152070":  "KV Passau",
-"152072":  "KV Pfaffenhofen/Ilm",
-"152073":  "KV Regen",
-"152074":  "KV Regensburg",
-"15207445":  "OG Schwandorf",
-"152076":  "KV Rhön-Grabfeld",
-"152077":  "KV Rosenheim",
-"152079":  "KV Roth",
-"152080":  "KV Rottal-Inn",
-"152083":  "KV Schweinfurt",
-"152085":  "KV Starnberg",
-"15208501":  "OG Starnberg",
-"15208507":  "OG Herrsching und Umgebung",
-"15208512":  "OG Gilching",
-"15208514":  "OG Gauting",
-"152086":  "KV Straubing",
-"152088":  "KV Tirschenreuth",
-"152089":  "KV Traunstein",
-"152090":  "KV Memmingen-Unterallgäu e.V.",
-"152092":  "KV Weilheim-Schongau",
-"152093":  "KV Weißenburg-Gunzenhaus",
-"152094":  "KV Würzburg",
-"152096":  "KV Wunsiedel",
-"152330":  "OG Pegnitz",
-"152340":  "OG Germering/Unterpfaffenhofen",
-"152341":  "OG Gröbenzell",
-"152342":  "OG Olching/Esting",
-"152343":  "OG Puchheim",
-"152344":  "OG Fürstenfeldbruck/Emmering",
-"152345":  "OG Eichenau",
-"152347":  "OG Mammendorf",
-"152348":  "OG Grafrath",
-"152852":  "OG Würmtal",
-#"152990":  "Ausland (Bayern)",
-#"152995":  "andere LV (Bayern)",
-#"152999":  "Sonstige",
-"1":  "BV",
-"0":  "Alle",
-"152": "LV Bayern"
-}
+_lv2NameMap = {}
+_lv2KvMap = {}
+
+def load(unitsJS):
+    global _lvMap
+    global _lv2KvMap
+    units = unitsJS.get("units")
+    for unit in iter(units):
+        key = unit.get("key")
+        if len(key) < 3:
+            continue
+        elif len(key) == 3:
+            _lv2NameMap[key] = unit.get("name").split(" ")[1] # "ADFC Hamburg e.V." -> "Hamburg"
+            continue
+        lv = key[0:3]
+        if not lv in _lv2KvMap:
+            _lv2KvMap[lv] = {}
+        kvMap = _lv2KvMap[lv]
+        kvMap[key] = unit.get("name").replace("ADFC ", "").replace("ADFC-", "")
+    for key in _lv2KvMap.keys():
+        if key == "110":
+            continue
+        kvMap = _lv2KvMap[key]
+        kvMap["0"] = "Alles"
+        kvMap["1"] = "BV"
+        kvMap[key] = "LV " + _lv2NameMap[key]
+        pass  # so that we can insert a breakpoint here
+
+def getLVs():
+    return _lv2NameMap
+
+def getLV(key):
+    return _lv2KvMap[key]

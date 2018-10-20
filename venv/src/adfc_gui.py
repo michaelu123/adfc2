@@ -15,11 +15,6 @@ import base64
 import adfc_gliederungen
 from PIL import ImageTk
 
-
-name2num = {} # dict maps name to num
-num2name = {} # dict maps num to name
-
-
 def toDate(dmy):  # 21.09.2018
     d = dmy[0:2]
     m = dmy[3:5]
@@ -54,13 +49,13 @@ class LabelEntry(Frame):
         return self.svar.get()
 
 class LabelOM(Frame):
-    def __init__(self, master, labeltext, options):
+    def __init__(self, master, labeltext, options, initVal, **kwargs):
         super().__init__(master)
         self.options = options
         self.label = Label(self, text=labeltext)
         self.svar = StringVar()
-        self.svar.set(options[0])
-        self.optionMenu = OptionMenu(self, self.svar, *options)
+        self.svar.set(initVal)
+        self.optionMenu = OptionMenu(self, self.svar, *options, **kwargs)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.label.grid(row=0, column=0,sticky="w")
@@ -69,30 +64,35 @@ class LabelOM(Frame):
         return self.svar.get()
 
 class ListBoxSB(Frame):
-    def __init__(self, master, selFunc):
+    def __init__(self, master, selFunc, entries):
         super().__init__(master)
         # for the "exportselection" param see
         # https://stackoverflow.com/questions/10048609/how-to-keep-selections-highlighted-in-a-tkinter-listbox
-        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended", exportselection=False)
+        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended", exportselection=False, width=50)
         self.gliederungLB.bind("<<ListboxSelect>>", selFunc)
-        self.entries = num2name.values()
-        self.entries = sorted(self.entries)
+
+        self.entries = sorted(entries)
         self.gliederungLB.insert("end", *self.entries)
         self.lbVsb = Scrollbar(self, orient="vertical", command=self.gliederungLB.yview)
         self.gliederungLB.configure(yscrollcommand=self.lbVsb.set)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.gliederungLB.grid(row=0, column=0,sticky="w")
+        self.grid_columnconfigure(1, weight=0)
+        self.gliederungLB.grid(row=0, column=0,sticky="nsew")
         self.lbVsb.grid(row=0,column=1,sticky="ns")
     def curselection(self):
         names = [ self.entries[i] for i in self.gliederungLB.curselection() ]
-        if "Alle" in names:
-            return "Alle"
-        s = ",".join( [name2num[name] for name in names] )
+        if "0 Alles" in names:
+            return "Alles"
+        s = ",".join( [name.split(" ", 1)[0] for name in names] )
         return s
     def clearLB(self):
         self.gliederungLB.selection_clear(0,len(self.entries))
+    def setEntries(self, entries):
+        self.entries = sorted(entries)
+        self.gliederungLB.delete(0, "end")
+        self.gliederungLB.insert("end", *self.entries)
+
 
 class MyApp(Frame):
     def __init__(self, master):
@@ -121,10 +121,6 @@ class MyApp(Frame):
         menuEdit.add_command(label = "Erneut suchen", command=self.searchAgain, accelerator="F3")
         master.bind_all("<F3>", self.searchAgain)
         menuBar.add_cascade(label = "Bearbeiten", menu=menuEdit)
-
-        global num2name, name2num
-        num2name = adfc_gliederungen.gliederungDict
-        name2num = {num2name.get(k):k for k in num2name.keys() }
         self.createWidgets(master)
 
     def createPhoto(self, b64):
@@ -192,11 +188,17 @@ class MyApp(Frame):
                 rtBtn.config(state=NORMAL)
 
     def gliederungSel(self, event):
-        sel = self.gliederungLB.curselection()
+        sel = self.gliederungLBSB.curselection()
         self.gliederungSvar.set(sel)
 
     def clearLB(self, event):
-        self.gliederungLB.clearLB()
+        self.gliederungLBSB.clearLB()
+
+    def lvSelector(self, event):
+        kvMap = adfc_gliederungen.getLV(event[0:3])
+        entries = [ key + " " + kvMap[key] for key in kvMap.keys() ]
+        self.gliederungLBSB.setEntries(entries)
+        self.gliederungSvar.set("")
 
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
@@ -207,7 +209,7 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV"])
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV"], "München")
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -235,11 +237,27 @@ class MyApp(Frame):
                 radTypRB.deselect()
             radTypRB.grid(sticky="w")
 
-        self.gliederungLB = ListBoxSB(master, self.gliederungSel)
+
+        # container for LV selector and Listbox for KVs
+        glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
+        # need a tourServer here early for list of LVs
+        tourServerVar = tourServer.TourServer(False, True, False)
+        lvMap = adfc_gliederungen.getLVs()
+        self.lvList = [ key + " " + lvMap[key] for key in lvMap.keys() ]
+        self.lvList = sorted(self.lvList)
+        self.lvOM = LabelOM(glContainer, "Landesverband:", self.lvList, "152", command=self.lvSelector)
+        kvMap = adfc_gliederungen.getLV(self.lvOM.get()[0:3])
+        entries = [ key + " " + kvMap[key] for key in kvMap.keys() ]
+        self.gliederungLBSB = ListBoxSB(glContainer, self.gliederungSel, entries)
         self.gliederungSvar = StringVar()
         self.gliederungSvar.set("152085")
         self.gliederungEN = Entry(master, textvariable=self.gliederungSvar, borderwidth=2, width=60)
         self.gliederungEN.bind("<Key>", self.clearLB)
+        self.lvOM.grid(row=0, column=0, sticky="nsew")
+        self.gliederungLBSB.grid(row=1, column=0, sticky="nsew")
+        glContainer.grid_rowconfigure(0, weight=1)
+        glContainer.grid_rowconfigure(1, weight=1)
+        glContainer.grid_columnconfigure(0, weight=1)
 
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
@@ -265,7 +283,7 @@ class MyApp(Frame):
         self.formatOM.grid(row=1, column=0, padx=5,pady=2, sticky="w")
         typenLF.grid(row=2, column=0,padx=5,pady=2, sticky="w")
         radTypenLF.grid(row=2, column=1,padx=5,pady=2, sticky="w")
-        self.gliederungLB.grid(row=3, column=0,padx=5,pady=2, sticky="w")
+        glContainer.grid(row=3, column=0,padx=5,pady=2, sticky="w")
         self.gliederungEN.grid(row=3, column=1,padx=5,pady=2, sticky="w")
         self.startDateLE.grid(row=4, column=0,padx=5,pady=2, sticky="w")
         self.endDateLE.grid(row=4, column=1,padx=5,pady=2, sticky="w")
@@ -311,7 +329,7 @@ class MyApp(Frame):
 
         touren = []
         for unitKey in unitKeys:
-            if unitKey == "Alle":
+            if unitKey == "Alles":
                 unitKey = ""
             touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
 

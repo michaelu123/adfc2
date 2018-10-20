@@ -11,7 +11,7 @@ yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt w
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
 yOrN = scribus.valueDialog("IncludeSub", "Sollen Untergliederungen einbezogen werden? (j/n)").lower()[0]
 includeSub = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=alles) (R/T/A)")
+type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
 rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
 unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
 start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")

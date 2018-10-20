@@ -5,6 +5,7 @@ import json
 import tourRest
 import functools
 from myLogger import logger
+import adfc_gliederungen
 
 class TourServer:
     def __init__(self, py2, useResta, includeSuba):
@@ -25,6 +26,7 @@ class TourServer:
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
             self.cacheMem = None  # for Python3
             self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
+        self.loadUnits()
 
     def getTouren(self, unitKey, start, end, type, calcNum):
         if unitKey != None and unitKey != "":
@@ -124,6 +126,21 @@ class TourServer:
         if self.cacheMem != None:
             self.cacheMem[userId] = user
         return user
+
+    def loadUnits(self):
+        global tpConn
+        jsonPath = "c:/temp/tpjson/units.json"
+        if self.useRest or not os.path.exists(jsonPath):
+            self.tpConn.request("GET", "/api/units/")
+            resp = self.tpConn.getresponse()
+            logger.debug("resp %d %s", resp.status, resp.reason)
+            unitsJS = json.load(resp)
+            with open(jsonPath, "w") as jsonFile:
+                json.dump(unitsJS, jsonFile, indent=4)
+        else:
+            with open(jsonPath, "r") as jsonFile:
+                unitsJS = json.load(jsonFile)
+        adfc_gliederungen.load(unitsJS)
 
     def calcNummern(self):
         def tourdate(self):
