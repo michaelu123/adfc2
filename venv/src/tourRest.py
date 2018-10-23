@@ -140,7 +140,12 @@ class Tour:
             city = tourLoc.get("city")
             logger.debug("name %s street %s city %s", name, street, city)
             loc = name + " " + city + ", " + street
-            abfahrt = (beginning, loc)
+            if type == "Startpunkt":
+                if self.isTermin():
+                    type = "Treffpunkt"
+                else:
+                    type = "Start"
+            abfahrt = (type, beginning, loc)
             abfahrten.append(abfahrt)
         return abfahrten
 

@@ -8,6 +8,7 @@ import sys
 import os
 import tourServer
 import textHandler
+import rawHandler
 import printHandler
 import csvHandler
 import contextlib
@@ -209,7 +210,7 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV"], "München")
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Roh"], "München")
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -325,7 +326,7 @@ class MyApp(Frame):
         elif formatS == "CSV":
             handler = csvHandler.CsvHandler(txtWriter)
         else:
-            handler = textHandler.TextHandler()
+            handler = rawHandler.RawHandler()
 
         touren = []
         for unitKey in unitKeys:
@@ -333,7 +334,7 @@ class MyApp(Frame):
                 unitKey = ""
             touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
 
-        if (isinstance(handler, textHandler.TextHandler) or isinstance(handler, csvHandler.CsvHandler))\
+        if (isinstance(handler, textHandler.TextHandler) or isinstance(handler, csvHandler.CsvHandler) or isinstance(handler, rawHandler.RawHandler))\
                 and (type == "Radtour" or type == "Alles"):
             tourServerVar.calcNummern()
 

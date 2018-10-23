@@ -1,34 +1,12 @@
 # encoding: utf-8
 
 import tourRest
-import csv
-import sys
 from myLogger import logger
+
 
 schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 
-
-class excel2(csv.Dialect):
-    """Describe the usual properties of Excel-generated CSV files."""
-    delimiter = ';'
-    quotechar = '"'
-    doublequote = True
-    skipinitialspace = False
-    lineterminator = '\n'
-    quoting = csv.QUOTE_MINIMAL
-
-
-class CsvHandler:
-    def __init__(self, f):
-        self.fieldNames = [ "Typ", "Titel", "Nummer", "Radtyp", "Tourtyp",
-            "Datum", "Endedatum",
-            "Tourlänge", "Schwierigkeit", "Höhenmeter", "Charakter",
-            "Abfahrten", "Kurzbeschreibung", "Beschreibung", "ZusatzInfo", "Tourleiter"]
-
-        csv.register_dialect("excel2", excel2)
-        self.writer = csv.DictWriter(f, self.fieldNames, dialect="excel2")
-        self.writer.writeheader()
-
+class RawHandler:
     def nothingFound(self):
         logger.info("Nichts gefunden")
         print("Nichts gefunden")
@@ -47,18 +25,16 @@ class CsvHandler:
             if len(abfahrten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
             logger.info("abfahrten %s ", str(abfahrten))
-            abfahrten = "\n".join([ "{}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]) for abfahrt in abfahrten])
+
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
-            kurzbeschreibung = tour.getKurzbeschreibung()
-            logger.info("kurzbeschreibung %s", kurzbeschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            zusatzinfo = "\n".join(zusatzinfo)
             kategorie = tour.getKategorie()
             logger.info("kategorie %s", kategorie)
-            schwierigkeit = schwierigkeitMap[tour.getSchwierigkeit()]
-            logger.info("schwierigkeit %s", schwierigkeit)
+            schwierigkeit = tour.getSchwierigkeit()
+            logger.info("schwierigkeit %d", schwierigkeit)
+            schwierigkeit = schwierigkeitMap[schwierigkeit]
             strecke = tour.getStrecke()
             if strecke == "0 km":
                 logger.error("Fehler: Tour %s hat keine Tourlänge", titel)
@@ -70,26 +46,33 @@ class CsvHandler:
             if kategorie == 'Mehrtagestour':
                 enddatum = tour.getEndDatum()
                 logger.info("enddatum %s", enddatum)
-            else:
-                enddatum = ""
 
-            tourLeiter = tour.getPersonen()
-            logger.info("tourLeiter %s", str(tourLeiter))
-            if len(tourLeiter) == 0:
+            personen = tour.getPersonen()
+            logger.info("personen %s", str(personen))
+            if len(personen) == 0:
                 logger.error("Fehler: Tour %s hat keinen Tourleiter", titel)
-            tourLeiter = ",".join(tourLeiter)
 
         except Exception as e:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             return
 
-        row = {
-            "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer, "Radtyp": radTyp, "Tourtyp": tourTyp,
-            "Datum":datum, "Endedatum": enddatum,
-            "Tourlänge": strecke, "Schwierigkeit": schwierigkeit, "Höhenmeter":hoehenmeter, "Charakter":character,
-            "Abfahrten":abfahrten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
-            "ZusatzInfo":zusatzinfo, "Tourleiter":tourLeiter }
-        self.writer.writerow(row)
+        print("{} {} {} {}".format(titel, radTyp, tourNummer, tourTyp))
+        print("{} {} {}".format(datum, strecke, schwierigkeit))
+        if hoehenmeter != "0" and len(character) > 0:
+            print("{} m; {}".format(hoehenmeter, character))
+        elif hoehenmeter != "0":
+            print("{} m".format(hoehenmeter))
+        elif len(character) > 0:
+            print(character)
+        for abfahrt in abfahrten:
+            print("{}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+        print(beschreibung)
+        for info in zusatzinfo:
+            if len(info) == 0:
+                continue
+            print(info)
+        print("Leitung: {}".format(", ".join(personen)))
+        print()
 
     def handleTermin(self, tour):
         try:
@@ -104,22 +87,26 @@ class CsvHandler:
                 raise ValueError("keine Anfangszeit für Termin %s", titel)
                 return
             logger.info("zeiten %s ", str(zeiten))
-            zeiten = "\n".join([ "{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]) for zeit in zeiten])
+
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
-            kurzbeschreibung = tour.getKurzbeschreibung()
-            logger.info("kurzbeschreibung %s", kurzbeschreibung)
             zusatzinfo = tour.getZusatzInfo()
-            zusatzinfo = "\n".join(zusatzinfo)
             logger.info("zusatzinfo %s", str(zusatzinfo))
+            kategorie = tour.getKategorie()
+            logger.info("kategorie %s", kategorie)
 
         except Exception as e:
             logger.exception("Fehler im Termin '%s': %s", titel, e)
             return
 
-        row = {
-            "Typ":"Termin", "Titel":titel, "Tourtyp": terminTyp,
-            "Datum":datum,
-            "Abfahrten":zeiten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
-            "ZusatzInfo":zusatzinfo }
-        self.writer.writerow(row)
+        print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{}".format(datum))
+        for zeit in zeiten:
+            print("{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+        print(beschreibung)
+        for info in zusatzinfo:
+            if len(info) == 0:
+                continue
+            print(info)
+        print()
+

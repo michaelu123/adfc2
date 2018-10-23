@@ -66,7 +66,7 @@ class TextHandler:
         elif len(character) > 0:
             print(character)
         for abfahrt in abfahrten:
-            print("${} Uhr; {}".format(abfahrt[0], abfahrt[1]))
+            print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
@@ -102,7 +102,7 @@ class TextHandler:
         print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
-            print("${} Uhr; {}".format(zeit[0], zeit[1]))
+            print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
