@@ -210,7 +210,7 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Roh"], "München")
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text"], "Text")
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -325,6 +325,8 @@ class MyApp(Frame):
             handler = textHandler.TextHandler()
         elif formatS == "CSV":
             handler = csvHandler.CsvHandler(txtWriter)
+        elif formatS == "Text":
+            handler = rawHandler.RawHandler()
         else:
             handler = rawHandler.RawHandler()
 
@@ -348,13 +350,13 @@ class MyApp(Frame):
             for tour in touren:
                 tour = tourServerVar.getTour(tour)
                 if tour.isTermin():
-                    if isinstance(handler, textHandler.TextHandler):
+                    if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)
                     handler.handleTermin(tour)
                 else:
                     if radTyp != "Alles" and tour.getRadTyp() != radTyp:
                         continue
-                    if isinstance(handler, textHandler.TextHandler):
+                    if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)
                     handler.handleTour(tour)
         self.pos = "1.0"
