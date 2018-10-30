@@ -22,7 +22,7 @@ class PrintHandler:
         uhrzeit = abfahrt[1]
         ort = abfahrt[2]
         logger.info("Abfahrt: typ=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
-        self.scribus.insertText(typ + ': '+uhrzeit+', '+ort+'\n')
+        self.scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n')
 
     def handleTextfeld(self, stil,textelement):
         logger.info("Textfeld: stil=%s text=%s", stil, textelement)
@@ -79,7 +79,7 @@ class PrintHandler:
             self.scribus.insertText('\n')
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("datum %s", datum)
 
             abfahrten = tour.getAbfahrten()
@@ -115,7 +115,7 @@ class PrintHandler:
                 logger.info("strecke %s", strecke)
 
             if kategorie == 'Mehrtagestour':
-                enddatum = tour.getEndDatum()
+                enddatum = tour.getEndDatum()[0]
                 logger.info("enddatum %s", enddatum)
 
             personen = tour.getPersonen()

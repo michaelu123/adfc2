@@ -40,7 +40,7 @@ class CsvHandler:
             tourNummer = tour.getNummer()
             radTyp = tour.getRadTyp()
             tourTyp = tour.getKategorie()
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
 
             abfahrten = tour.getAbfahrten()
@@ -68,7 +68,7 @@ class CsvHandler:
             character = tour.getCharacter()
 
             if kategorie == 'Mehrtagestour':
-                enddatum = tour.getEndDatum()
+                enddatum = tour.getEndDatum()[0]
                 logger.info("enddatum %s", enddatum)
             else:
                 enddatum = ""
@@ -96,7 +96,7 @@ class CsvHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             terminTyp = tour.getKategorie()
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("terminTyp %s datum %s", terminTyp, datum)
 
             zeiten = tour.getAbfahrten()

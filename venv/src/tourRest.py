@@ -131,15 +131,28 @@ class Tour:
             logger.debug("type %s", type)
             if type != "Startpunkt" and type != "Treffpunkt":
                 continue
-            beginning = tourLoc.get("beginning")
-            logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
-            beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
-            beginning = beginning[11:16] # 14:00
+            if not tourLoc.get("withoutTime"):
+                beginning = tourLoc.get("beginning")
+                logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
+                beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
+                beginning = beginning[11:16] # 14:00
+            else:
+                beginning = ""
             name = tourLoc.get("name")
             street = tourLoc.get("street")
             city = tourLoc.get("city")
             logger.debug("name %s street %s city %s", name, street, city)
-            loc = name + " " + city + ", " + street
+            loc = name
+            if city != "":
+                if loc == "":
+                    loc = city;
+                else:
+                    loc = loc + " " + city
+            if street != "":
+                if loc == "":
+                    loc = street;
+                else:
+                    loc = loc + " " + street
             if type == "Startpunkt":
                 if self.isTermin():
                     type = "Treffpunkt"
@@ -238,27 +251,27 @@ class Tour:
 
     def getDatum(self):
         datum = self.eventItem.get("beginning")
-        beginning = convertToMEZOrMSZ(datum)
+        datum = convertToMEZOrMSZ(datum)
         # fromisoformat defined in Python3.7, not used by Scribus
         # date = datetime.fromisoformat(datum)
-        datum = str(datum[0:10])
-        logger.debug("datum <%s> ", str(datum))
-        date = time.strptime(datum, "%Y-%m-%d")
+        logger.debug("datum <%s>", str(datum))
+        day = str(datum[0:10])
+        date = time.strptime(day, "%Y-%m-%d")
         weekday = weekdays[date.tm_wday]
-        res =  weekday + ", " + datum[8:10] + "." + datum[5:7] + "." + datum[0:4]
+        res =  (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
         return res
 
     def getEndDatum(self):
         enddatum = self.eventItem.get("end")
         enddatum = convertToMEZOrMSZ(enddatum)
         # fromisoformat defined in Python3.7, not used by Scribus
-        # enddate = datetime.fromisoformat(enddatum)
-        enddatum = str(enddatum[0:10])
-        #enddate = datetime.strptime(enddatum, "%Y-%m-%d")
-        enddate = time.strptime(enddatum, "%Y-%m-%d")
-        logger.debug("enddate %s %s ", type(enddate), str(enddate))
-        weekday = weekdays[enddate.tm_wday]
-        return weekday + ", " + enddatum[8:10] + "." + enddatum[5:7] + "." + enddatum[0:4]
+        # enddatum = datetime.fromisoformat(enddatum)
+        logger.debug("enddatum %s", str(enddatum))
+        day = str(enddatum[0:10])
+        date = time.strptime(day, "%Y-%m-%d")
+        weekday = weekdays[date.tm_wday]
+        res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], enddatum[11:16])
+        return res
 
     def getPersonen(self):
         personen = []

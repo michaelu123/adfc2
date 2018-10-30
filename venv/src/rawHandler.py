@@ -18,7 +18,7 @@ class RawHandler:
             tourNummer = tour.getNummer()
             radTyp = tour.getRadTyp()
             tourTyp = tour.getKategorie()
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
 
             abfahrten = tour.getAbfahrten()
@@ -44,7 +44,7 @@ class RawHandler:
             character = tour.getCharacter()
 
             if kategorie == 'Mehrtagestour':
-                enddatum = tour.getEndDatum()
+                enddatum = tour.getEndDatum()[0]
                 logger.info("enddatum %s", enddatum)
 
             personen = tour.getPersonen()
@@ -64,8 +64,12 @@ class RawHandler:
             print("{} m".format(hoehenmeter))
         elif len(character) > 0:
             print(character)
+
         for abfahrt in abfahrten:
-            print("{}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+            if abfahrt[1] != "":
+                print("{}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+            else:
+                print("{}: {}".format(abfahrt[0], abfahrt[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
@@ -80,7 +84,8 @@ class RawHandler:
             logger.info("Title %s", titel)
             terminTyp = tour.getKategorie()
             datum = tour.getDatum()
-            logger.info("terminTyp %s datum %s", terminTyp, datum)
+            enddatum = tour.getEndDatum()
+            logger.info("terminTyp %s datum %s enddatum %s", terminTyp, datum, enddatum)
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
@@ -100,9 +105,12 @@ class RawHandler:
             return
 
         print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
-        print("{}".format(datum))
+        print("{} {}-{}".format(datum[0], datum[1], enddatum[1]))
         for zeit in zeiten:
-            print("{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+            if zeit[1] != "":
+                print("{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+            else:
+                 print("{}: {}".format(zeit[0], zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:

@@ -18,7 +18,7 @@ class TextHandler:
             tourTyp = tour.getKategorie()[0]
             if tourTyp == "T": # Tagestour
                 tourTyp = "G"   # Ganztagstour...
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
 
             abfahrten = tour.getAbfahrten()
@@ -45,7 +45,7 @@ class TextHandler:
             character = tour.getCharacter()
 
             if kategorie == 'Mehrtagestour':
-                enddatum = tour.getEndDatum()
+                enddatum = tour.getEndDatum()[0]
                 logger.info("enddatum %s", enddatum)
 
             personen = tour.getPersonen()
@@ -66,8 +66,12 @@ class TextHandler:
         elif len(character) > 0:
             print(character)
         for abfahrt in abfahrten:
-            print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
-        print(beschreibung)
+            if abfahrt[1] != "":
+                print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+            else:
+                print("${}: {}".format(abfahrt[0], abfahrt[2]))
+
+            print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
                 continue
@@ -79,7 +83,7 @@ class TextHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             terminTyp = tour.getKategorie()
-            datum = tour.getDatum()
+            datum = tour.getDatum()[0]
             logger.info("terminTyp %s datum %s", terminTyp, datum)
 
             zeiten = tour.getAbfahrten()
@@ -102,7 +106,10 @@ class TextHandler:
         print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
-            print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+            if zeit[1] != "":
+                print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+            else:
+                 print("${}: {}".format(zeit[0], zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
