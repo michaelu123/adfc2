@@ -132,10 +132,13 @@ class Tour:
             if type != "Startpunkt" and type != "Treffpunkt":
                 continue
             if not tourLoc.get("withoutTime"):
-                beginning = tourLoc.get("beginning")
-                logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
-                beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
-                beginning = beginning[11:16] # 14:00
+                if len(abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
+                    beginning = self.getDatum()[1]
+                else:
+                    beginning = tourLoc.get("beginning")
+                    logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
+                    beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
+                    beginning = beginning[11:16] # 14:00
             else:
                 beginning = ""
             name = tourLoc.get("name")
