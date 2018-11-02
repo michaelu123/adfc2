@@ -104,7 +104,7 @@ else:
 
 touren = []
 for unitKey in unitKeys:
-    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
+    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
 
 def tourdate(self):
     return self.get("beginning")

@@ -28,7 +28,7 @@ class TourServer:
             self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
-    def getTouren(self, unitKey, start, end, type, calcNum):
+    def getTouren(self, unitKey, start, end, type):
         if unitKey != None and unitKey != "":
             jsonPath = "c:/temp/tpjson/search-" + unitKey + ("_I" if self.includeSub else "") + ".json"
         else:
@@ -130,7 +130,7 @@ class TourServer:
     def loadUnits(self):
         global tpConn
         jsonPath = "c:/temp/tpjson/units.json"
-        if self.useRest or not os.path.exists(jsonPath):
+        if not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/units/")
             resp = self.tpConn.getresponse()
             logger.debug("resp %d %s", resp.status, resp.reason)
