@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter.filedialog import asksaveasfilename
+from tkinter.filedialog import askopenfilename
 from tkinter.simpledialog import askstring
 
 # textHandler produziert output a la KV München
@@ -11,6 +12,7 @@ import textHandler
 import rawHandler
 import printHandler
 import csvHandler
+import pdfHandler
 import contextlib
 import base64
 import adfc_gliederungen
@@ -102,12 +104,14 @@ class MyApp(Frame):
         self.pos = None
         self.searchVal = ""
         self.images = []
+        self.pdfTemplateName = ""
         menuBar = Menu(master)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
         menuFile.add_command(label = "Speichern", command=self.store, accelerator="Ctrl+s")
         master.bind_all("<Control-s>", self.store)
         menuFile.add_command(label = "Speichern unter", command=self.storeas)
+        menuFile.add_command(label = "PDF Template", command=self.pdfTemplate)
         menuBar.add_cascade(label = "Datei", menu=menuFile)
 
         menuEdit = Menu(menuBar)
@@ -145,6 +149,11 @@ class MyApp(Frame):
         if self.savFile == None or self.savFile == "":
             return
         self.store()
+
+    def pdfTemplate(self, *args):
+        self.pdfTemplateName = askopenfilename(title="Choose a PDF Template",
+            defaultextension=".json",
+            filetypes=[("JSON", ".json")])
 
     def cut(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
@@ -210,7 +219,7 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text"], "Text")
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF"], "PDF") # TODO
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -277,7 +286,7 @@ class MyApp(Frame):
 
         for x in range(2):
             Grid.columnconfigure(master, x, weight= 1 if x == 1 else 0)
-        for y in range(6):
+        for y in range(7):
             Grid.rowconfigure(master, y, weight= 1 if y == 6 else 0)
         useRestCB.grid(row=0, column=0, padx=5,pady=2, sticky="w")
         includeSubCB.grid(row=0, column=1, padx=5,pady=2, sticky="w")
@@ -327,6 +336,15 @@ class MyApp(Frame):
             handler = csvHandler.CsvHandler(txtWriter)
         elif formatS == "Text":
             handler = rawHandler.RawHandler()
+        elif formatS == "PDF":
+            handler = pdfHandler.PDFHandler(self)
+            # conditions obtained from PDF template!
+            includeSub = handler.getIncludeSub()
+            type = handler.getType()
+            radTyp = handler.getRadTyp()
+            unitkeys = handler.getUnitKeys().split(",")
+            start = toDate(handler.getStart())
+            end = toDate(handler.getEnd())
         else:
             handler = rawHandler.RawHandler()
 
@@ -334,9 +352,12 @@ class MyApp(Frame):
         for unitKey in unitKeys:
             if unitKey == "Alles":
                 unitKey = ""
-            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type, isinstance(handler, textHandler.TextHandler)))
+            touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
 
-        if (isinstance(handler, textHandler.TextHandler) or isinstance(handler, csvHandler.CsvHandler) or isinstance(handler, rawHandler.RawHandler))\
+        if (isinstance(handler, textHandler.TextHandler)
+            or isinstance(handler, csvHandler.CsvHandler)
+            or isinstance(handler, pdfHandler.PDFHandler)
+            or isinstance(handler, rawHandler.RawHandler))\
                 and (type == "Radtour" or type == "Alles"):
             tourServerVar.calcNummern()
 
@@ -359,6 +380,8 @@ class MyApp(Frame):
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)
                     handler.handleTour(tour)
+            if isinstance(handler, pdfHandler.PDFHandler): # TODO
+                handler.handleEnd()
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
         self.text.focus_set()

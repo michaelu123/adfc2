@@ -1,31 +1,124 @@
 {
+  "comment_margins": "the top, left, right margins, and the spacing between lines",
+  "margins": {
+    "top": 10,
+    "left": 30,
+    "right": 20,
+    "spacing": 1.5
+  },
+  "comment_fonts": {
+    "family": "e.g. arial, courier, times",
+    "preinstalled fonts": "helvetica[,B,BI,I], symbol, times[,B,BI,I], dingbats, all without €!",
+    "underlined fonts": "don't exist, underlining done by program",
+    "unicode fonts": "must be installed explicitly with fonts section below",
+    "family": "name used in styles section for font",
+    "style": "empty for regular, B for bold, I for italic, BI for bold italic, U not used!",
+    "file": "path to font file",
+    "unicode": "true or false, if false you may consider to use the preinstalled fonts"
+  },
+  "fonts": [
+    {
+      "family": "Arial",
+      "file": "fonts/arial.ttf",
+      "style": "",
+      "unicode": true
+    },
+    {
+      "family": "Arial",
+      "file": "fonts/arialbd.ttf",
+      "style": "B",
+      "unicode": true
+    },
+    {
+      "family": "Arial",
+      "file": "fonts/arialbi.ttf",
+      "style": "BI",
+      "unicode": true
+    },
+    {
+      "family": "Arial",
+      "file": "fonts/ariali.ttf",
+      "style": "I",
+      "unicode": true
+    }
+  ],
+  "comment_styles": {
+    "style": "B(old),U(nderline), I(talic), or a combination, e.g. BI, missing or empty style means regular font",
+    "size": "size in points",
+    "type": "text, image or link, missing type means text",
+    "color": "r,g,b values from 0 to 255",
+    "dimen": "size widthxheight in which image shall be displayed, e.g. 60x40",
+    "body": "the default style"
+  },
   "styles": [
     {
       "name": "body",
-      "font": "Arial"
+      "font": "Arial",
+      "size": 10
     },
     {
       "name": "Header1",
-      "font": "Arial"
+      "font": "Arial",
+      "style": "B",
+      "size": 25,
+      "comment": "ADFC blue",
+      "color": "15,74,124"
     },
     {
       "name": "Header2",
-      "font": "Arial"
+      "font": "Arial",
+      "style": "B",
+      "size": 16
     },
     {
       "name": "Header3",
-      "font": "Arial"
+      "font": "Arial",
+      "size": 14
     },
     {
       "name": "Header4",
-      "font": "Arial"
+      "font": "Arial",
+      "style": "B",
+      "size": 14
     },
     {
       "name": "Small",
-      "font": "Arial"
+      "font": "Arial",
+      "size": 10
+    },
+    {
+      "name": "Tourtitel",
+      "font": "Arial",
+      "size": 10,
+      "comment": "ADFC yellow",
+      "color": "238,126,13"
+    },
+    {
+      "name": "Link_yellow",
+      "type": "link",
+      "font": "Arial",
+      "style": "",
+      "size": 10,
+      "comment": "ADFC yellow",
+      "color": "238,126,13"
+    },
+    {
+      "name": "Link_blue",
+      "type": "link",
+      "font": "Arial",
+      "style": "",
+      "size": 10,
+      "comment": "blue",
+      "color": "2,2,255"
+    },
+    {
+      "name": "Logo",
+      "type": "image",
+      "dimen": "60x30"
     }
   ],
   "footer": {
+    "comment": "auf erster Seite zwei Spalten!"
   },
   "selection": {
     "gliederung": "152085",
@@ -57,6 +150,7 @@
     "tourselection": [
       {
         "name": "Touren",
+        "radtyp": "Alles",
         "titelEnthält": [
           ""
         ]
@@ -64,14 +158,14 @@
     ]
   },
   "text": [
-    "/Header1 Medieninformation /right /Logo adfc_logo.png",
+    "/Header1 Medieninformation /right /Logo ADFC_MUC.PNG",
     "/right /Small ${heute}.fmt(%d. %B %Y)",
-    "/Header2 Veranstaltungen des ADFC Garmisch-Partenkirchen im November",
-    "/comment \u2014 = langer Bindestrich, Unicode em-dash",
-    "/Header3 Fahrrad-Technikkurse \u2014 Codierung \u2014 Tagestouren \u2014 Stammtische \u2014 Infoladen \u2014 Selbsthilfe-Werkstatt\n",
+    "/Header2 Veranstaltungen des ADFC GAP im November",
+    "/comment \u2013 = mittellanger Bindestrich, Unicode en-dash, \u2014 = langer Bindestrich, Unicode em-dash",
+    "/Header3 /block Fahrrad-Technikkurse \u2013 Codierung \u2013 Tagestouren \u2013 Stammtische \u2013 Infoladen \u2013 Selbsthilfe-Werkstatt\n",
     "",
     "/Header4 Kurse zur Fahrradtechnik",
-    "/Header5 Termine:",
+    "/bold Termine:",
     "/template /termin_/selection=Technikkurse",
       "/comment %A, %d. %B -> Montag, 6. August",
       "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)}-${end}.fmt(%H:%M) , ${number} - /bold ${titel}",
@@ -81,7 +175,7 @@
     "/bold Anmeldung: /body telefonisch unter 773429",
     "/bold Teilnehmerzahl: /body maximal 8",
     "/bold Teilnamegebühren: /body 12,50€ (Rabatt für Studenten und ADFC-Mitglieder)",
-    "/bold Weitere Infos: /link http://www.adfc-muenchen.de/veranstaltungen/kurse/technik",
+    "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/veranstaltungen/kurse/technik",
     "",
     "/Header4 Fahrrad-Codierung zur Diebstahlprävention",
     "/template /termin /selection=Codierung",
@@ -90,20 +184,20 @@
       "/bold Ort: /body ${city}, ${street}",
     "/endtemplate",
     "Terminreservierung notwendig",
-    "Bei der Fahrradcodierung wird ein persönlicher Code nach einem polizeilich anerkannten System generiert und in den Fahrradrahmen eingraviert. Über diesen Code kann der rechtmäßige Eigentümer aufgefundener Fahrräder ermittelt werden.",
+    "/block Bei der Fahrradcodierung wird ein persönlicher Code nach einem polizeilich anerkannten System generiert und in den Fahrradrahmen eingraviert. Über diesen Code kann der rechtmäßige Eigentümer aufgefundener Fahrräder ermittelt werden.",
     "/bold Kosten: /body 15,00 Euro (für ADFC-Mitglieder 8,00 Euro)",
-    "/bold Weitere Infos: /link http://www.adfc-muenchen.de/service/fahrradcodierung",
+    "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/service/fahrradcodierung",
     "",
     "/Header4 Tagestouren (Auswahl)",
-    "/template /touren /selection=Touren",
+    "/template /tour /selection=Touren",
       "/Tourtitel ${titel}",
-      "comment %A, %d. %B, %H:%M Uhr -> Montag, 6. August, 16:00 Uhr",
+      "/comment %A, %d. %B, %H:%M Uhr -> Montag, 6. August, 16:00 Uhr",
       "/bold Datum: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr, /bold Kategorie: /body ${tourtyp}, /bold Schwierigkeit: /body ${schwierigkeit}, /bold Strecke: /body $(tourlength)",
       "/abfahrten",
       "/block /body ${beschreibung}",
     "/endtemplate",
     "/bold Teilnahmegebühren: /body 3-10 Euro (Rabatt für ADFC-Mitglieder)",
-    "Details und komplettes Angebot unter: /link http://www.adfc-muenchen.de/radtouren/tagestouren",
+    "Details und komplettes Angebot unter: /Link_yellow http://www.adfc-muenchen.de/radtouren/tagestouren",
     "",
     "/Header4 Öffentliche Arbeitsgruppen & Stammtisch",
     "/template /termin /selection=Treffen",
@@ -117,23 +211,23 @@
     "Beratung zu allen Themen rund ums Radfahren. Zusätzlich finden Sie hier Karten und Radreiseführer.",
     "/bold Termin: /body Jeden Donnerstag (außer Feiertage), 17-19:30 Uhr.",
     "/bold Ort: /body ADFC München, Platenstr. 4",
-    "/bold Weitere Infos: /link http://www.adfc-muenchen.de/infoladen",
+    "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/infoladen",
     "",
     "/Header4 Selbsthilfe-Werkstatt",
     "/bold Termin: /body Jeden Donnerstag (außer Feiertage), 17-19:30 Uhr.",
     "/bold Ort: /body ADFC München, Platenstr. 4",
     "/bold Gebühren: /body Werkstattbenutzung 8 Euro (ADFC-Mitglieder frei), mit Betreuung, Ersatzteile sind mitzubringen.",
-    "/bold Weitere Infos: /link http://www.adfc-muenchen.de/selbsthilfewerkstatt",
+    "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/selbsthilfewerkstatt",
     "",
     "ADFC Kreisverband München",
     "Platenstr. 4, 80336 München",
-    "/link http://www.adfc-muenchen.de",
+    "/Link_blue http://www.adfc-muenchen.de",
     "Tel. 089 - 77 34 29",
     "",
     "Medienbetreuung: Martina Tollkühn",
-    "/link http://www.adfc-muenchen.de/presse",
+    "/Link_blue http://www.adfc-muenchen.de/presse",
     "",
-    "/link presse@adfc-muenchen.de",
+    "/Link_blue mailto:presse@adfc-muenchen.de",
     ""
   ]
 }
