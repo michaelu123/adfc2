@@ -10,7 +10,7 @@ def load(unitsJS):
         if len(key) < 3:
             continue
         elif len(key) == 3:
-            _lv2NameMap[key] = unit.get("name").split(" ")[1] # "ADFC Hamburg e.V." -> "Hamburg"
+            _lv2NameMap[key] = unit.get("name").split()[1] # "ADFC Hamburg e.V." -> "Hamburg"
             continue
         lv = key[0:3]
         if not lv in _lv2KvMap:

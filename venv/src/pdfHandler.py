@@ -4,13 +4,16 @@ import tourRest
 import os
 import json
 import functools
+import re
+import datetime
 from myLogger import logger
 
 from myLogger import logger
 from fpdf import FPDF
 
 schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
-
+paramRE = re.compile(r"\${(\w*?)}")
+fmtRE = re.compile(r"\.fmt\((.*?)\)")
 class Style:
     def __init__(self, name:str, type:str, font:str, fontStyle:str, size:int, color:str, dimen:str):
         self.name = name
@@ -28,9 +31,6 @@ class Style:
 class PDFHandler:
     def __init__(self, gui):
         self.gui = gui
-        self.pdf = FPDF('P', "mm", "A4")
-        self.pdf.add_page()
-        self.pdf.set_auto_page_break(True)
         self.styles = {}
         self.terminselections = {}
         self.tourselections = {}
@@ -44,23 +44,36 @@ class PDFHandler:
         with open(self.gui.pdfTemplateName, "r", encoding="utf8") as jsonFile:
             self.pdfJS = json.load(jsonFile)
         self.parseTemplate()
+        self.selFunctions = {
+            "titelenthält": self.selTitelEnthält,
+            "radtyp": self.selRadTyp,
+            "tournr": self.selTourNr
+        }
+        self.expFunctions = {
+            "heute": self.expHeute
+        }
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
         print("Nichts gefunden")
 
     def parseTemplate(self):
-        for key in ["margins", "fonts", "styles", "selection", "text"]:
+        for key in ["pagesettings", "fonts", "styles", "selection", "text"]:
             if self.pdfJS.get(key) == None:
                 raise ValueError("pdf template " + self.gui.pdfTemplateName + " must have a section " + key)
-        margins = self.pdfJS.get("margins")
-        leftMargin = margins.get("left")
-        rightMargin = margins.get("right")
-        topMargin = margins.get("top")
+        pagesettings = self.pdfJS.get("pagesettings")
+        leftMargin = pagesettings.get("leftmargin")
+        rightMargin = pagesettings.get("rightmargin")
+        topMargin = pagesettings.get("topmargin")
+        self.margins = (leftMargin, topMargin, rightMargin)
+        self.linespacing = pagesettings.get("linespacing") # float
+        orientation = pagesettings.get("orientation")[0].upper() # P or L
+        format = pagesettings.get("format")
+        self.pdf = FPDF(orientation, "mm", format)
+        self.pdf.add_page()
+        self.pdf.set_auto_page_break(True)
         self.pdf.set_margins(left=leftMargin, top=topMargin, right=rightMargin)
 
-        self.margins = (leftMargin, topMargin, rightMargin)
-        self.spacing = margins.get("spacing") # float
         fonts = self.pdfJS.get("fonts")
         for font in iter(fonts):
             family = font.get("family")
@@ -100,15 +113,23 @@ class PDFHandler:
             self.styles[name] = Style(name, type, font, fontstyle, size, color, dimen)
         selection = self.pdfJS.get("selection")
         self.gliederung = selection.get("gliederung")
-        self.includeSub = selection.get("includeSub")
+        self.includeSub = selection.get("includesub")
         self.start = selection.get("start")
         self.end = selection.get("end")
         sels = selection.get("terminselection")
         for sel in iter(sels):
             self.terminselections[sel.get("name")] = sel
+            for key in sel.keys():
+                if key != "name" and not isinstance(sel[key], list):
+                    sel[key] = [ sel[key] ]
         sels = selection.get("tourselection")
         for sel in iter(sels):
+            if not "radtyp" in sel.keys():
+                raise ValueError("the tourselection " + sel.get("name") + " MUST contain radtyp")
             self.tourselections[sel.get("name")] = sel
+            for key in sel.keys():
+                if key != "name" and not isinstance(sel[key], list):
+                    sel[key] = [ sel[key] ]
 
     def getIncludeSub(self):
         return self.includeSub
@@ -122,7 +143,9 @@ class PDFHandler:
     def getRadTyp(self):
         s = set()
         for sel in self.tourselections.values():
-            s.add(sel.get("radtyp"))
+            l = sel.get("radtyp")
+            for elem in l:
+                s.add(elem)
         if "Alles" in s:
             return "Alles";
         if len(s) == 1:
@@ -162,40 +185,40 @@ class PDFHandler:
                 tempLines = lines[t1:t2] # /endtemplate not included
                 self.evalTemplate(tempLines)
             else:
-                self.evalLine(line)
+                self.evalLine(line, None)
                 lineNo += 1
         self.pdf.output(dest='F', name="testfpdf.pdf")
 
-    def evalLine(self, line):
+    def evalLine(self, line, tour):
         print("line", line)
         text = []
         self.align = "L"
         self.fontstyles = ""
         self.curStyle = self.styles.get("body")
-        words = line.split(' ')
+        words = line.split()
         for i in range(len(words)):
             word = words[i];
             if word.startswith("/"):
                 cmd = word[1:]
                 if cmd in self.styles.keys():
-                    self.handleText(' '.join(text))
+                    self.handleText(' '.join(text), tour)
                     text = []
                     self.curStyle = self.styles.get(cmd)
                 elif cmd in ["right", "left", "center", "block"]:
-                    self.handleText(' '.join(text))
+                    self.handleText(' '.join(text), tour)
                     text = []
                     self.align = cmd[0].upper()
                     if self.align == 'B':
                         self.align = 'J' ## justification
                 elif cmd in ["bold", "italic", "underline"]:
-                    self.handleText(' '.join(text))
+                    self.handleText(' '.join(text), tour)
                     text = []
                     self.fontstyles += cmd[0].upper()
                 else:
                     text.append(word)
             else:
                 text.append(word)
-        self.handleText(' '.join(text))
+        self.handleText(' '.join(text), tour)
         if not self.align == "J": # multicell does newline automatically
             y = self.pdf.get_y()
             self.pdf.ln()
@@ -203,15 +226,37 @@ class PDFHandler:
 
     def evalTemplate(self, lines):
         print("template:")
-        for line in lines:
-            if line.startswith("/comment"):
-                continue
-            self.evalLine(line)
+        self.evalLine(lines[0], None)
+        words = lines[0].split()
+        typ = words[1]
+        if typ != "/tour" and typ != "/termin":
+            raise ValueError("second word after /template must be /tour or /termin")
+        typ = typ[1:]
+        sel = words[2]
+        if not sel.startswith("/selection="):
+            raise ValueError("third word after /template must start with /selection=")
+        sel = sel[11:]
+        sels = self.tourselections if typ == "tour" else self.terminselections
+        if not sel in sels:
+            raise ValueError("selection " + sel + " not in " + typ + "selections")
+        sel = sels[sel]
+        touren = self.touren if typ == "tour" else self.termine
+        self.evalTouren(sel, touren, lines[1:])
 
-    def handleText(self, s:str):
+    def evalTouren(self, sel, touren, lines):
+        for tour in touren:
+            if not self.selected(tour, sel):
+                continue
+            for line in lines:
+                if line.startswith("/comment"):
+                    continue
+                self.evalLine(line, tour)
+
+    def handleText(self, s:str, tour):
         s = s.strip()
         if s == "":
             return
+        s = self.expand(s, tour)
         print("Text:", s)
         s += " "
         if self.curStyle.type == "image":
@@ -223,7 +268,7 @@ class PDFHandler:
                 style.fontStyle += fs
         self.fontstyles = ""
         self.setStyle(style)
-        h=(style.size * 0.35278 + self.spacing)
+        h=(style.size * 0.35278 + self.linespacing)
         if self.align == 'J':
             self.pdf.multi_cell(w=0, h=h, txt=s, border=0, align=self.align, fill=0)
         elif self.align == 'R':
@@ -282,3 +327,66 @@ class PDFHandler:
             y = self.margins[1]
         self.pdf.image(imgName.strip(), x=x, y=y, w=w) # h=h
         self.pdf.set_y(self.pdf.get_y() + 7)
+
+    def selTitelEnthält(self, tour, lst):
+        titel = tour.getTitel()
+        for  elem in lst:
+            if elem == "" or titel.find(elem) > 0:
+                return True
+        return False
+
+    def selRadTyp(self, tour, lst):
+        if "Alles" in lst:
+            return True
+        radTyp = tour.getRadTyp()
+        return radTyp in lst
+
+    def selTourNr(self, tour, lst):
+        nr = int(tour.getNummer())
+        return nr in lst
+
+    def selected(self, tour, sel):
+        for key in sel.keys():
+            if key == "name" or key.startswith("comment"):
+                continue
+            f = self.selFunctions[key]
+            if f == None:
+                raise ValueError("no function for selection verb " + key + " in selection " + sel.get(name))
+            lst = sel[key]
+            if not f(tour, lst):
+                return False
+        else:
+            return True
+
+    def expand(self, s, tour):
+        off = 0
+        while True:
+            mp = paramRE.search(s, pos=off)
+            if mp == None:
+                return s
+            gp = mp.group(1)
+            sp = mp.span()
+            off = sp[1]
+            mf = fmtRE.search(s, pos=sp[1])
+            if mf != None:
+                gf = mf.group(1)
+                sf = mf.span()
+                s = s[0:sf[0]] + s[sf[1]:]
+                expanded = self.expandParam(gp, tour, gf)
+            else:
+                expanded = self.expandParam(gp, tour, None)
+            s = s[0:sp[0]] + expanded + s[sp[1]:]
+        return s
+
+    def expHeute(self, tour, format):
+        if format == None:
+            return str(datetime.date.today())
+        else:
+            return datetime.date.today().strftime(format)
+
+    def expandParam(self, param, tour, format):
+        try:
+            f = self.expFunctions[param]
+            return f(tour, format)
+        except:
+            return param

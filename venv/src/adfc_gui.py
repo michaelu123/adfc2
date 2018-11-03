@@ -87,7 +87,7 @@ class ListBoxSB(Frame):
         names = [ self.entries[i] for i in self.gliederungLB.curselection() ]
         if "0 Alles" in names:
             return "Alles"
-        s = ",".join( [name.split(" ", 1)[0] for name in names] )
+        s = ",".join( [name.split(maxsplit=1)[0] for name in names] )
         return s
     def clearLB(self):
         self.gliederungLB.selection_clear(0,len(self.entries))
@@ -342,7 +342,7 @@ class MyApp(Frame):
             includeSub = handler.getIncludeSub()
             type = handler.getType()
             radTyp = handler.getRadTyp()
-            unitkeys = handler.getUnitKeys().split(",")
+            unitKeys = handler.getUnitKeys().split(",")
             start = toDate(handler.getStart())
             end = toDate(handler.getEnd())
         else:

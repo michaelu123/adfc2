@@ -1,10 +1,17 @@
 {
-  "comment_margins": "the top, left, right margins, and the spacing between lines",
-  "margins": {
-    "top": 10,
-    "left": 30,
-    "right": 20,
-    "spacing": 1.5
+  "comment_pagesettings": {
+    "orientation": "portrait or landscape",
+    "format": "a3, a4, a5, letter, legal",
+    "top, left, rightmargin": "the page margins in mm",
+    "linespacing": "spacing between lines in mm"
+  },
+  "pagesettings": {
+    "orientation": "portrait",
+    "format": "A4",
+    "topmargin": 10,
+    "leftmargin": 30,
+    "rightmargin": 20,
+    "linespacing": 1.5
   },
   "comment_fonts": {
     "family": "e.g. arial, courier, times",
@@ -120,28 +127,37 @@
   "footer": {
     "comment": "auf erster Seite zwei Spalten!"
   },
+  "comment_selection": {
+    "includeSub": "if true, search for gliederung and all its suborganizations",
+    "start, end": "search for touren or termine within this time frame (end date is inclusive)",
+    "titelenthält": "tour/termin is selected if title contains one of the strings in the list",
+    "radtyp": "one or more of Alles, Tourenrad, Rennrad, Mountainbike",
+    "tournr": " a list of tour numbers (as shown in format München)",
+    "selection result": "the conditions in a selection are combined with AND, the values in the list with OR",
+    "no condition": "selection is true"
+  },
   "selection": {
-    "gliederung": "152085",
-    "includeSub": true,
+    "gliederung": "152037",
+    "includesub": true,
     "start": "01.01.2018",
     "end": "31.12.2019",
     "terminselection": [
       {
         "name": "Technikkurse",
-        "titelEnthält": [
+        "titelenthält": [
           "Bremsen",
           "Kettenschaltung"
         ]
       },
       {
         "name": "Codierung",
-        "titelEnthält": [
+        "titelenthält": [
           "Codierung"
         ]
       },
       {
         "name": "Treffen",
-        "titelEnthält": [
+        "titelenthält": [
           "Stammtisch",
           "Arbeitsgruppe"
         ]
@@ -150,10 +166,8 @@
     "tourselection": [
       {
         "name": "Touren",
-        "radtyp": "Alles",
-        "titelEnthält": [
-          ""
-        ]
+        "comment tournr": [ 100, 101, 102 ],
+        "radtyp": [ "Alles" ]
       }
     ]
   },
@@ -166,7 +180,7 @@
     "",
     "/Header4 Kurse zur Fahrradtechnik",
     "/bold Termine:",
-    "/template /termin_/selection=Technikkurse",
+    "/template /termin /selection=Technikkurse",
       "/comment %A, %d. %B -> Montag, 6. August",
       "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)}-${end}.fmt(%H:%M) , ${number} - /bold ${titel}",
       "/block ${beschreibung}",
