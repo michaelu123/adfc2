@@ -15,7 +15,11 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
     beginning = beginning[0:19] # '2018-04-29T06:30:00'
     d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
     oldDay = d.tm_yday
-    if beginning.startswith("2018"):
+    if beginning.startswith("2017"):
+        begSZ = "2017-03-26"
+        endSZ = "2017-10-29"
+        sz = beginning >= begSZ and beginning < endSZ
+    elif beginning.startswith("2018"):
         begSZ = "2018-03-25"
         endSZ = "2018-10-28"
         sz = beginning >= begSZ and beginning < endSZ
@@ -117,6 +121,8 @@ class Tour:
 
     def getTitel(self):
         return self.titel
+    def getTourLink(self):
+        return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
 
     def getNummer(self):
         num = self.tourJSSearch.get("tourNummer")
@@ -264,6 +270,9 @@ class Tour:
         res =  (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
         return res
 
+    def getDatumRaw(self):
+        return self.eventItem.get("beginning")
+
     def getEndDatum(self):
         enddatum = self.eventItem.get("end")
         enddatum = convertToMEZOrMSZ(enddatum)
@@ -275,6 +284,9 @@ class Tour:
         weekday = weekdays[date.tm_wday]
         res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], enddatum[11:16])
         return res
+
+    def getEndDatumRaw(self):
+        return self.eventItem.get("end")
 
     def getPersonen(self):
         personen = []
@@ -290,6 +302,15 @@ class Tour:
 
     def getImagePreview(self):
         return self.tourJS.get("imagePreview")
+
+    def getCity(self):
+        tourLoc = self.tourLocations[0]
+        return tourLoc.get("city")
+
+    def getStreet(self):
+        tourLoc = self.tourLocations[0]
+        return tourLoc.get("street")
+
 
 class User:
     def __init__(self, userJS):

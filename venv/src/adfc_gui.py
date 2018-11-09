@@ -15,6 +15,8 @@ import csvHandler
 import pdfHandler
 import contextlib
 import base64
+import locale
+
 import adfc_gliederungen
 from PIL import ImageTk
 
@@ -25,8 +27,8 @@ def toDate(dmy):  # 21.09.2018
         y = dmy[6:10]
     else:
         y = "20" + dmy[6:8]
-    if y < "2018":
-        raise ValueError("Kein Datum vor 2018 möglich")
+    if y < "2017":
+        raise ValueError("Kein Datum vor 2017 möglich")
     if int(d) == 0 or int(d) > 31 or int(m) == 0 or int(m) > 12 or int(y) < 2000 or int(y) > 2100:
         raise ValueError("Bitte Datum als dd.mm.jjjj angeben, nicht als " + dmy)
     return y + "-" + m + "-" + d  # 2018-09-21
@@ -326,7 +328,6 @@ class MyApp(Frame):
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)
 
-        tourServerVar = tourServer.TourServer(False, useRest, includeSub)
         formatS = self.formatOM.get()
         if formatS == "Starnberg":
             handler = printHandler.PrintHandler()
@@ -348,6 +349,7 @@ class MyApp(Frame):
         else:
             handler = rawHandler.RawHandler()
 
+        tourServerVar = tourServer.TourServer(False, useRest, includeSub)
         touren = []
         for unitKey in unitKeys:
             if unitKey == "Alles":
@@ -386,7 +388,18 @@ class MyApp(Frame):
         self.text.mark_set(INSERT, self.pos)
         self.text.focus_set()
 
+#locale.setlocale(locale.LC_ALL, "de_DE")
+locale.setlocale(locale.LC_TIME, "German")
 root = Tk()
 app = MyApp(root)
 app.master.title("ADFC Touren/Termine")
 app.mainloop()
+
+
+"""
+TODO:
+template.json produziert viele Fehler
+wenn gliederung, useRest etc nicht im template sind, von gui nehmen
+Abfahrten
+
+"""
