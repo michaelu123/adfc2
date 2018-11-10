@@ -32,12 +32,6 @@ def convertToMEZOrMSZ(s: str):  # '2018-04-29T06:30:00+00:00'
     dt = datetime.datetime.fromtimestamp(t)
     return dt
 
-def join(words):
-    if len(words) == 0:
-        return ""
-    s = ' '.join(words) + " "
-    return s
-
 class Style:
     def __init__(self, name:str, type:str, font:str, fontStyle:str, size:int, color:str, dimen:str):
         self.name = name
@@ -86,10 +80,6 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def walk(self, node, lvl):
         print(" "*lvl,"<<<<")
         try:
-            if node.tag == "ol":
-                logger.info("found")
-            #if ltext.find("100 S") >= 0 or ltail.find("100 S") >= 0:
-            #    logger.info("found")
             # save old state
             self.states.append(self.pdfHandler.getState())
             self.nodeHandler[node.tag](node)
@@ -117,7 +107,6 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         except Exception as e:
             logger.exception("error in tour description")
         print(" "*lvl,">>>>")
-        return ""
 
     def elimNl(self, node):
         """
@@ -152,6 +141,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def h6(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[6]
     def p(self, node):
+        node.tail = None
         self.pdfHandler.fontStyles = ""
     def strong(self, node):
         self.pdfHandler.fontStyles += "B"
@@ -186,6 +176,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.pdfHandler.url = node.attrib["href"]
         self.pdfHandler.curStyle.color = "238,126,13"
     def blockQuote(self, node):
+        node.text = node.tail = None
         self.pdfHandler.align = 'J'
     def hr(self, node):
         x = self.pdf.get_x()
@@ -386,36 +377,44 @@ class PDFHandler:
     def evalLine(self, line, tour):
         print("line", line)
         text = []
-        self.align = "L"
+        self.align = self.lastAlign = "L"
         self.fontStyles = ""
         self.curStyle = self.styles.get("body")
         words = line.split()
-        for i in range(len(words)):
+        l = len(words)
+        last = l - 1
+        for i in range(l):
             word = words[i];
             if word.startswith("/"):
                 cmd = word[1:]
                 if cmd in self.styles.keys():
-                    self.handleText(join(text), tour)
+                    self.handleText("".join(text), tour)
                     text = []
                     self.curStyle = self.styles.get(cmd)
                 elif cmd in ["right", "left", "center", "block"]:
-                    self.handleText(join(text), tour)
+                    self.handleText("".join(text), tour)
                     text = []
                     self.align = cmd[0].upper()
                     if self.align == 'B':
                         self.align = 'J' ## justification
                 elif cmd in ["bold", "italic", "underline"]:
-                    self.handleText(join(text), tour)
+                    self.handleText("".join(text), tour)
                     text = []
                     self.fontStyles += cmd[0].upper()
                 else:
+                    if i < last:
+                        word = word + " "
                     text.append(word)
             else:
+                if i < last:
+                    word = word + " "
                 text.append(word)
-        self.handleText(join(text), tour)
-        if not self.align == "J": # multicell does newline automatically
+        self.handleText("".join(text), tour)
+        if self.lastAlign != "J": # multicell does newline automatically
+            x = self.pdf.get_x()
             y = self.pdf.get_y()
             self.pdf.ln()
+            x = self.pdf.get_x()
             y = self.pdf.get_y()
             pass
 
@@ -438,19 +437,23 @@ class PDFHandler:
         self.evalTouren(sel, touren, lines[1:])
 
     def evalTouren(self, sel, touren, lines):
+        selectedTouren = []
         for tour in touren:
-            if not self.selected(tour, sel):
-                continue
+            if self.selected(tour, sel):
+                selectedTouren.append(tour)
+        lastTour = selectedTouren[-1]
+        for tour in selectedTouren:
             for line in lines:
                 if line.startswith("/comment"):
                     continue
                 self.evalLine(line, tour)
-            self.evalLine("", None)
+            if tour != lastTour: # extra line between touren, not after the last one
+                self.evalLine("", None)
 
     def handleText(self, s:str, tour):
+        s = self.expand(s, tour)
         if s == "":
             return
-        s = self.expand(s, tour)
         #print("Text:", s)
         if self.curStyle.type == "image":
             self.drawImage(s)
@@ -478,6 +481,7 @@ class PDFHandler:
                 self.pdf.cell(w=w, h=h, txt=s, border=0, ln=0, align=self.align, fill=0, link=self.url)
             x = self.pdf.get_x()
         self.url = None
+        self.lastAlign = self.align
 
     def multiline(self, h: float, s: str):
         """ line too long, see if I can split line after blank """
@@ -501,7 +505,7 @@ class PDFHandler:
                     l = len(s)
                     continue
                 else:  # emergency, can not split line
-                    w = self.pdf.get_string_width(sub)
+                    w = self.pdf.get_string_width(s)
                     self.pdf.cell(w=w, h=h, txt=s, border=0, ln=1, align=self.align, fill=0, link=self.url)
                     return
             sub = s[0:lb]
@@ -512,6 +516,10 @@ class PDFHandler:
             self.pdf.cell(w=w, h=h, txt=sub, border=0, ln=0, align=self.align, fill=0, link=self.url)
             x = self.pdf.get_x()
             s = s[lb + 1:]
+            w = self.pdf.get_string_width(s)
+            if x > self.margins[0] and (x + w) >= (210 - 1 - self.margins[2]):
+                self.pdf.ln()
+                x = self.pdf.get_x()
             l = len(s)
 
     def setStyle(self, style:Style):
@@ -582,6 +590,8 @@ class PDFHandler:
                 expanded = self.expandParam(gp, tour, gf)
             else:
                 expanded = self.expandParam(gp, tour, None)
+            if expanded == None: # special case for beschreibung, handled as markdown
+                return ""
             try:
                 s = s[0:sp[0]] + expanded + s[sp[1]:]
             except Exception as e:
@@ -621,6 +631,7 @@ class PDFHandler:
 
     def expTitel(self, tour, format):
         self.url = tour.getTourLink()
+        logger.info("Titel: " + tour.getTitel())
         return tour.getTitel()
 
     def expBeschreibung(self, tour, format):
@@ -629,7 +640,8 @@ class PDFHandler:
         #desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()
-        return ""
+        self.lastAlign = "J" # no nl after markdown
+        return None
 
     def expCity(self, tour, format):
         return tour.getCity()

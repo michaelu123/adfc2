@@ -2,15 +2,16 @@
   "comment_pagesettings": {
     "orientation": "portrait or landscape",
     "format": "a3, a4, a5, letter, legal",
-    "top, left, rightmargin": "the page margins in mm",
+    "top, left, right, bottommargin": "the page margins in mm",
     "linespacing": "spacing between lines in mm"
   },
   "pagesettings": {
     "orientation": "portrait",
     "format": "A4",
-    "topmargin": 10,
+    "topmargin": 20,
     "leftmargin": 30,
     "rightmargin": 20,
+    "bottommargin": 20,
     "linespacing": 1.5
   },
   "comment_fonts": {
@@ -25,27 +26,27 @@
   },
   "fonts": [
     {
-      "family": "Arial",
+      "family": "ArialUC",
       "file": "fonts/arial.ttf",
-      "style": "",
+      "fontstyle": "",
       "unicode": true
     },
     {
-      "family": "Arial",
+      "family": "ArialUC",
       "file": "fonts/arialbd.ttf",
-      "style": "B",
+      "fontstyle": "B",
       "unicode": true
     },
     {
-      "family": "Arial",
+      "family": "ArialUC",
       "file": "fonts/arialbi.ttf",
-      "style": "BI",
+      "fontstyle": "BI",
       "unicode": true
     },
     {
-      "family": "Arial",
+      "family": "ArialUC",
       "file": "fonts/ariali.ttf",
-      "style": "I",
+      "fontstyle": "I",
       "unicode": true
     }
   ],
@@ -60,12 +61,12 @@
   "styles": [
     {
       "name": "body",
-      "font": "Arial",
+      "font": "ArialUC",
       "size": 10
     },
     {
       "name": "Header1",
-      "font": "Arial",
+      "font": "ArialUC",
       "style": "B",
       "size": 25,
       "comment": "ADFC blue",
@@ -73,29 +74,29 @@
     },
     {
       "name": "Header2",
-      "font": "Arial",
+      "font": "ArialUC",
       "style": "B",
       "size": 16
     },
     {
       "name": "Header3",
-      "font": "Arial",
+      "font": "ArialUC",
       "size": 14
     },
     {
       "name": "Header4",
-      "font": "Arial",
+      "font": "ArialUC",
       "style": "B",
       "size": 14
     },
     {
       "name": "Small",
-      "font": "Arial",
+      "font": "ArialUC",
       "size": 10
     },
     {
       "name": "Tourtitel",
-      "font": "Arial",
+      "font": "ArialUC",
       "size": 10,
       "comment": "ADFC yellow",
       "color": "238,126,13"
@@ -103,7 +104,7 @@
     {
       "name": "Link_yellow",
       "type": "link",
-      "font": "Arial",
+      "font": "ArialUC",
       "style": "",
       "size": 10,
       "comment": "ADFC yellow",
@@ -112,7 +113,7 @@
     {
       "name": "Link_blue",
       "type": "link",
-      "font": "Arial",
+      "font": "ArialUC",
       "style": "",
       "size": 10,
       "comment": "blue",
@@ -132,15 +133,15 @@
     "start, end": "search for touren or termine within this time frame (end date is inclusive)",
     "titelenthält": "tour/termin is selected if title contains one of the strings in the list",
     "radtyp": "one or more of Alles, Tourenrad, Rennrad, Mountainbike",
-    "tournr": " a list of tour numbers (as shown in format München)",
+    "tournr": " a list of tour numbers (as shown in format München or Text)",
     "selection result": "the conditions in a selection are combined with AND, the values in the list with OR",
     "no condition": "selection is true"
   },
   "selection": {
-    "gliederung": "152037",
+    "gliederung": "152059",
     "includesub": true,
-    "start": "01.01.2018",
-    "end": "31.12.2019",
+    "start": "01.07.2017",
+    "end": "01.10.2017",
     "terminselection": [
       {
         "name": "Technikkurse",
@@ -174,7 +175,7 @@
   "text": [
     "/Header1 Medieninformation /right /Logo ADFC_MUC.PNG",
     "/right /Small ${heute}.fmt(%d. %B %Y)",
-    "/Header2 Veranstaltungen des ADFC GAP im November",
+    "/Header2 Veranstaltungen des ADFC München im August",
     "/comment \u2013 = mittellanger Bindestrich, Unicode en-dash, \u2014 = langer Bindestrich, Unicode em-dash",
     "/Header3 /block Fahrrad-Technikkurse \u2013 Codierung \u2013 Tagestouren \u2013 Stammtische \u2013 Infoladen \u2013 Selbsthilfe-Werkstatt\n",
     "",
@@ -182,35 +183,40 @@
     "/bold Termine:",
     "/template /termin /selection=Technikkurse",
       "/comment %A, %d. %B -> Montag, 6. August",
-      "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)}-${end}.fmt(%H:%M) , ${number} - /bold ${titel}",
-      "/block ${beschreibung}",
+      "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)-${end}.fmt(%H:%M) - /bold ${titel}",
+      "${beschreibung}",
     "/endtemplate",
+    "",
     "/bold Ort: /body ADFC München, Platenstr. 4",
     "/bold Anmeldung: /body telefonisch unter 773429",
     "/bold Teilnehmerzahl: /body maximal 8",
-    "/bold Teilnamegebühren: /body 12,50€ (Rabatt für Studenten und ADFC-Mitglieder)",
+    "/bold Teilnahmegebühren: /body 12,50€ (Rabatt für Studenten und ADFC-Mitglieder)",
     "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/veranstaltungen/kurse/technik",
     "",
     "/Header4 Fahrrad-Codierung zur Diebstahlprävention",
     "/template /termin /selection=Codierung",
       "/comment %A, %d. %B -> Montag, 6. August",
-      "/bold ${start}.fmt(%A, %d. %B), /body ${start}.fmt(%H:%M)}-${end}.fmt(%H:%M)}, ${number}",
+      "/bold ${start}.fmt(%A, %d. %B), /body ${start}.fmt(%H:%M)-${end}.fmt(%H:%M)",
       "/bold Ort: /body ${city}, ${street}",
     "/endtemplate",
+    "",
     "Terminreservierung notwendig",
     "/block Bei der Fahrradcodierung wird ein persönlicher Code nach einem polizeilich anerkannten System generiert und in den Fahrradrahmen eingraviert. Über diesen Code kann der rechtmäßige Eigentümer aufgefundener Fahrräder ermittelt werden.",
-    "/bold Kosten: /body 15,00 Euro (für ADFC-Mitglieder 8,00 Euro)",
+    "/bold Kosten: /body 15,00 € (für ADFC-Mitglieder 8,00 €)",
     "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/service/fahrradcodierung",
     "",
     "/Header4 Tagestouren (Auswahl)",
     "/template /tour /selection=Touren",
-      "/Tourtitel ${titel}",
+      "/Tourtitel ${titel} /body  (Tournummer ${nummer})",
       "/comment %A, %d. %B, %H:%M Uhr -> Montag, 6. August, 16:00 Uhr",
-      "/bold Datum: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr, /bold Kategorie: /body ${tourtyp}, /bold Schwierigkeit: /body ${schwierigkeit}, /bold Strecke: /body $(tourlength)",
-      "/abfahrten",
-      "/block /body ${beschreibung}",
+      "/bold Datum: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr, /bold Kategorie: /body ${tourtyp}, /bold Schwierigkeit: /body ${schwierigkeit}, /bold Strecke: /body ${tourlänge}",
+      "${abfahrten}",
+      "${beschreibung}",
+      "/bold Zusatzinfo: /block ${zusatzinfo}",
+      "/bold Tourleiter: /block ${tourleiter}",
     "/endtemplate",
-    "/bold Teilnahmegebühren: /body 3-10 Euro (Rabatt für ADFC-Mitglieder)",
+    "",
+    "/bold Teilnahmegebühren: /body 3-10 € (Rabatt für ADFC-Mitglieder)",
     "Details und komplettes Angebot unter: /Link_yellow http://www.adfc-muenchen.de/radtouren/tagestouren",
     "",
     "/Header4 Öffentliche Arbeitsgruppen & Stammtisch",
@@ -230,7 +236,7 @@
     "/Header4 Selbsthilfe-Werkstatt",
     "/bold Termin: /body Jeden Donnerstag (außer Feiertage), 17-19:30 Uhr.",
     "/bold Ort: /body ADFC München, Platenstr. 4",
-    "/bold Gebühren: /body Werkstattbenutzung 8 Euro (ADFC-Mitglieder frei), mit Betreuung, Ersatzteile sind mitzubringen.",
+    "/bold Gebühren: /body Werkstattbenutzung 8 € (ADFC-Mitglieder frei), mit Betreuung, Ersatzteile sind mitzubringen.",
     "/bold Weitere Infos: /Link_yellow http://www.adfc-muenchen.de/selbsthilfewerkstatt",
     "",
     "ADFC Kreisverband München",
