@@ -13,6 +13,7 @@ class TourServer:
         self.includeSub = includeSuba
         self.tpConn = None
         self.alleTouren = []
+        self.alleTermine = []
         try:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
@@ -74,6 +75,8 @@ class TourServer:
                 continue
             if item.get("eventType") == "Radtour":
                 self.alleTouren.append(item)
+            else:
+                self.alleTermine.append(item)
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
                 continue
@@ -138,7 +141,7 @@ class TourServer:
             with open(jsonPath, "w") as jsonFile:
                 json.dump(unitsJS, jsonFile, indent=4)
         else:
-            with open(jsonPath, "r") as jsonFile:
+            with open(jsonPath, "r", encoding="utf-8") as jsonFile:
                 unitsJS = json.load(jsonFile)
         adfc_gliederungen.load(unitsJS)
 
@@ -165,5 +168,15 @@ class TourServer:
             else:
                 num = tnum
                 tnum += 1
+            tourJS["tourNummer"] = str(num)
+        self.alleTermine.sort(key=tourdate)  # sortieren nach Datum
+        yyyy = ""
+        for tourJS in self.alleTermine:
+            datum = tourJS.get("beginning")
+            if datum[0:4] != yyyy:
+                yyyy = datum[0:4]
+                tnum = 100
+            num = tnum
+            tnum += 1
             tourJS["tourNummer"] = str(num)
 

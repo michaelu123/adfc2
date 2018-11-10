@@ -221,14 +221,17 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF"], "PDF") # TODO
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF"], "PDF")
+        self.linkTypeOM = LabelOM(master, "Links to:", ["frontEnd", "backEnd", "keine"], "frontEnd")
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
         typenLF["text"] = "Typen"
         self.typVar = StringVar()
+        self.typBtns = []
         for typ in typen:
             typRB = Radiobutton(typenLF, text=typ, value=typ, variable = self.typVar, command = self.typHandler)
+            self.typBtns.append(typRB)
             if typ == "Alles":
                 typRB.select()
             else:
@@ -293,6 +296,7 @@ class MyApp(Frame):
         useRestCB.grid(row=0, column=0, padx=5,pady=2, sticky="w")
         includeSubCB.grid(row=0, column=1, padx=5,pady=2, sticky="w")
         self.formatOM.grid(row=1, column=0, padx=5,pady=2, sticky="w")
+        self.linkTypeOM.grid(row=1, column=1, padx=5,pady=2, sticky="w")
         typenLF.grid(row=2, column=0,padx=5,pady=2, sticky="w")
         radTypenLF.grid(row=2, column=1,padx=5,pady=2, sticky="w")
         glContainer.grid(row=3, column=0,padx=5,pady=2, sticky="w")
@@ -314,6 +318,21 @@ class MyApp(Frame):
             self.images.append(photo)  # see http://effbot.org/pyfaq/why-do-my-tkinter-images-not-appear.htm
             self.text.image_create(INSERT, image=photo)
             print()
+
+    def getLinkType(self):
+        return self.linkTypeOM.get()
+    def getRadTyp(self):
+        return self.radTypVar.get()
+    def getTyp(self):
+        return self.typVar.get()
+    def getGliederung(self):
+        return self.gliederungSvar.get()
+    def getIncludeSub(self):
+        return self.includeSubVar.get()
+    def getStart(self):
+        return self.startDateLE.get().strip()
+    def getEnd(self):
+        return self.endDateLE.get().strip()
 
     def starten(self):
         useRest = self.useRestVar.get()
@@ -359,8 +378,7 @@ class MyApp(Frame):
         if (isinstance(handler, textHandler.TextHandler)
             or isinstance(handler, csvHandler.CsvHandler)
             or isinstance(handler, pdfHandler.PDFHandler)
-            or isinstance(handler, rawHandler.RawHandler))\
-                and (type == "Radtour" or type == "Alles"):
+            or isinstance(handler, rawHandler.RawHandler)):
             tourServerVar.calcNummern()
 
         def tourdate(self):
@@ -398,8 +416,6 @@ app.mainloop()
 
 """
 TODO:
-template.json produziert viele Fehler
-wenn gliederung, useRest etc nicht im template sind, von gui nehmen
-Abfahrten
-
+adfc_rest2 löschen?
+durchgestrichener font
 """

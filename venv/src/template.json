@@ -1,9 +1,9 @@
 {
   "comment_pagesettings": {
-    "orientation": "portrait or landscape",
+    "orientation": "portrait oder landscape",
     "format": "a3, a4, a5, letter, legal",
-    "top, left, right, bottommargin": "the page margins in mm",
-    "linespacing": "spacing between lines in mm"
+    "top, left, right, bottommargin": "die Seitenränder in mm",
+    "linespacing": "Zwischenraum zwischen Zeilen in mm"
   },
   "pagesettings": {
     "orientation": "portrait",
@@ -15,14 +15,15 @@
     "linespacing": 1.5
   },
   "comment_fonts": {
-    "family": "e.g. arial, courier, times",
+    "family": "z.B. arial, courier, times",
     "preinstalled fonts": "helvetica[,B,BI,I], symbol, times[,B,BI,I], dingbats, all without €!",
-    "underlined fonts": "don't exist, underlining done by program",
-    "unicode fonts": "must be installed explicitly with fonts section below",
-    "family": "name used in styles section for font",
-    "style": "empty for regular, B for bold, I for italic, BI for bold italic, U not used!",
-    "file": "path to font file",
-    "unicode": "true or false, if false you may consider to use the preinstalled fonts"
+    "underlined fonts": "gibt es nicht, Striche werden vom Programm erzeugt",
+    "unicode fonts": "müssen explizit installiert werden, siehe unten den 'fonts'-Abschnitt",
+    "ArialUC": "Arial Unicode, wird mit dem Programm mitgeliefert",
+    "family": "der Name, der im 'styles'-Abschnitt als 'font' benutzt wird",
+    "style": "leer für 'regulären' font, B für fetten(bold), I für kursiven(italic), BI für fett und kursiv, U unbenutzt!",
+    "file": "Pfad zur font-Datei (c:/.../irgendwas.ttf)",
+    "unicode": "true oder false, wenn false, können Sie auch die vorinstallierten fonts (s.o.) benutzen"
   },
   "fonts": [
     {
@@ -51,12 +52,12 @@
     }
   ],
   "comment_styles": {
-    "style": "B(old),U(nderline), I(talic), or a combination, e.g. BI, missing or empty style means regular font",
-    "size": "size in points",
-    "type": "text, image or link, missing type means text",
-    "color": "r,g,b values from 0 to 255",
-    "dimen": "size widthxheight in which image shall be displayed, e.g. 60x40",
-    "body": "the default style"
+    "style": "B(old),U(nderline), I(talic), oder eine Kombination, z.B. BI, wenn fehlend oder leer, dann 'regulärer' font",
+    "size": "Fontgröße in points",
+    "type": "text, image oder link, wenn fehlend, dann text",
+    "color": "r,g,b values von 0 bis 255",
+    "dimen": "Größe breitexhöhe, in der das Bild gezeigt wird,  z.B. 60x30",
+    "body": "dieser Stil wird genommen, wenn nichts anderes bestimmt wird"
   },
   "styles": [
     {
@@ -125,17 +126,26 @@
       "dimen": "60x30"
     }
   ],
+  "header": {
+    "comment": "noch nicht implementiert"
+  },
   "footer": {
-    "comment": "auf erster Seite zwei Spalten!"
+    "comment": "noch nicht implementiert"
   },
   "comment_selection": {
-    "includeSub": "if true, search for gliederung and all its suborganizations",
-    "start, end": "search for touren or termine within this time frame (end date is inclusive)",
-    "titelenthält": "tour/termin is selected if title contains one of the strings in the list",
-    "radtyp": "one or more of Alles, Tourenrad, Rennrad, Mountainbike",
-    "tournr": " a list of tour numbers (as shown in format München or Text)",
-    "selection result": "the conditions in a selection are combined with AND, the values in the list with OR",
-    "no condition": "selection is true"
+    "includesub": "wenn true, durchsuche Gliederung und ihre Untergliederungen",
+    "gliederung": "Liste von Gliederungsnummern, durch Komma getrennt",
+    "start, end": "suche Touren und Termine innerhalb dieser Zeit (einschließlich des Ende-Datums)",
+    "titelenthält": "Tour/Termin wird ausgewählt, wenn der Titel einen dieser Werte enthält",
+    "titelenthältnicht": "Tour/Termin wird ausgewählt, wenn der Titel keinen dieser Werte enthält",
+    "radtyp": "Alles, Tourenrad, Rennrad, oder Mountainbike",
+    "tournr": "Tour/Termin wird ausgewählt, wenn die Nummer in der Liste vorkommt",
+    "nichttournr": "Tour/Termin wird ausgewählt, wenn die Nummer nicht in der Liste vorkommt",
+    "kategorie für Radtouren": "Tagestour, Halbtagstour, Feierabendtour, Mehrtagestour",
+    "kategorie für Termine": "Stammtisch, Öffentliche Arbeitsgruppe, Aktiventreff",
+    "Ergebnis der Selektion": "Die Bedingungen in der Selektion sind mit UND verknüpft, die Werte in der Liste mit ODER",
+    "Keine Bedingung angegeben": "Selektion ist erfüllt",
+    "Fehlende Werte": "werden ggfs. aus der UI übernommen"
   },
   "selection": {
     "gliederung": "152059",
@@ -183,7 +193,8 @@
     "/bold Termine:",
     "/template /termin /selection=Technikkurse",
       "/comment %A, %d. %B -> Montag, 6. August",
-      "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)-${end}.fmt(%H:%M) - /bold ${titel}",
+      "/bold ${start}.fmt(%A, %d. %B) /body ${start}.fmt(%H:%M)-${end}.fmt(%H:%M) - /Tourtitel ${titel}",
+      "/bold Kategorie: /body ${kategorie}",
       "${beschreibung}",
     "/endtemplate",
     "",
@@ -198,6 +209,7 @@
       "/comment %A, %d. %B -> Montag, 6. August",
       "/bold ${start}.fmt(%A, %d. %B), /body ${start}.fmt(%H:%M)-${end}.fmt(%H:%M)",
       "/bold Ort: /body ${city}, ${street}",
+      "/Tourtitel ${titel} /bold Kategorie: /body ${kategorie}",
     "/endtemplate",
     "",
     "Terminreservierung notwendig",
@@ -209,11 +221,11 @@
     "/template /tour /selection=Touren",
       "/Tourtitel ${titel} /body  (Tournummer ${nummer})",
       "/comment %A, %d. %B, %H:%M Uhr -> Montag, 6. August, 16:00 Uhr",
-      "/bold Datum: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr, /bold Kategorie: /body ${tourtyp}, /bold Schwierigkeit: /body ${schwierigkeit}, /bold Strecke: /body ${tourlänge}",
+      "/bold Datum: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr, /bold Kategorie: /body ${kategorie}, /bold Schwierigkeit: /body ${schwierigkeit}, /bold Strecke: /body ${tourlänge}",
       "${abfahrten}",
       "${beschreibung}",
-      "/bold Zusatzinfo: /block ${zusatzinfo}",
-      "/bold Tourleiter: /block ${tourleiter}",
+      "${zusatzinfo}",
+      "${tourleiter}",
     "/endtemplate",
     "",
     "/bold Teilnahmegebühren: /body 3-10 € (Rabatt für ADFC-Mitglieder)",
@@ -221,10 +233,11 @@
     "",
     "/Header4 Öffentliche Arbeitsgruppen & Stammtisch",
     "/template /termin /selection=Treffen",
-      "/bold ${titel}",
+      "/Tourtitel ${titel}",
       "/bold Termin: /body ${start}.fmt(%A, %d. %B, %H:%M) Uhr",
-      "/bold Ort: /body ${city}, ${street}",
-      "/bold Betreuer: /body ${tourleiter}",
+      "/bold Ort: /body ${city}, ${street}, /bold Kategorie: /body ${kategorie}",
+      "${beschreibung}",
+      "${betreuer}",
     "/endtemplate",
     "",
     "/Header4 Infoladen",

@@ -121,8 +121,10 @@ class Tour:
 
     def getTitel(self):
         return self.titel
-    def getTourLink(self):
+    def getFrontendLink(self):
         return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
+    def getBackendLink(self):
+        return "https://intern-touren-termine.adfc.de/modules/events/" + self.eventItem.get("eventItemId")
 
     def getNummer(self):
         num = self.tourJSSearch.get("tourNummer")
@@ -154,12 +156,12 @@ class Tour:
             loc = name
             if city != "":
                 if loc == "":
-                    loc = city;
+                    loc = city
                 else:
                     loc = loc + " " + city
             if street != "":
                 if loc == "":
-                    loc = street;
+                    loc = street
                 else:
                     loc = loc + " " + street
             if type == "Startpunkt":
@@ -197,13 +199,11 @@ class Tour:
         for itemTag in self.itemTags:
             tag = itemTag.get("tag")
             category = itemTag.get("category")
-            if category.startswith("Typen "):
-                return tag
-            if category.startswith("Radlertreff"):
-                return tag
-        if self.isTermin():
-            return "Termin"
-        raise ValueError("Keine Kategorie definiert (z.B. Feierabendtour, Halbtagstour...)")
+            if category.startswith("Typen ") or category.startswith("Radlertreff") \
+                    or category.startswith("Versammlungen") or category.startswith("Vortr")\
+                    or category.startswith("Service"):
+                return tag.split()[0]
+        return "Ohne"
 
     def getRadTyp(self):
         # wenn nur Rennrad oder nur Mountainbike, dann dieses, sonst Tourenrad
@@ -326,5 +326,5 @@ class User:
     def __repr__(self):
         name = self.firstName + " " + self.lastName
         if self.phone != None and self.phone != "":
-            name += "(" + self.phone + ")"
+            name += " (" + self.phone + ")"
         return name

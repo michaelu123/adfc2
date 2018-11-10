@@ -58,6 +58,11 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def run(self, root):
         self.pdfHandler.setStyle(self.pdfHandler.styles.get("body").copy()) # now == curStyle
         self.pdfHandler.align = "L"
+        try:
+            lastChild = root[-1]
+            lastChild.tail = None
+        except:
+            pass
         for child in root: # skip <div> root
             self.walk(child, 4)
         root.clear()
@@ -71,7 +76,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
             x = s.find('\n')
             if x >= 0:
                 self.pdfHandler.handleText(s[0:x], None)
-                self.pdf.ln()
+                self.pdfHandler.simpleNl()
                 s = s[x + 1:]
             else:
                 self.pdfHandler.handleText(s, None)
@@ -141,7 +146,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def h6(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[6]
     def p(self, node):
-        node.tail = None
+        #node.tail = None
         self.pdfHandler.fontStyles = ""
     def strong(self, node):
         self.pdfHandler.fontStyles += "B"
@@ -197,20 +202,27 @@ class PDFHandler:
         self.touren = []
         self.termine = []
         self.url = None
+        self.linkType = self.gui.getLinkType()
         self.pdfExtension = PDFExtension()
         self.md = markdown.Markdown(extensions=[self.pdfExtension])
-        #self.gui.pdfTemplateName = "C:/Users/Michael/PycharmProjects/ADFC1/venv/src/template152.json" # TODO
         if self.gui.pdfTemplateName is None or self.gui.pdfTemplateName == "":
             self.gui.pdfTemplate()
         if self.gui.pdfTemplateName is None or self.gui.pdfTemplateName == "":
             raise ValueError("must specify path to PDF template!")
-        with open(self.gui.pdfTemplateName, "r", encoding="utf8") as jsonFile:
-            self.pdfJS = json.load(jsonFile)
+        try:
+            with open(self.gui.pdfTemplateName, "r", encoding="utf-8-sig") as jsonFile:
+                self.pdfJS = json.load(jsonFile)
+        except Exception as e:
+            print("Wenn Sie einen decoding-Fehler bekommen, öffnen Sie " + self.gui.pdfTemplateName + " mit notepad, dann 'Speichern unter' mit Codierung UTF-8")
+            raise e
         self.parseTemplate()
         self.selFunctions = {
             "titelenthält": self.selTitelEnthält,
+            "titelenthältnicht": self.selTitelEnthältNicht,
             "radtyp": self.selRadTyp,
-            "tournr": self.selTourNr
+            "tournr": self.selTourNr,
+            "kategorie": self.selKategorie,
+            "nichttournr": self.selNotTourNr
         }
         self.expFunctions = {
             "heute": self.expHeute,
@@ -219,12 +231,14 @@ class PDFHandler:
             "nummer": self.expNummer,
             "titel": self.expTitel,
             "beschreibung": self.expBeschreibung,
+            "abfahrten": self.expAbfahrten,
+            "tourleiter": self.expTourLeiter,
+            "betreuer": self.expBetreuer,
             "city": self.expCity,
             "street": self.expStreet,
-            "tourtyp": self.expTourTyp,
+            "kategorie": self.expKategorie,
             "schwierigkeit": self.expSchwierigkeit,
             "tourlänge": self.expTourLength,
-            "tourleiter": self.expTourLeiter,
             "abfahrten": self.expAbfahrten,
             "zusatzinfo": self.expZusatzInfo
         }
@@ -297,9 +311,17 @@ class PDFHandler:
             self.styles[name] = Style(name, type, font, fontstyle, size, color, dimen)
         selection = self.pdfJS.get("selection")
         self.gliederung = selection.get("gliederung")
+        if self.gliederung is None or self.gliederung == "":
+            self.gliederung = self.gui.getGliederung()
         self.includeSub = selection.get("includesub")
+        if self.includeSub is None:
+            self.includeSub = self.gui.getIncludeSub()
         self.start = selection.get("start")
+        if self.start is None or self.start == "":
+            self.start = self.gui.getStart()
         self.end = selection.get("end")
+        if self.end is None or self.end == "":
+            self.end = self.gui.getEnd()
         sels = selection.get("terminselection")
         for sel in iter(sels):
             self.terminselections[sel.get("name")] = sel
@@ -309,9 +331,6 @@ class PDFHandler:
         sels = selection.get("tourselection")
         for sel in iter(sels):
             self.tourselections[sel.get("name")] = sel
-            radtyp = sel.get("radtyp")
-            if radtyp is None:
-                sel["radtyp"] = [ "Alles" ]
             for key in sel.keys():
                 if key != "name" and not isinstance(sel[key], list):
                     sel[key] = [ sel[key] ]
@@ -325,16 +344,19 @@ class PDFHandler:
             return "Termin"
         if len(self.tourselections) != 0:
             return "Radtour"
+        return self.gui.getTyp()
     def getRadTyp(self):
-        s = set()
+        rts = set()
         for sel in self.tourselections.values():
             l = sel.get("radtyp")
+            if l is None or len(l) == 0:
+                l = [ self.gui.getRadTyp() ]
             for elem in l:
-                s.add(elem)
-        if "Alles" in s:
+                rts.add(elem)
+        if "Alles" in rts:
             return "Alles";
-        if len(s) == 1:
-            return s[0]
+        if len(rts) == 1:
+            return rts[0]
         return "Alles"
     def getUnitKeys(self):
         return self.gliederung
@@ -374,10 +396,22 @@ class PDFHandler:
                 lineNo += 1
         self.pdf.output(dest='F', name= self.gui.pdfTemplateName.rsplit(".", 1)[0] + ".pdf")
 
+    def simpleNl(self):
+        x = self.pdf.get_x()
+        if x > self.margins[0]:
+            self.pdf.ln()
+
+    def extraNl(self):
+        self.simpleNl()
+        self.pdf.ln()
+
     def evalLine(self, line, tour):
+        if line.strip() == "":
+            self.extraNl()
+            return
         print("line", line)
         text = []
-        self.align = self.lastAlign = "L"
+        self.align = "L"
         self.fontStyles = ""
         self.curStyle = self.styles.get("body")
         words = line.split()
@@ -406,17 +440,12 @@ class PDFHandler:
                         word = word + " "
                     text.append(word)
             else:
+                word = word.replace("\uaffe", "\n")
                 if i < last:
                     word = word + " "
                 text.append(word)
         self.handleText("".join(text), tour)
-        if self.lastAlign != "J": # multicell does newline automatically
-            x = self.pdf.get_x()
-            y = self.pdf.get_y()
-            self.pdf.ln()
-            x = self.pdf.get_x()
-            y = self.pdf.get_y()
-            pass
+        self.simpleNl()
 
     def evalTemplate(self, lines):
         print("template:")
@@ -441,6 +470,8 @@ class PDFHandler:
         for tour in touren:
             if self.selected(tour, sel):
                 selectedTouren.append(tour)
+        if len(selectedTouren) == 0:
+            return
         lastTour = selectedTouren[-1]
         for tour in selectedTouren:
             for line in lines:
@@ -481,7 +512,6 @@ class PDFHandler:
                 self.pdf.cell(w=w, h=h, txt=s, border=0, ln=0, align=self.align, fill=0, link=self.url)
             x = self.pdf.get_x()
         self.url = None
-        self.lastAlign = self.align
 
     def multiline(self, h: float, s: str):
         """ line too long, see if I can split line after blank """
@@ -551,6 +581,13 @@ class PDFHandler:
                 return True
         return False
 
+    def selTitelEnthältNicht(self, tour, lst):
+        titel = tour.getTitel()
+        for  elem in lst:
+            if titel.find(elem) > 0:
+                return False
+        return True
+
     def selRadTyp(self, tour, lst):
         if "Alles" in lst:
             return True
@@ -560,6 +597,14 @@ class PDFHandler:
     def selTourNr(self, tour, lst):
         nr = int(tour.getNummer())
         return nr in lst
+
+    def selNotTourNr(self, tour, lst):
+        nr = int(tour.getNummer())
+        return not nr in lst
+
+    def selKategorie(self, tour, lst):
+        kat = tour.getKategorie()
+        return kat in lst
 
     def selected(self, tour, sel):
         for key in sel.keys():
@@ -630,7 +675,12 @@ class PDFHandler:
         return tour.getRadTyp()[0].upper() + tour.getNummer()
 
     def expTitel(self, tour, format):
-        self.url = tour.getTourLink()
+        if self.linkType == "frontEnd":
+            self.url = tour.getFrontendLink()
+        elif self.linkType == "backEnd":
+            self.url = tour.getBackendLink()
+        else:
+            self.url = None
         logger.info("Titel: " + tour.getTitel())
         return tour.getTitel()
 
@@ -640,7 +690,6 @@ class PDFHandler:
         #desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()
-        self.lastAlign = "J" # no nl after markdown
         return None
 
     def expCity(self, tour, format):
@@ -649,7 +698,7 @@ class PDFHandler:
     def expStreet(self, tour, format):
         return tour.getStreet()
 
-    def expTourTyp(self, tour, format):
+    def expKategorie(self, tour, format):
         return tour.getKategorie()
 
     def expSchwierigkeit(self, tour, format):
@@ -659,13 +708,29 @@ class PDFHandler:
         return tour.getStrecke()
 
     def expTourLeiter(self, tour, format):
-        return "\n".join(tour.getPersonen())
+        tl = tour.getPersonen()
+        if len(tl) == 0:
+            return
+        self.evalLine("/bold Tourleiter: /block " + "\uaffe".join(tl), tour)
 
     def expAbfahrten(self, tour, format):
-        return "TODO: Abfahrten"
+        afs = tour.getAbfahrten()
+        if len(afs) == 0:
+            return
+        afl = [ af[0] + " " + af[1] + " " + af[2] for af in afs]
+        self.evalLine("/bold Ort" + ("" if len(afs) == 1 else "e") + ": /block " + "\uaffe".join(afl), tour)
+
+    def expBetreuer(self, tour, format):
+        tl = tour.getPersonen()
+        if len(tl) == 0:
+            return
+        self.evalLine("/bold Betreuer: /block " + "\uaffe".join(tl), tour)
 
     def expZusatzInfo(self, tour, format):
-        return "\n".join(tour.getZusatzInfo())
+        zi = tour.getZusatzInfo()
+        if len(zi) == 0:
+            return
+        self.evalLine("/bold Zusatzinfo: /block " + "\uaffe".join(zi), tour)
 
 
 
