@@ -222,7 +222,7 @@ class MyApp(Frame):
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
         self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF"], "PDF")
-        self.linkTypeOM = LabelOM(master, "Links to:", ["frontEnd", "backEnd", "keine"], "frontEnd")
+        self.linkTypeOM = LabelOM(master, "Links to:", ["Frontend", "Backend", "Keine"], "frontEnd")
 
         typen = [ "Radtour", "Termin", "Alles" ]
         typenLF = LabelFrame(master)
@@ -320,7 +320,7 @@ class MyApp(Frame):
             print()
 
     def getLinkType(self):
-        return self.linkTypeOM.get()
+        return self.linkTypeOM.get().lower()
     def getRadTyp(self):
         return self.radTypVar.get()
     def getTyp(self):
@@ -418,4 +418,8 @@ app.mainloop()
 TODO:
 adfc_rest2 löschen?
 durchgestrichener font
+dingbats für Stern
+Einrücken
+
+PDF parsen???
 """

@@ -3,7 +3,9 @@
     "orientation": "portrait oder landscape",
     "format": "a3, a4, a5, letter, legal",
     "top, left, right, bottommargin": "die Seitenränder in mm",
-    "linespacing": "Zwischenraum zwischen Zeilen in mm"
+    "linespacing": "Zwischenraum zwischen Zeilen in mm",
+    "linktype": "frontend, backend oder keine",
+    "ausgabedatei": "Name der Ausgabedatei, wird sonst aus dem Namen der template-Datei abgeleitet"
   },
   "pagesettings": {
     "orientation": "portrait",
@@ -12,7 +14,8 @@
     "leftmargin": 30,
     "rightmargin": 20,
     "bottommargin": 20,
-    "linespacing": 1.5
+    "linespacing": 1.5,
+    "linktype": "frontend"
   },
   "comment_fonts": {
     "family": "z.B. arial, courier, times",
@@ -184,6 +187,7 @@
   },
   "text": [
     "/Header1 Medieninformation /right /Logo ADFC_MUC.PNG",
+    "",
     "/right /Small ${heute}.fmt(%d. %B %Y)",
     "/Header2 Veranstaltungen des ADFC München im August",
     "/comment \u2013 = mittellanger Bindestrich, Unicode en-dash, \u2014 = langer Bindestrich, Unicode em-dash",

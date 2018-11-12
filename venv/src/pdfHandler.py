@@ -18,6 +18,8 @@ schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mit
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
+global debug
+debug = False
 
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
@@ -83,7 +85,8 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 s = ""
 
     def walk(self, node, lvl):
-        print(" "*lvl,"<<<<")
+        if debug:
+            print(" "*lvl,"<<<<")
         try:
             # save old state
             self.states.append(self.pdfHandler.getState())
@@ -98,7 +101,8 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 ltail = tail.replace("\n", "<nl>")
             else:
                 ltail = "None"
-            print(" "*lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
+            if debug:
+                print(" "*lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
             if not text is None:
                 self.printLines(text)
             self.ancestors.append(node)
@@ -111,7 +115,8 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 self.printLines(tail)
         except Exception as e:
             logger.exception("error in tour description")
-        print(" "*lvl,">>>>")
+        if debug:
+            print(" "*lvl,">>>>")
 
     def elimNl(self, node):
         """
@@ -202,7 +207,11 @@ class PDFHandler:
         self.touren = []
         self.termine = []
         self.url = None
-        self.linkType = self.gui.getLinkType()
+        try:
+            lvl = os.environ["DEBUG"]
+            debug = True
+        except:
+            debug = False
         self.pdfExtension = PDFExtension()
         self.md = markdown.Markdown(extensions=[self.pdfExtension])
         if self.gui.pdfTemplateName is None or self.gui.pdfTemplateName == "":
@@ -264,6 +273,11 @@ class PDFHandler:
         bottomMargin = pagesettings.get("bottommargin")
         self.margins = (leftMargin, topMargin, rightMargin)
         self.linespacing = pagesettings.get("linespacing") # float
+        self.linkType = pagesettings.get("linktype")
+        if self.linkType == None or self.linkType == "":
+            self.linkType = self.gui.getLinkType()
+        self.ausgabedatei = pagesettings.get("ausgabedatei")
+        orientation = pagesettings.get("orientation")[0].upper() # P or L
         orientation = pagesettings.get("orientation")[0].upper() # P or L
         format = pagesettings.get("format")
         self.pdf = FPDF(orientation, "mm", format)
@@ -370,6 +384,7 @@ class PDFHandler:
     def handleTermin(self, tour):
         self.termine.append(tour)
     def handleEnd(self):
+        print("Template", self.gui.pdfTemplateName, "wird abgearbeitet")
         lines = self.pdfJS.get("text");
         lineCnt = len(lines)
         lineNo = 0
@@ -394,7 +409,10 @@ class PDFHandler:
             else:
                 self.evalLine(line, None)
                 lineNo += 1
-        self.pdf.output(dest='F', name= self.gui.pdfTemplateName.rsplit(".", 1)[0] + ".pdf")
+        if self.ausgabedatei == None or self.ausgabedatei == "":
+            self.ausgabedatei = self.gui.pdfTemplateName.rsplit(".", 1)[0] + "_" + self.linkType[0] + ".pdf"
+        self.pdf.output(dest='F', name= self.ausgabedatei)
+        print("Ausgabedatei", self.ausgabedatei, "wurde erzeugt")
 
     def simpleNl(self):
         x = self.pdf.get_x()
@@ -409,7 +427,8 @@ class PDFHandler:
         if line.strip() == "":
             self.extraNl()
             return
-        print("line", line)
+        if debug:
+            print("line", line)
         text = []
         self.align = "L"
         self.fontStyles = ""
@@ -448,7 +467,8 @@ class PDFHandler:
         self.simpleNl()
 
     def evalTemplate(self, lines):
-        print("template:")
+        if debug:
+            print("template:")
         words = lines[0].split()
         typ = words[1]
         if typ != "/tour" and typ != "/termin":
@@ -675,9 +695,9 @@ class PDFHandler:
         return tour.getRadTyp()[0].upper() + tour.getNummer()
 
     def expTitel(self, tour, format):
-        if self.linkType == "frontEnd":
+        if self.linkType == "frontend":
             self.url = tour.getFrontendLink()
-        elif self.linkType == "backEnd":
+        elif self.linkType == "backend":
             self.url = tour.getBackendLink()
         else:
             self.url = None
