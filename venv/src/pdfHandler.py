@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import tourRest
-import os
+import os,sys
 import json
 import functools
 import re
@@ -18,8 +18,8 @@ schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mit
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
-global debug
-debug = False
+
+
 
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
@@ -33,6 +33,17 @@ def convertToMEZOrMSZ(s: str):  # '2018-04-29T06:30:00+00:00'
     t += diff
     dt = datetime.datetime.fromtimestamp(t)
     return dt
+
+#  it seems that with "pyinstaller -F" tkinter (resp. TK) does not find data files relative to the MEIPASS dir
+def pyinst(path):
+    path = path.strip()
+    if os.path.exists(path):
+        return path
+    if hasattr(sys, "_MEIPASS"): # i.e. if running as exe produced by pyinstaller
+        pypath = sys._MEIPASS + "/" + path
+        if os.path.exists(pypath):
+            return pypath
+    return path
 
 class Style:
     def __init__(self, name:str, type:str, font:str, fontStyle:str, size:int, color:str, dimen:str):
@@ -60,13 +71,11 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def run(self, root):
         self.pdfHandler.setStyle(self.pdfHandler.styles.get("body").copy()) # now == curStyle
         self.pdfHandler.align = "L"
-        try:
-            lastChild = root[-1]
-            lastChild.tail = None
-        except:
-            pass
+        self.indent = 0
+        self.lvl = 4
+        self.counter = 0
         for child in root: # skip <div> root
-            self.walk(child, 4)
+            self.walkOuter(child)
         root.clear()
 
     def setDeps(self, pdfHandler):
@@ -84,13 +93,20 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 self.pdfHandler.handleText(s, None)
                 s = ""
 
-    def walk(self, node, lvl):
+    def walkOuter(self, node):
+        global debug
         if debug:
-            print(" "*lvl,"<<<<")
+            print(" " * self.lvl,"<<<<")
         try:
-            # save old state
-            self.states.append(self.pdfHandler.getState())
             self.nodeHandler[node.tag](node)
+            if not node.tail is None:
+                self.printLines(node.tail)
+        except Exception as e:
+            logger.exception("error in tour description")
+        if debug:
+            print(" " * self.lvl,">>>>")
+
+    def walkInner(self, node):
             text = node.text
             tail = node.tail
             if text != None:
@@ -101,93 +117,74 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 ltail = tail.replace("\n", "<nl>")
             else:
                 ltail = "None"
+            global debug
             if debug:
-                print(" "*lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
+                print(" " * self.lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
             if not text is None:
                 self.printLines(text)
-            self.ancestors.append(node)
             for dnode in node:
-                self.walk(dnode, lvl + 4)
-            self.ancestors.pop()
-            # restore old state
-            self.pdfHandler.restoreState(self.states.pop())
-            if not tail is None:
-                self.printLines(tail)
-        except Exception as e:
-            logger.exception("error in tour description")
-        if debug:
-            print(" "*lvl,">>>>")
-
-    def elimNl(self, node):
-        """
-        li, ul, ol have too many tail newlines...
-        if the last child has a tail with \n,
-        then delete our own \n.
-        Do this recursively
-
-        Debug code to test where each \n comes from:
-        t = node.tag[0]
-        if node.text != None:
-            node.text = t + "1" + node.text
-        if node.tail != None:
-            node.tail = t + "2" + node.tail
-        """
-        if len(node) > 0:
-            lastChild = node[-1]
-            if lastChild.tail != None:
-                node.tail = None
-            self.elimNl(lastChild)
+                self.lvl += 4
+                self.walkOuter(dnode)
+                self.lvl -= 4
 
     def h1(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[1]
+        self.walkInner(node)
     def h2(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[2]
+        self.walkInner(node)
     def h3(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[3]
+        self.walkInner(node)
     def h4(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[4]
+        self.walkInner(node)
     def h5(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[5]
+        self.walkInner(node)
     def h6(self, node):
         self.pdfHandler.curStyle.size = headerFontSizes[6]
+        self.walkInner(node)
     def p(self, node):
-        #node.tail = None
         self.pdfHandler.fontStyles = ""
+        self.walkInner(node)
     def strong(self, node):
         self.pdfHandler.fontStyles += "B"
+        self.walkInner(node)
     def em(self, node):
         self.pdfHandler.fontStyles += "I"
+        self.walkInner(node)
     def ul(self, node):
-        self.elimNl(node)
-        node.attrib["counter"] = 1
+        self.numbered = False
+        self.indent += 1
+        self.walkInner(node)
+        self.indent -= 1
     def ol(self, node):
-        self.elimNl(node)
-        node.attrib["counter"] = 1
+        self.numbered = True
+        sav = self.counter
+        self.counter = 1
+        self.indent += 1
+        self.walkInner(node)
+        self.indent -= 1
+        self.counter = sav
     def li(self, node):
-        self.elimNl(node)
-        anc = self.ancestors
-        nesting = 1
-        for ancn in anc:
-            if ancn.tag == "li":
-                nesting += 1
-        if len(anc) > 0:
-            anc = anc[-1]
-            numbered = anc.tag == "ol"
+        if self.numbered:
+            node.text = "  " * self.indent * 4 + str(self.counter) + ". " + node.text
+            self.counter += 1
         else:
-            numbered = false
-        if numbered:
-            counter = anc.attrib["counter"]
-            node.text = "  " * nesting + str(counter) + ". " + node.text
-            anc.attrib["counter"] = counter + 1
-        else:
-            node.text = "  " * nesting + "* " + node.text
-        pass
+            node.text = "  " * self.indent * 4 + "\u25aa " + node.text
+        self.walkInner(node)
     def a(self, node):
         self.pdfHandler.url = node.attrib["href"]
+        sav = self.pdfHandler.curStyle.color
         self.pdfHandler.curStyle.color = "238,126,13"
+        self.walkInner(node)
+        self.pdfHandler.curStyle.color = sav
     def blockQuote(self, node):
         node.text = node.tail = None
         self.pdfHandler.align = 'J'
+        self.walkInner(node)
+        self.pdfHandler.align = 'L'
     def hr(self, node):
         x = self.pdf.get_x()
         y = self.pdf.get_y()
@@ -207,6 +204,7 @@ class PDFHandler:
         self.touren = []
         self.termine = []
         self.url = None
+        global debug
         try:
             lvl = os.environ["DEBUG"]
             debug = True
@@ -285,6 +283,11 @@ class PDFHandler:
         self.pdf.set_margins(left=leftMargin, top=topMargin, right=rightMargin)
         self.pdf.set_auto_page_break(True, margin=bottomMargin)
         self.pdfExtension.pdfTreeHandler.setDeps(self)
+
+        self.pdf.add_font("arialuc", "", pyinst("_builtin_fonts/arial.ttf"), True)
+        self.pdf.add_font("arialuc", "B", pyinst("_builtin_fonts/arialbd.ttf"), True)
+        self.pdf.add_font("arialuc", "BI", pyinst("_builtin_fonts/arialbi.ttf"), True)
+        self.pdf.add_font("arialuc", "I", pyinst("_builtin_fonts/ariali.ttf"), True)
 
         fonts = self.pdfJS.get("fonts")
         for font in iter(fonts):
@@ -413,6 +416,11 @@ class PDFHandler:
             self.ausgabedatei = self.gui.pdfTemplateName.rsplit(".", 1)[0] + "_" + self.linkType[0] + ".pdf"
         self.pdf.output(dest='F', name= self.ausgabedatei)
         print("Ausgabedatei", self.ausgabedatei, "wurde erzeugt")
+        try:
+            opath = os.path.abspath(self.ausgabedatei)
+            os.startfile(opath)
+        except Exception as e:
+            logger.exception("opening " + self.ausgabedatei)
 
     def simpleNl(self):
         x = self.pdf.get_x()
@@ -427,6 +435,7 @@ class PDFHandler:
         if line.strip() == "":
             self.extraNl()
             return
+        global debug
         if debug:
             print("line", line)
         text = []
@@ -467,6 +476,7 @@ class PDFHandler:
         self.simpleNl()
 
     def evalTemplate(self, lines):
+        global debug
         if debug:
             print("template:")
         words = lines[0].split()
@@ -507,7 +517,7 @@ class PDFHandler:
             return
         #print("Text:", s)
         if self.curStyle.type == "image":
-            self.drawImage(s)
+            self.drawImage(pyinst(s))
             return
         style = self.curStyle.copy()
         for fs in self.fontStyles:

@@ -22,37 +22,13 @@
     "preinstalled fonts": "helvetica[,B,BI,I], symbol, times[,B,BI,I], dingbats, all without €!",
     "underlined fonts": "gibt es nicht, Striche werden vom Programm erzeugt",
     "unicode fonts": "müssen explizit installiert werden, siehe unten den 'fonts'-Abschnitt",
-    "ArialUC": "Arial Unicode, wird mit dem Programm mitgeliefert",
+    "arialuc": "Arial Unicode, wird mit dem Programm mitgeliefert",
     "family": "der Name, der im 'styles'-Abschnitt als 'font' benutzt wird",
     "style": "leer für 'regulären' font, B für fetten(bold), I für kursiven(italic), BI für fett und kursiv, U unbenutzt!",
     "file": "Pfad zur font-Datei (c:/.../irgendwas.ttf)",
     "unicode": "true oder false, wenn false, können Sie auch die vorinstallierten fonts (s.o.) benutzen"
   },
   "fonts": [
-    {
-      "family": "ArialUC",
-      "file": "fonts/arial.ttf",
-      "fontstyle": "",
-      "unicode": true
-    },
-    {
-      "family": "ArialUC",
-      "file": "fonts/arialbd.ttf",
-      "fontstyle": "B",
-      "unicode": true
-    },
-    {
-      "family": "ArialUC",
-      "file": "fonts/arialbi.ttf",
-      "fontstyle": "BI",
-      "unicode": true
-    },
-    {
-      "family": "ArialUC",
-      "file": "fonts/ariali.ttf",
-      "fontstyle": "I",
-      "unicode": true
-    }
   ],
   "comment_styles": {
     "style": "B(old),U(nderline), I(talic), oder eine Kombination, z.B. BI, wenn fehlend oder leer, dann 'regulärer' font",
@@ -65,12 +41,12 @@
   "styles": [
     {
       "name": "body",
-      "font": "ArialUC",
+      "font": "arialuc",
       "size": 10
     },
     {
       "name": "Header1",
-      "font": "ArialUC",
+      "font": "arialuc",
       "style": "B",
       "size": 25,
       "comment": "ADFC blue",
@@ -78,18 +54,18 @@
     },
     {
       "name": "Header2",
-      "font": "ArialUC",
+      "font": "arialuc",
       "style": "B",
       "size": 16
     },
     {
       "name": "Header3",
-      "font": "ArialUC",
+      "font": "arialuc",
       "size": 14
     },
     {
       "name": "Header4",
-      "font": "ArialUC",
+      "font": "arialuc",
       "style": "B",
       "size": 14
     },
@@ -100,7 +76,7 @@
     },
     {
       "name": "Tourtitel",
-      "font": "ArialUC",
+      "font": "arialuc",
       "size": 10,
       "comment": "ADFC yellow",
       "color": "238,126,13"
@@ -108,7 +84,7 @@
     {
       "name": "Link_yellow",
       "type": "link",
-      "font": "ArialUC",
+      "font": "arialuc",
       "style": "",
       "size": 10,
       "comment": "ADFC yellow",
@@ -117,7 +93,7 @@
     {
       "name": "Link_blue",
       "type": "link",
-      "font": "ArialUC",
+      "font": "arialuc",
       "style": "",
       "size": 10,
       "comment": "blue",
@@ -186,7 +162,7 @@
     ]
   },
   "text": [
-    "/Header1 Medieninformation /right /Logo ADFC_MUC.PNG",
+    "/Header1 Medieninformation /right /Logo ADFC_MUENCHEN.PNG",
     "",
     "/right /Small ${heute}.fmt(%d. %B %Y)",
     "/Header2 Veranstaltungen des ADFC München im August",
