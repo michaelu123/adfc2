@@ -416,8 +416,7 @@ app.mainloop()
 
 """
 TODO:
-adfc_rest2 löschen?
-durchgestrichener font
-
-PDF parsen???
+delete adfc_rest2?
+parse PDF, expand template within PDF document???
+create docx instead of pdf?
 """

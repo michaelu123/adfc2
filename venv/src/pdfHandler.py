@@ -13,6 +13,7 @@ from fpdf import FPDF
 schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
+strokeRE = r'(\~{2})(.+?)\1'
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 
 
@@ -61,7 +62,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.ancestors = []
         self.states = []
         self.nodeHandler = { "h1": self.h1, "h2": self.h2, "h3": self.h3, "h4": self.h4, "h5": self.h5, "h6": self.h6,
-            "p": self.p, "strong": self.strong, "em": self.em, "blockquote": self.blockQuote,
+            "p": self.p, "strong": self.strong, "em": self.em, "blockquote": self.blockQuote, "stroke": self.stroke,
             "ul": self.ul, "ol": self.ol, "li": self.li, "a": self.a, "hr": self.hr }
 
     def run(self, root):
@@ -146,11 +147,21 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.pdfHandler.fontStyles = ""
         self.walkInner(node)
     def strong(self, node):
+        sav = self.pdfHandler.fontStyles
         self.pdfHandler.fontStyles += "B"
         self.walkInner(node)
+        self.pdfHandler.fontStyles = sav
+    def stroke(self, node):
+        # see below changed code of pyfpdf
+        sav = self.pdfHandler.fontStyles
+        self.pdfHandler.fontStyles += "U"
+        self.walkInner(node)
+        self.pdfHandler.fontStyles = sav
     def em(self, node):
+        sav = self.pdfHandler.fontStyles
         self.pdfHandler.fontStyles += "I"
         self.walkInner(node)
+        self.pdfHandler.fontStyles = sav
     def ul(self, node):
         self.numbered = False
         self.indent += 1
@@ -197,6 +208,7 @@ class PDFExtension(markdown.Extension):
     def extendMarkdown(self, md):
         self.pdfTreeHandler = PDFTreeHandler(md)
         md.treeprocessors.register(self.pdfTreeHandler, "pdftreehandler", 5)
+        md.inlinePatterns.register(markdown.inlinepatterns.SimpleTagInlineProcessor(strokeRE, 'stroke'), 'stroke', 40)
 
 class PDFHandler:
     def __init__(self, gui):
@@ -522,7 +534,7 @@ class PDFHandler:
         for fs in self.fontStyles:
             if style.fontStyle.find(fs) == -1:
                 style.fontStyle += fs
-        self.fontStyles = ""
+        #self.fontStyles = ""
         self.setStyle(style)
         h=(style.size * 0.35278 + self.linespacing)
         if self.align == 'J':
@@ -765,5 +777,15 @@ class PDFHandler:
             return
         self.evalLine("/bold Zusatzinfo: /block " + "\uaffe".join(zi), tour)
 
-
+    """
+    changed code in fpdf/fpdf.py, to change underline to "stroke through letter" (i.e. line half a fontsize higher and thinner)
+    def _dounderline(self, x, y, txt):
+        #Underline text
+        up=self.current_font['up']
+        ut=self.current_font['ut']
+        w=self.get_string_width(txt, True)+self.ws*txt.count(' ')
+        y -= self.font_size / 2.0 # MUH this line added to stroke through letter instead underline
+        return sprintf('%.2f %.2f %.2f %.2f re f',x*self.k,(self.h-(y-up/1000.0*self.font_size))*self.k,w*self.k,-ut/2000.0*self.font_size_pt)
+        # MUH 2000 was 1000, seems to be line thickness
+    """
 
