@@ -31,7 +31,7 @@ class TourServer:
 
     def getTouren(self, unitKey, start, end, type):
         if unitKey != None and unitKey != "":
-            jsonPath = "c:/temp/tpjson/search-" + unitKey + ("_I" if self.includeSub else "") + ".json"
+            jsonPath = "c:/temp/tpjson/search-" + unitKey + ("_I_" if self.includeSub else "_") + start + "-" + end + ".json"
         else:
             jsonPath = "c:/temp/tpjson/search.json"
         if self.useRest or not os.path.exists(jsonPath):
@@ -40,6 +40,10 @@ class TourServer:
                 req += "?unitKey=" + unitKey;
                 if self.includeSub:
                     req += "&includeSubsidiary=true"
+            if start != None and start != "":
+                req += "&beginning=" + start
+            if end != None and end != "":
+                req += "&end=" + end
             self.tpConn.request("GET", req)
             resp = self.tpConn.getresponse()
             try:
@@ -79,6 +83,7 @@ class TourServer:
                 self.alleTermine.append(item)
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
+                logger.error("tour " + titel + " unexpectedly skipped")
                 continue
             # add other filter conditions here
             touren.append(item)
@@ -88,7 +93,8 @@ class TourServer:
         global tpConn
         eventItemId = tourJsSearch.get("eventItemId");
         imagePreview = tourJsSearch.get("imagePreview")
-        jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + tourJsSearch.get("title").replace(" ", "_") + ".json"
+        escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in tourJsSearch.get("title")])
+        jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/" + eventItemId)
             resp = self.tpConn.getresponse()
@@ -117,11 +123,15 @@ class TourServer:
             self.tpConn.request("GET", "/api/users/" + userId)
             resp = self.tpConn.getresponse()
             logger.debug("resp %d %s", resp.status, resp.reason)
-            userJS = json.load(resp)
-            userJS["simpleEventItems"] = None
-            # if not os.path.exists(jsonPath):
-            with open(jsonPath, "w") as jsonFile:
-                json.dump(userJS, jsonFile, indent=4)
+            if resp.status >= 300:
+                logger.error("request /api/users/" + userId + " failed: " + resp.reason)
+                return None
+            else:
+                userJS = json.load(resp)
+                userJS["simpleEventItems"] = None
+                # if not os.path.exists(jsonPath):
+                with open(jsonPath, "w") as jsonFile:
+                    json.dump(userJS, jsonFile, indent=4)
         else:
             with open(jsonPath, "r") as jsonFile:
                 userJS = json.load(jsonFile)

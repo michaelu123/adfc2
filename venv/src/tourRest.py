@@ -293,11 +293,13 @@ class Tour:
         organizer = self.eventItem.get("cOrganizingUserId")
         if organizer is not None and len(organizer) > 0:
             org = self.tourServer.getUser(organizer)
-            personen.append(str(org))
+            if org != None:
+                personen.append(str(org))
         organizer2 = self.eventItem.get("cSecondOrganizingUserId")
         if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
             org = self.tourServer.getUser(organizer2)
-            personen.append(str(org))
+            if org != None:
+                personen.append(str(org))
         return personen
 
     def getImagePreview(self):
