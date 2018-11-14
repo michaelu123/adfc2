@@ -3,14 +3,10 @@
 import tourRest
 import os,sys
 import json
-import functools
 import re
 import datetime
 import time
 import markdown
-#import codecs
-from myLogger import logger
-
 from myLogger import logger
 from fpdf import FPDF
 
@@ -72,6 +68,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.pdfHandler.setStyle(self.pdfHandler.styles.get("body").copy()) # now == curStyle
         self.pdfHandler.align = "L"
         self.indent = 0
+        self.pdfHandler.indentX = 0.0
         self.lvl = 4
         self.counter = 0
         for child in root: # skip <div> root
@@ -169,17 +166,23 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.counter = sav
     def li(self, node):
         if self.numbered:
-            node.text = "  " * self.indent * 4 + str(self.counter) + ". " + node.text
+            text = "  " * (self.indent * 3) + str(self.counter) + ". "
             self.counter += 1
         else:
-            node.text = "  " * self.indent * 4 + "\u25aa " + node.text
+            text = "  " * (self.indent * 3) + "\u25aa "
+        sav = self.pdfHandler.indentX
+        self.pdfHandler.indentX = 0.0
+        self.printLines(text)
+        self.pdfHandler.indentX = self.pdf.get_x()
         self.walkInner(node)
+        self.pdfHandler.indentX = sav
     def a(self, node):
         self.pdfHandler.url = node.attrib["href"]
         sav = self.pdfHandler.curStyle.color
         self.pdfHandler.curStyle.color = "238,126,13"
         self.walkInner(node)
         self.pdfHandler.curStyle.color = sav
+        self.pdfHandler.url = None
     def blockQuote(self, node):
         node.text = node.tail = None
         self.pdfHandler.align = 'J'
@@ -188,7 +191,7 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
     def hr(self, node):
         x = self.pdf.get_x()
         y = self.pdf.get_y()
-        self.pdf.line(x, y, 210 - self.pdfHandler.margins[2], y)
+        self.pdf.line(x, y, self.pdfHandler.pageWidth - self.pdfHandler.margins[2], y)
 
 class PDFExtension(markdown.Extension):
     def extendMarkdown(self, md):
@@ -254,12 +257,6 @@ class PDFHandler:
         logger.info("Nichts gefunden")
         print("Nichts gefunden")
 
-    def getState(self):
-        return (self.curStyle.size, self.curStyle.color, self.fontStyles, self.align, self.url)
-
-    def restoreState(self, state):
-        (self.curStyle.size, self.curStyle.color, self.fontStyles, self.align, self.url) = state
-
     def parseTemplate(self):
         for key in ["pagesettings", "fonts", "styles", "selection", "text"]:
             if self.pdfJS.get(key) == None:
@@ -272,13 +269,12 @@ class PDFHandler:
         self.margins = (leftMargin, topMargin, rightMargin)
         self.linespacing = pagesettings.get("linespacing") # float
         self.linkType = pagesettings.get("linktype")
-        if self.linkType == None or self.linkType == "":
-            self.linkType = self.gui.getLinkType()
         self.ausgabedatei = pagesettings.get("ausgabedatei")
         orientation = pagesettings.get("orientation")[0].upper() # P or L
         orientation = pagesettings.get("orientation")[0].upper() # P or L
         format = pagesettings.get("format")
         self.pdf = FPDF(orientation, "mm", format)
+        self.pageWidth = FPDF.get_page_format(format, 1.0)[0] / (72.0/25.4)
         self.pdf.add_page()
         self.pdf.set_margins(left=leftMargin, top=topMargin, right=rightMargin)
         self.pdf.set_auto_page_break(True, margin=bottomMargin)
@@ -388,6 +384,8 @@ class PDFHandler:
         self.termine.append(tour)
     def handleEnd(self):
         print("Template", self.gui.pdfTemplateName, "wird abgearbeitet")
+        if self.linkType == None or self.linkType == "":
+            self.linkType = self.gui.getLinkType()
         lines = self.pdfJS.get("text");
         lineCnt = len(lines)
         lineNo = 0
@@ -442,6 +440,7 @@ class PDFHandler:
         self.align = "L"
         self.fontStyles = ""
         self.curStyle = self.styles.get("body")
+        self.indentX = 0.0
         words = line.split()
         l = len(words)
         last = l - 1
@@ -536,7 +535,7 @@ class PDFHandler:
             except Exception as e:
                 pass
             x = self.pdf.get_x()
-            if (x + w) >= (210 - self.margins[2]): # i.e. exceeds right margin
+            if (x + w) >= (self.pageWidth - self.margins[2]): # i.e. exceeds right margin
                 self.multiline(h, s)
             else:
                 self.pdf.cell(w=w, h=h, txt=s, border=0, ln=0, align=self.align, fill=0, link=self.url)
@@ -550,7 +549,7 @@ class PDFHandler:
         # TODO limit l so that we do not    search too long for a near enough blank
         while l > 0:
             w = self.pdf.get_string_width(s)
-            if (x + w) < (210 - 1 - self.margins[2]):
+            if (x + w) < (self.pageWidth - 1 - self.margins[2]):
                 self.pdf.cell(w=w, h=h, txt=s, border=0, ln=0, align=self.align, fill=0, link=self.url)
                 x = self.pdf.get_x()
                 return
@@ -561,6 +560,8 @@ class PDFHandler:
             if lb == -1:  # can not split line
                 if x > self.margins[0]:
                     self.pdf.ln()
+                    if self.indentX > 0.0:
+                        self.pdf.set_x(self.indentX)
                     x = self.pdf.get_x()
                     l = len(s)
                     continue
@@ -570,15 +571,17 @@ class PDFHandler:
                     return
             sub = s[0:lb]
             w = self.pdf.get_string_width(sub)
-            if (x + w) >= (210 - 1 - self.margins[2]):
+            if (x + w) >= (self.pageWidth - 1 - self.margins[2]):
                 l = lb
                 continue
             self.pdf.cell(w=w, h=h, txt=sub, border=0, ln=0, align=self.align, fill=0, link=self.url)
             x = self.pdf.get_x()
             s = s[lb + 1:]
             w = self.pdf.get_string_width(s)
-            if x > self.margins[0] and (x + w) >= (210 - 1 - self.margins[2]):
+            if x > self.margins[0] and (x + w) >= (self.pageWidth - 1 - self.margins[2]):
                 self.pdf.ln()
+                if self.indentX > 0.0:
+                    self.pdf.set_x(self.indentX)
                 x = self.pdf.get_x()
             l = len(s)
 
@@ -597,7 +600,7 @@ class PDFHandler:
         x = self.pdf.get_x()
         y = self.pdf.get_y()
         if self.align == 'R':
-            x = 210 - self.margins[2] - w - 10
+            x = self.pageWidth - self.margins[2] - w - 10
         y -= h  # align lower edge of image with baseline of text (or so)
         if y < self.margins[1]:
             y = self.margins[1]

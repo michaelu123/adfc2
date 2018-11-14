@@ -418,8 +418,6 @@ app.mainloop()
 TODO:
 adfc_rest2 löschen?
 durchgestrichener font
-dingbats für Stern
-Einrücken
 
 PDF parsen???
 """

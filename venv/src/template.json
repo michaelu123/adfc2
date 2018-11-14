@@ -14,8 +14,7 @@
     "leftmargin": 30,
     "rightmargin": 20,
     "bottommargin": 20,
-    "linespacing": 1.5,
-    "linktype": "frontend"
+    "linespacing": 1.5
   },
   "comment_fonts": {
     "family": "z.B. arial, courier, times",
