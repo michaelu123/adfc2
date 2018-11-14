@@ -126,23 +126,35 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
                 self.lvl -= 4
 
     def h1(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[1]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def h2(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[2]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def h3(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[3]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def h4(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[4]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def h5(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[5]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def h6(self, node):
+        sav = self.pdfHandler.curStyle.size
         self.pdfHandler.curStyle.size = headerFontSizes[6]
         self.walkInner(node)
+        self.pdfHandler.curStyle.size = sav
     def p(self, node):
         self.pdfHandler.fontStyles = ""
         self.walkInner(node)
@@ -200,9 +212,11 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.pdfHandler.align = 'L'
     def hr(self, node):
+        self.pdfHandler.extraNl()
         x = self.pdf.get_x()
         y = self.pdf.get_y()
         self.pdf.line(x, y, self.pdfHandler.pageWidth - self.pdfHandler.margins[2], y)
+        self.pdfHandler.extraNl()
 
 class PDFExtension(markdown.Extension):
     def extendMarkdown(self, md):
@@ -256,6 +270,7 @@ class PDFHandler:
             "abfahrten": self.expAbfahrten,
             "tourleiter": self.expTourLeiter,
             "betreuer": self.expBetreuer,
+            "name": self.expName,
             "city": self.expCity,
             "street": self.expStreet,
             "kategorie": self.expKategorie,
@@ -737,9 +752,10 @@ class PDFHandler:
         self.md.reset()
         return None
 
+    def expName(self, tour, format):
+        return tour.getName()
     def expCity(self, tour, format):
         return tour.getCity()
-
     def expStreet(self, tour, format):
         return tour.getStreet()
 

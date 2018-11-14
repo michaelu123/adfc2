@@ -303,6 +303,10 @@ class Tour:
     def getImagePreview(self):
         return self.tourJS.get("imagePreview")
 
+    def getName(self):
+        tourLoc = self.tourLocations[0]
+        return tourLoc.get("name")
+
     def getCity(self):
         tourLoc = self.tourLocations[0]
         return tourLoc.get("city")

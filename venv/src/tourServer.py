@@ -88,7 +88,7 @@ class TourServer:
         global tpConn
         eventItemId = tourJsSearch.get("eventItemId");
         imagePreview = tourJsSearch.get("imagePreview")
-        jsonPath = "c:/temp/tpjson/" + eventItemId + ".json"
+        jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + tourJsSearch.get("title").replace(" ", "_") + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/eventItems/" + eventItemId)
             resp = self.tpConn.getresponse()
@@ -112,7 +112,7 @@ class TourServer:
             if val != None:
                 return val
         global tpConn
-        jsonPath = "c:/temp/tpjson/" + userId + ".json"
+        jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             self.tpConn.request("GET", "/api/users/" + userId)
             resp = self.tpConn.getresponse()
