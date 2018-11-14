@@ -71,7 +71,7 @@ class ScribusHandler:
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
-        self.scribus.insertText("Nichts gefunden\n")
+        scribus.insertText("Nichts gefunden\n", -1, self.textbox)
 
     def handleAbfahrt(self, abfahrt):
         # abfahrt = (typ, beginning, loc)
@@ -80,7 +80,7 @@ class ScribusHandler:
         ort = abfahrt[2]
         logger.info("Abfahrt: typ=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
         scribus.setStyle('Radtour_start',self.textbox)
-        self.scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n')
+        scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n', -1, self.textbox)
 
     def handleTextfeld(self, stil,textelement):
         logger.info("Textfeld: stil=%s text=%s", stil, textelement)

@@ -14,6 +14,7 @@ class TourServer:
         self.tpConn = None
         self.alleTouren = []
         self.alleTermine = []
+        self.py2 = False
         try:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
@@ -22,6 +23,7 @@ class TourServer:
             import httplib  # scribus seems to use Python 2
             self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
             self.cacheMem = {}  # for Python2
+            self.py2 = True
         else:
             import http.client
             self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
@@ -141,6 +143,8 @@ class TourServer:
         return user
 
     def loadUnits(self):
+        if self.py2:
+            return
         global tpConn
         jsonPath = "c:/temp/tpjson/units.json"
         if not os.path.exists(jsonPath):
