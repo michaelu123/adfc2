@@ -208,9 +208,11 @@ class PDFTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.pdfHandler.url = None
     def blockQuote(self, node):
         node.text = node.tail = None
-        self.pdfHandler.align = 'J'
+        sav = self.pdfHandler.align
+        if len(node) == 0: # multi_cell always does a newline et the end
+            self.pdfHandler.align = 'J'
         self.walkInner(node)
-        self.pdfHandler.align = 'L'
+        self.pdfHandler.align = sav
     def hr(self, node):
         self.pdfHandler.extraNl()
         x = self.pdf.get_x()
