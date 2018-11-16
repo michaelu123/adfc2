@@ -78,8 +78,17 @@ def normalizeText(t):
     while changed:
         changed = False
         t = t.strip()
+        while t.count('***'):
+            t = t.replace('***', '**')
+            changed = True
         while t.count('**'):
             t = t.replace('**', '')
+            changed = True
+        while t.count('###'):
+            t = t.replace('###', '##')
+            changed = True
+        while t.count('##'):
+            t = t.replace('##', '')
             changed = True
         while t.count('\t'):
             t = t.replace('\t', ' ')
@@ -96,6 +105,9 @@ def normalizeText(t):
             changed = True
         while t.count('\r'):  # DOS/Windows paragraph end.
             t = t.replace('\r', '\n')  # Change by new line
+            changed = True
+        while t.count('\n> '):
+            t = t.replace('\n> ', '\n')
             changed = True
         while t.count(' \n'):
             t = t.replace(' \n', '\n')

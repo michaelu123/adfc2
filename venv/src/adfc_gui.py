@@ -139,7 +139,7 @@ class MyApp(Frame):
         if self.savFile == None or self.savFile == "":
             self.storeas()
             return
-        with open(self.savFile, "w") as savFile:
+        with open(self.savFile, "w", encoding="utf-8-sig") as savFile:
             s = self.text.get("1.0", END)
             savFile.write(s)
 
