@@ -13,6 +13,7 @@ import rawHandler
 import printHandler
 import csvHandler
 import pdfHandler
+import docxHandler
 import contextlib
 import base64
 import locale
@@ -107,6 +108,7 @@ class MyApp(Frame):
         self.searchVal = ""
         self.images = []
         self.pdfTemplateName = ""
+        self.docxTemplateName = ""
         menuBar = Menu(master)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
@@ -114,6 +116,7 @@ class MyApp(Frame):
         master.bind_all("<Control-s>", self.store)
         menuFile.add_command(label = "Speichern unter", command=self.storeas)
         menuFile.add_command(label = "PDF Template", command=self.pdfTemplate)
+        menuFile.add_command(label = "Word Template", command=self.docxTemplate)
         menuBar.add_cascade(label = "Datei", menu=menuFile)
 
         menuEdit = Menu(menuBar)
@@ -156,6 +159,11 @@ class MyApp(Frame):
         self.pdfTemplateName = askopenfilename(title="Choose a PDF Template",
             defaultextension=".json",
             filetypes=[("JSON", ".json")])
+
+    def docxTemplate(self, *args):
+        self.docxTemplateName = askopenfilename(title="Choose a Word Template",
+            defaultextension=".docx",
+            filetypes=[("DOCX", ".docx")])
 
     def cut(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
@@ -221,7 +229,7 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF"], "PDF")
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF", "Word"], "Word")
         self.linkTypeOM = LabelOM(master, "Links to:", ["Frontend", "Backend", "Keine"], "frontEnd")
 
         typen = [ "Radtour", "Termin", "Alles" ]
@@ -356,8 +364,8 @@ class MyApp(Frame):
             handler = csvHandler.CsvHandler(txtWriter)
         elif formatS == "Text":
             handler = rawHandler.RawHandler()
-        elif formatS == "PDF":
-            handler = pdfHandler.PDFHandler(self)
+        elif formatS == "PDF" or formatS == "Word":
+            handler = pdfHandler.PDFHandler(self) if formatS == "PDF" else docxHandler.DocxHandler(self)
             # conditions obtained from PDF template!
             includeSub = handler.getIncludeSub()
             type = handler.getType()
@@ -378,6 +386,7 @@ class MyApp(Frame):
         if (isinstance(handler, textHandler.TextHandler)
             or isinstance(handler, csvHandler.CsvHandler)
             or isinstance(handler, pdfHandler.PDFHandler)
+            or isinstance(handler, docxHandler.DocxHandler)
             or isinstance(handler, rawHandler.RawHandler)):
             tourServerVar.calcNummern()
 
@@ -400,7 +409,7 @@ class MyApp(Frame):
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)
                     handler.handleTour(tour)
-            if isinstance(handler, pdfHandler.PDFHandler): # TODO
+            if isinstance(handler, pdfHandler.PDFHandler) or isinstance(handler, docxHandler.DocxHandler): # TODO
                 handler.handleEnd()
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
@@ -417,6 +426,4 @@ app.mainloop()
 """
 TODO:
 delete adfc_rest2?
-parse PDF, expand template within PDF document???
-create docx instead of pdf?
 """
