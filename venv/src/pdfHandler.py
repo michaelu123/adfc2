@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import tourRest
+import selektion
 import os,sys
 import json
 import re
@@ -254,14 +255,7 @@ class PDFHandler:
             print("Wenn Sie einen decoding-Fehler bekommen, öffnen Sie " + self.gui.pdfTemplateName + " mit notepad, dann 'Speichern unter' mit Codierung UTF-8")
             raise e
         self.parseTemplate()
-        self.selFunctions = {
-            "titelenthält": self.selTitelEnthält,
-            "titelenthältnicht": self.selTitelEnthältNicht,
-            "radtyp": self.selRadTyp,
-            "tournr": self.selTourNr,
-            "kategorie": self.selKategorie,
-            "nichttournr": self.selNotTourNr
-        }
+        self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = {
             "heute": self.expHeute,
             "start": self.expStart,
@@ -526,7 +520,7 @@ class PDFHandler:
     def evalTouren(self, sel, touren, lines):
         selectedTouren = []
         for tour in touren:
-            if self.selected(tour, sel):
+            if selektion.selected(tour, sel):
                 selectedTouren.append(tour)
         if len(selectedTouren) == 0:
             return
@@ -635,52 +629,6 @@ class PDFHandler:
             y = self.margins[1]
         self.pdf.image(imgName.strip(), x=x, y=y, w=w) # h=h
         self.pdf.set_y(self.pdf.get_y() + 7)
-
-    def selTitelEnthält(self, tour, lst):
-        titel = tour.getTitel()
-        for  elem in lst:
-            if titel.find(elem) > 0:
-                return True
-        return False
-
-    def selTitelEnthältNicht(self, tour, lst):
-        titel = tour.getTitel()
-        for  elem in lst:
-            if titel.find(elem) > 0:
-                return False
-        return True
-
-    def selRadTyp(self, tour, lst):
-        if "Alles" in lst:
-            return True
-        radTyp = tour.getRadTyp()
-        return radTyp in lst
-
-    def selTourNr(self, tour, lst):
-        nr = int(tour.getNummer())
-        return nr in lst
-
-    def selNotTourNr(self, tour, lst):
-        nr = int(tour.getNummer())
-        return not nr in lst
-
-    def selKategorie(self, tour, lst):
-        kat = tour.getKategorie()
-        return kat in lst
-
-    def selected(self, tour, sel):
-        for key in sel.keys():
-            if key == "name" or key.startswith("comment"):
-                continue
-            try:
-                f = self.selFunctions[key]
-                lst = sel[key]
-                if not f(tour, lst):
-                    return False
-            except Exception as e:
-                logger.exception("no function for selection verb " + key + " in selection " + sel.get("name"))
-        else:
-            return True
 
     def expand(self, s, tour):
         while True:
@@ -800,7 +748,7 @@ class PDFHandler:
     def _dounderline(self, x, y, txt):
         #Underline text
         up=self.current_font['up']
-        ut=self.current_font['ut']
+        ut=self.current_font['ut']return
         w=self.get_string_width(txt, True)+self.ws*txt.count(' ')
         y -= self.font_size / 2.0 # MUH this line added to stroke through letter instead underline
         return sprintf('%.2f %.2f %.2f %.2f re f',x*self.k,(self.h-(y-up/1000.0*self.font_size))*self.k,w*self.k,-ut/2000.0*self.font_size_pt)

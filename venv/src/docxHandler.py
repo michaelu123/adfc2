@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import tourRest
+import selektion
 import os,sys
 import json
 import re
@@ -41,6 +42,115 @@ def pyinst(path):
         if os.path.exists(pypath):
             return pypath
     return path
+
+def delete_paragraph(paragraph):
+    # https://github.com/python-openxml/python-docx/issues/33
+    p = paragraph._element
+    p.getparent().remove(p)
+    p._p = p._element = None
+
+def delete_run(run):
+    r = run._element
+    r.getparent().remove(r)
+    r._p = r._element = None
+
+def eqFont(f1, f2):
+    if f1.name != f2.name:
+        return False
+    if f1.size != f2.size:
+        return False
+    return True
+
+def eqStyle(s1, s2):
+    if s1.name != s2.name:
+        return False
+    return True
+
+def eqColor(r1, r2):
+    p1 = hasattr(r1._element, "rPr")
+    p2 = hasattr(r2._element, "rPr")
+    if not p1 and not not p2:
+        return True
+    if p1 and not p2:
+        return False
+    if not p1 and p2:
+        return False
+    p1 = hasattr(r1._element.rPr, "color")
+    p2 = hasattr(r2._element.rPr, "color")
+    if not p1 and not p2:
+        return True
+    if p1 and not p2:
+        return False
+    if not p1 and p2:
+        return False
+    try:
+        c1 = r1._element.rPr.color
+        c2 = r2._element.rPr.color
+    except:
+        print("!!")
+    if c1 == None and c2 == None:
+        return True
+    if c1 != None and c2 == None:
+        return False
+    if c1 == None and c2 != None:
+        return False
+    return c1.val == c2.val
+
+"""
+    This function combines the texts of successive runs with same font,style,color into one run.
+    Word splits for unknown reasons continuous text like "Kommentar" into two runs "K" and "ommentar"!?
+    Our parameters ${name} are split int "${", "name", "}". This makes parsing too difficult, so we combine first.
+"""
+def combineRuns(doc):
+    paras = doc.paragraphs
+    for para in paras:
+        # print("Para ", str(para), para.text, " align:", para.alignment, "style:", para.style.name)
+        runs = para.runs
+        prevRun = None
+        for run in runs:
+            # print("Run '", run.text, "' bold:", run.bold, " font:", run.font.name, run.font.size, " style:", run.style.name)
+            if prevRun != None and prevRun.bold == run.bold and prevRun.italic == run.italic and \
+                prevRun.underline == run.underline and \
+                eqColor(prevRun, run) and \
+                eqFont(prevRun.font, run.font) and \
+                eqStyle(prevRun.style, run.style):
+                prevRun.text += run.text
+                delete_run(run)
+            else:
+                prevRun = run
+
+def add_hyperlink(paragraph, url, text):
+    """
+    A function that places a hyperlink within a paragraph object.
+
+    :param paragraph: The paragraph we are adding the hyperlink to.
+    :param url: A string containing the required url
+    :param text: The text displayed for the url
+    :return: The hyperlink object
+    """
+
+    # This gets access to the document.xml.rels file and gets a new relation id value
+    part = paragraph.part
+    r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+
+    # Create the w:hyperlink tag and add needed values
+    hyperlink = docx.oxml.shared.OxmlElement('w:hyperlink')
+    hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
+
+    # Create a w:r element
+    new_run = docx.oxml.shared.OxmlElement('w:r')
+
+    # Create a new w:rPr element
+    rPr = docx.oxml.shared.OxmlElement('w:rPr')
+
+    # Join all the xml elements together add add the required text to the w:r element
+    new_run.append(rPr)
+    new_run.text = text
+    hyperlink.append(new_run)
+
+    paragraph._p.append(hyperlink)
+
+    return hyperlink
 
 class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
@@ -229,19 +339,10 @@ class DocxHandler:
         if self.gui.docxTemplateName is None or self.gui.docxTemplateName == "":
             raise ValueError("must specify path to .docx template!")
         self.doc = docx.Document(self.gui.docxTemplateName)
+        combineRuns(self.doc)
         self.docxExtension.docxTreeHandler.setDeps(self)
         self.parseParams()
-        self.selFunctions = {
-            "titelenthält": self.selTitelEnthält,
-            "titelenthältnicht": self.selTitelEnthältNicht,
-            "terminnr": self.selTourNr,
-            "nichtterminnr": self.selNotTourNr,
-            "tournr": self.selTourNr,
-            "nichttournr": self.selNotTourNr,
-            "radtyp": self.selRadTyp,
-            "kategorie": self.selKategorie,
-            "merkmal": self.selMerkmal,
-        }
+        self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = {
             "heute": self.expHeute,
             "start": self.expStart,
@@ -347,17 +448,10 @@ class DocxHandler:
                 sel[word1] = sel2 = {}
                 sel2["name"] = word1
             else:
-                if len(words) == 2:
-                    sel2[word0] = words[1]
-                else:
-                    sel2[word0] = "".join(words[1:]).split(",")
+                lst = ",".join(words[1:]).split(",")
+                sel2[word0] = lst[0] if len(lst) == 1 else lst
             lx += 1
         return lx
-
-    def parseDoc(self):
-        texts = []
-        for para in self.doc.paragraphs:
-            print("<<< " + para.text + " >>>")
 
     def getIncludeSub(self):
         return self.includeSub
@@ -397,34 +491,24 @@ class DocxHandler:
         print("Template", self.gui.docxTemplateName, "wird abgearbeitet")
         if self.linkType == None or self.linkType == "":
             self.linkType = self.gui.getLinkType()
-        self.parseDoc()
-
-        """
-        lines = self.pdfJS.get("text");
-        lineCnt = len(lines)
-        lineNo = 0
-        self.pdf.set_x(self.margins[0]) # left
-        self.pdf.set_y(self.margins[1]) # top
-        self.setStyle(self.styles.get("body"))
-        self.pdf.cell(w=0, h=10, txt="", ln=1)
-        while lineNo < lineCnt:
-            line = lines[lineNo]
-            if line.startswith("/comment"):
-                lineNo += 1
-                continue
-            if line.startswith("/template"):
-                t1 = lineNo
-                lineNo += 1
-                while not lines[lineNo].startswith("/endtemplate"):
-                    lineNo += 1
-                t2 = lineNo
-                lineNo += 1
-                tempLines = lines[t1:t2] # /endtemplate not included
-                self.evalTemplate(tempLines)
+        paragraphs = self.doc.paragraphs
+        paraCnt = len(paragraphs)
+        paraNo = 0
+        while paraNo < paraCnt:
+            para = paragraphs[paraNo]
+            if para.text.startswith("/template"):
+                p1 = paraNo
+                while paragraphs[paraNo].text.find("/endtemplate") == -1:
+                    paraNo += 1
+                p2 = paraNo
+                paraNo += 1
+                self.paraBefore = None if paraNo == paraCnt else paragraphs[paraNo]
+                tempParas = paragraphs[p1:p2+1]
+                self.evalTemplate(tempParas)
             else:
-                self.evalLine(line, None)
-                lineNo += 1
-        """
+                self.evalPara(para)
+                paraNo += 1
+
         if self.ausgabedatei == None or self.ausgabedatei == "":
             self.ausgabedatei = self.gui.docxTemplateName.rsplit(".", 1)[0] + "_" + self.linkType[0] + ".docx"
         self.doc.save(self.ausgabedatei)
@@ -440,137 +524,75 @@ class DocxHandler:
     def extraNl(self):
         self.simpleNl()
 
-    def evalLine(self, line, tour):
-        if line.strip() == "":
-            self.extraNl()
-            return
+    def evalPara(self, para):
         global debug
         if debug:
-            print("line", line)
-        text = []
-        self.align = "L"
-        self.fontStyles = ""
-        self.curStyle = self.styles.get("body")
-        self.indentX = 0.0
-        words = line.split()
-        l = len(words)
-        last = l - 1
-        for i in range(l):
-            word = words[i];
-            if word.startswith("/"):
-                cmd = word[1:]
-                if cmd in self.styles.keys():
-                    self.handleText("".join(text), tour)
-                    text = []
-                    self.curStyle = self.styles.get(cmd)
-                elif cmd in ["right", "left", "center", "block"]:
-                    self.handleText("".join(text), tour)
-                    text = []
-                    self.align = cmd[0].upper()
-                    if self.align == 'B':
-                        self.align = 'J' ## justification
-                elif cmd in ["bold", "italic", "underline"]:
-                    self.handleText("".join(text), tour)
-                    text = []
-                    self.fontStyles += cmd[0].upper()
-                else:
-                    if i < last:
-                        word = word + " "
-                    text.append(word)
-            else:
-                word = word.replace("\uaffe", "\n")
-                if i < last:
-                    word = word + " "
-                text.append(word)
-        self.handleText("".join(text), tour)
+            print("para", para.text)
+        for run in para.runs:
+            self.evalRun(run, None)
         self.simpleNl()
 
-    def evalTemplate(self, lines):
+    def evalTemplate(self, paras):
         global debug
         if debug:
             print("template:")
-        words = lines[0].split()
+        para0 = paras[0]
+        para0Lines = para0.runs[0].text.split('\n')
+        if not para0Lines[0].startswith("/template"):
+            raise ValueError("/template muss am Anfang der ersten Zeile eines Paragraphen stehen")
+        paraN = paras[-1]
+        paraNLines = paraN.runs[-1].text.split('\n')
+        if not paraNLines[-1].startswith("/endtemplate"):
+            raise ValueError("/endtemplate muss am Anfang der letzten Zeile eines Paragraphen stehen")
+        words = para0Lines[0].split()
         typ = words[1]
         if typ != "/tour" and typ != "/termin":
             raise ValueError("second word after /template must be /tour or /termin")
         typ = typ[1:]
         sel = words[2]
-        if not sel.startswith("/selection="):
-            raise ValueError("third word after /template must start with /selection=")
-        sel = sel[11:]
+        if not sel.startswith("/selektion="):
+            raise ValueError("third word after /template must start with /selektion=")
+        sel = sel[11:].lower()
         sels = self.tourselections if typ == "tour" else self.terminselections
         if not sel in sels:
-            raise ValueError("selection " + sel + " not in " + typ + "selections")
+            raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
         sel = sels[sel]
         touren = self.touren if typ == "tour" else self.termine
-        self.evalTouren(sel, touren, lines[1:])
+        runs = []
+        for para in paras:
+            runs.extend(para.runs)
+            for run in para.runs:
+                delete_run(run)
+            delete_paragraph(para)
+        self.evalTouren(sel, touren, runs)
 
-    def evalTouren(self, sel, touren, lines):
+    def evalTouren(self, sel, touren, runs):
         selectedTouren = []
         for tour in touren:
-            if self.selected(tour, sel):
+            if selektion.selected(tour, sel):
                 selectedTouren.append(tour)
         if len(selectedTouren) == 0:
             return
         lastTour = selectedTouren[-1]
         for tour in selectedTouren:
-            for line in lines:
-                if line.startswith("/comment"):
+            for run in runs:
+                if run.text.startswith("/comment"):
                     continue
-                self.evalLine(line, tour)
+                self.evalRun(run, tour)
             if tour != lastTour: # extra line between touren, not after the last one
-                self.evalLine("", None)
+                self.extraNl()
 
-
-    def selTitelEnthält(self, tour, lst):
-        titel = tour.getTitel()
-        for  elem in lst:
-            if titel.find(elem) > 0:
-                return True
-        return False
-
-    def selTitelEnthältNicht(self, tour, lst):
-        titel = tour.getTitel()
-        for  elem in lst:
-            if titel.find(elem) > 0:
-                return False
-        return True
-
-    def selRadTyp(self, tour, lst):
-        if "Alles" in lst:
-            return True
-        radTyp = tour.getRadTyp()
-        return radTyp in lst
-
-    def selTourNr(self, tour, lst):
-        nr = int(tour.getNummer())
-        return nr in lst
-
-    def selNotTourNr(self, tour, lst):
-        nr = int(tour.getNummer())
-        return not nr in lst
-
-    def selKategorie(self, tour, lst):
-        kat = tour.getKategorie()
-        return kat in lst
-
-    def selMerkmal(self, tour, lst):
-        mm = tour.getMerkmal()
-        return mm in lst
-
-    def selected(self, tour, sel):
-        for key in sel.keys():
-            if key == "name" or key.startswith("comment"):
-                continue
-            try:
-                f = self.selFunctions[key]
-                lst = sel[key]
-                if not f(tour, lst):
-                    return False
-            except Exception as e:
-                logger.exception("no function for selection verb " + key + " in selection " + sel.get("name"))
-        else:
-            return True
+    def evalRun(self, run, tour):
+        global debug
+        if debug:
+            print("run", run.text)
+        linesOut = []
+        linesIn = run.text.split('\n')
+        for line in linesIn:
+            if not line.startswith("/template") and not line.startswith("/endtemplate"):
+                linesOut.append(self.expand(line, tour))
+        run.text = '\n'.join(linesOut)
+        self.simpleNl()
 
     def expand(self, s, tour):
         while True:

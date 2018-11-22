@@ -207,13 +207,36 @@ class Tour:
         i = int(schwierigkeit + 0.5)
         return i # ["unbekannt", "sehr einfach, "einfach", "mittel", "schwer", "sehr schwer"][i] ??
 
+    """ 
+    itemtags has categories
+        for Termine:
+        "Aktionen, bei denen Rad gefahren wird" : getKategorie, e.g. Fahrrad-Demo, Critical Mass
+        "Radlertreff / Stammtisch / \u00f6ffentliche Arbeits..." : getKategorie, e.g. Stammtisch
+        "Serviceangebote": getKategorie, e.g. Codierung, Selbsthilfewerkstatt
+        "Versammlungen" : getKategorie, e.g. Aktiventreff, Mitgliederversammlung
+        "Vortr\u00e4ge & Kurse": getKategorie, e.g. Kurse, Radreisevortrag
+        for Touren:
+        "Besondere Charakteristik /Thema": getZusatzInfo
+        "Besondere Zielgruppe" : getZusatzInfo
+        "Geeignet f\u00fcr": getRadTyp
+        "Typen (nach Dauer und Tageslage)" : getKategorie, e.g. Ganztagstour
+        "Weitere Eigenschaften"  : getZusatzinfo, e.g. Bahnfahrt
+    """
+
+    def getMerkmale(self):
+        merkmale = []
+        for itemTag in self.itemTags:
+            tag = itemTag.get("tag")
+            merkmale.append(tag)
+        return merkmale
+
     def getKategorie(self):
         for itemTag in self.itemTags:
             tag = itemTag.get("tag")
             category = itemTag.get("category")
-            if category.startswith("Typen ") or category.startswith("Radlertreff") \
+            if category.startswith("Aktionen,") or category.startswith("Radlertreff") or category.startswith("Service") \
                     or category.startswith("Versammlungen") or category.startswith("Vortr")\
-                    or category.startswith("Service"):
+                    or category.startswith("Typen ")                     :
                 return tag.split()[0]
         return "Ohne"
 
