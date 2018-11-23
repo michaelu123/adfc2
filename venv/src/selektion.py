@@ -1,3 +1,5 @@
+from myLogger import logger
+
 def selTitelEnthält(tour, lst):
     titel = tour.getTitel()
     for  elem in lst:
@@ -34,9 +36,9 @@ def selMerkmalEnthält(tour, lst):
     merkmale = tour.getMerkmale()
     for merkmal in merkmale:
         for val in lst:
-            if merkmal.find(lst) >= 0:
+            if merkmal.find(val) >= 0:
                 return True
-    return false
+    return False
 
 def selected(tour, sel):
     for key in sel.keys():

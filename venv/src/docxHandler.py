@@ -54,6 +54,63 @@ def delete_run(run):
     r.getparent().remove(r)
     r._p = r._element = None
 
+def add_run_copy(paragraph, run):
+    newr = paragraph.add_run(text=run.text, style=run.style)
+    newr.bold = run.bold
+    newr.italic = run.italic
+    newr.underline = run.underline
+    newr.font.all_caps = run.font.all_caps
+    newr.font.bold = run.font.bold
+    newr.font.color.rgb = run.font.color.rgb
+    newr.font.color.theme_color = run.font.color.theme_color
+    #newr.font.color.type = run.font.color.type is readonly
+    newr.font.complex_script = run.font.complex_script
+    newr.font.cs_bold = run.font.cs_bold
+    newr.font.cs_italic = run.font.cs_italic
+    newr.font.double_strike = run.font.double_strike
+    newr.font.emboss = run.font.emboss
+    newr.font.hidden = run.font.hidden
+    newr.font.highlight_color = run.font.highlight_color
+    newr.font.imprint = run.font.imprint
+    newr.font.italic = run.font.italic
+    newr.font.math = run.font.math
+    newr.font.name = run.font.name
+    newr.font.no_proof = run.font.no_proof
+    newr.font.outline = run.font.outline
+    newr.font.rtl = run.font.rtl
+    newr.font.shadow = run.font.shadow
+    newr.font.size = run.font.size
+    newr.font.small_caps = run.font.small_caps
+    newr.font.snap_to_grid = run.font.snap_to_grid
+    newr.font.spec_vanish = run.font.spec_vanish
+    newr.font.strike = run.font.strike
+    newr.font.subscript = run.font.subscript
+    newr.font.superscript = run.font.superscript
+    newr.font.underline = run.font.underline
+    newr.font.web_hidden = run.font.web_hidden
+
+def insert_paragraph_copy_before(paraBefore, para):
+    newp = paraBefore.insert_paragraph_before()
+    newp.alignment = para.alignment
+    newp.style = para.style
+    newp.paragraph_format.alignment = para.paragraph_format.alignment
+    newp.paragraph_format.first_line_indent = para.paragraph_format.first_line_indent
+    newp.paragraph_format.keep_together = para.paragraph_format.keep_together
+    newp.paragraph_format.keep_with_next = para.paragraph_format.keep_with_next
+    newp.paragraph_format.left_indent = para.paragraph_format.left_indent
+    newp.paragraph_format.line_spacing = para.paragraph_format.line_spacing
+    newp.paragraph_format.line_spacing_rule = para.paragraph_format.line_spacing_rule
+    newp.paragraph_format.page_break_before = para.paragraph_format.page_break_before
+    newp.paragraph_format.right_indent = para.paragraph_format.right_indent
+    newp.paragraph_format.space_after = para.paragraph_format.space_after
+    newp.paragraph_format.space_before = para.paragraph_format.space_before
+    for ts in para.paragraph_format.tab_stops:
+        newp.paragraph_format.add_tab_stop(ts-position, ts.alignment, ts.leader)
+    newp.paragraph_format.widow_control = para.paragraph_format.widow_control
+    for run in para.runs:
+        add_run_copy(newp, run)
+    return newp
+
 def eqFont(f1, f2):
     if f1.name != f2.name:
         return False
@@ -498,7 +555,9 @@ class DocxHandler:
             para = paragraphs[paraNo]
             if para.text.startswith("/template"):
                 p1 = paraNo
+                delete_paragraph(para)
                 while paragraphs[paraNo].text.find("/endtemplate") == -1:
+                    delete_paragraph(paragraphs[paraNo])
                     paraNo += 1
                 p2 = paraNo
                 paraNo += 1
@@ -558,15 +617,9 @@ class DocxHandler:
             raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
         sel = sels[sel]
         touren = self.touren if typ == "tour" else self.termine
-        runs = []
-        for para in paras:
-            runs.extend(para.runs)
-            for run in para.runs:
-                delete_run(run)
-            delete_paragraph(para)
-        self.evalTouren(sel, touren, runs)
+        self.evalTouren(sel, touren, paras)
 
-    def evalTouren(self, sel, touren, runs):
+    def evalTouren(self, sel, touren, paras):
         selectedTouren = []
         for tour in touren:
             if selektion.selected(tour, sel):
@@ -575,10 +628,12 @@ class DocxHandler:
             return
         lastTour = selectedTouren[-1]
         for tour in selectedTouren:
-            for run in runs:
-                if run.text.startswith("/comment"):
-                    continue
-                self.evalRun(run, tour)
+            for para in paras:
+                newp = insert_paragraph_copy_before(self.paraBefore, para)
+                for run in newp.runs:
+                    if run.text.startswith("/comment"):
+                        continue
+                    self.evalRun(run, tour)
             if tour != lastTour: # extra line between touren, not after the last one
                 self.extraNl()
 
@@ -659,6 +714,7 @@ class DocxHandler:
         return tour.getTitel()
 
     def expBeschreibung(self, tour, format):
+        return "XXBeschreibungXX"
         desc = tour.eventItem.get("description")
         desc = tourRest.removeHTML(desc)
         #desc = codecs.decode(desc, encoding = "unicode_escape")
@@ -686,24 +742,28 @@ class DocxHandler:
         tl = tour.getPersonen()
         if len(tl) == 0:
             return
-        self.evalLine("/bold Tourleiter: /block " + "\uaffe".join(tl), tour)
+        return "XXTourleiterXX"
+        # self.evalLine("/bold Tourleiter: /block " + "\uaffe".join(tl), tour)
 
     def expAbfahrten(self, tour, format):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
             return
         afl = [ af[0] + " " + af[1] + " " + af[2] for af in afs]
-        self.evalLine("/bold Ort" + ("" if len(afs) == 1 else "e") + ": /block " + "\uaffe".join(afl), tour)
+        return "XXAbfahrtenXX"
+        #self.evalLine("/bold Ort" + ("" if len(afs) == 1 else "e") + ": /block " + "\uaffe".join(afl), tour)
 
     def expBetreuer(self, tour, format):
         tl = tour.getPersonen()
         if len(tl) == 0:
             return
-        self.evalLine("/bold Betreuer: /block " + "\uaffe".join(tl), tour)
+        return "XXBetreuerXX"
+        #self.evalLine("/bold Betreuer: /block " + "\uaffe".join(tl), tour)
 
     def expZusatzInfo(self, tour, format):
         zi = tour.getZusatzInfo()
         if len(zi) == 0:
             return
-        self.evalLine("/bold Zusatzinfo: /block " + "\uaffe".join(zi), tour)
+        return "XXZusatzInfoXX"
+        #self.evalLine("/bold Zusatzinfo: /block " + "\uaffe".join(zi), tour)
 
