@@ -61,8 +61,10 @@ def add_run_copy(paragraph, run):
     newr.underline = run.underline
     newr.font.all_caps = run.font.all_caps
     newr.font.bold = run.font.bold
-    newr.font.color.rgb = run.font.color.rgb
-    newr.font.color.theme_color = run.font.color.theme_color
+    if run.font.color != None and run.font.color.rgb != None:
+        newr.font.color.rgb = run.font.color.rgb
+    if run.font.color != None and run.font.color.theme_color != None:
+        newr.font.color.theme_color = run.font.color.theme_color
     #newr.font.color.type = run.font.color.type is readonly
     newr.font.complex_script = run.font.complex_script
     newr.font.cs_bold = run.font.cs_bold
@@ -176,7 +178,7 @@ def combineRuns(doc):
             else:
                 prevRun = run
 
-def add_hyperlink(paragraph, url, text):
+def add_hyperlink_before_run(paragraph, run, url):
     """
     A function that places a hyperlink within a paragraph object.
 
@@ -199,15 +201,24 @@ def add_hyperlink(paragraph, url, text):
 
     # Create a new w:rPr element
     rPr = docx.oxml.shared.OxmlElement('w:rPr')
+    c = docx.oxml.shared.OxmlElement('w:color')
+    c.set(docx.oxml.shared.qn('w:val'), str(run.font.color.rgb))
+    rPr.append(c)
 
     # Join all the xml elements together add add the required text to the w:r element
     new_run.append(rPr)
-    new_run.text = text
+    new_run.text = run.text
     hyperlink.append(new_run)
 
-    paragraph._p.append(hyperlink)
+    runs = paragraph.runs
+    for i in range(len(runs)):
+        if runs[i].text == run.text:
+            break
+    paragraph._p.insert(i+1,hyperlink)
 
     return hyperlink
+
+
 
 class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
@@ -633,7 +644,11 @@ class DocxHandler:
                 for run in newp.runs:
                     if run.text.startswith("/comment"):
                         continue
+                    rtext = run.text.strip()
                     self.evalRun(run, tour)
+                    if rtext == "${titel}":
+                        add_hyperlink_before_run(newp, run, self.url)
+                        run.clear()
             if tour != lastTour: # extra line between touren, not after the last one
                 self.extraNl()
 
