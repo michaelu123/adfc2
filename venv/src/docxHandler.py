@@ -54,8 +54,8 @@ def delete_run(run):
     r.getparent().remove(r)
     r._p = r._element = None
 
-def add_run_copy(paragraph, run):
-    newr = paragraph.add_run(text=run.text, style=run.style)
+def add_run_copy(paragraph, run, text=None):
+    newr = paragraph.add_run(text=run.text if text is None else text, style=run.style)
     newr.bold = run.bold
     newr.italic = run.italic
     newr.underline = run.underline
@@ -90,6 +90,7 @@ def add_run_copy(paragraph, run):
     newr.font.superscript = run.font.superscript
     newr.font.underline = run.font.underline
     newr.font.web_hidden = run.font.web_hidden
+    return newr
 
 def insert_paragraph_copy_before(paraBefore, para):
     newp = paraBefore.insert_paragraph_before()
@@ -155,19 +156,38 @@ def eqColor(r1, r2):
         return False
     return c1.val == c2.val
 
+def split_run(para, runs, run, x):
+    runX = runs.index(run) + 1
+    t1 = run.text[0:x]
+    t2 = run.text[x:]
+    run.text = t1
+    new_run = add_run_copy(para, run, text=t2)
+    # the insert does not work as expected, the new_run is always inserted into the same place,
+    # irrespective of runX
+    #    para._p.insert(runX, new_run._r)
+    # therefore, we append all runs behind runX AFTER the newly appended run
+    # i.e. we copy a b t1 c d t2 to a b t1 t2 c d, by appending c, d
+    # this is all trial and error, and completely obscure...
+    while runX < len(runs):
+        para._p.append(runs[runX]._r)
+        runX += 1
+    print("splitRes:", " ".join(["<" + run.text + ">" for run in para.runs]))
+
 """
     This function combines the texts of successive runs with same font,style,color into one run.
     Word splits for unknown reasons continuous text like "Kommentar" into two runs "K" and "ommentar"!?
     Our parameters ${name} are split int "${", "name", "}". This makes parsing too difficult, so we combine first.
+    But then we may have several ${param}s within one run. We then split the runs again so that each parameter is 
+    in its own run.
 """
 def combineRuns(doc):
     paras = doc.paragraphs
     for para in paras:
-        # print("Para ", str(para), para.text, " align:", para.alignment, "style:", para.style.name)
+        print("Para ", str(para), para.text, " align:", para.alignment, "style:", para.style.name)
         runs = para.runs
         prevRun = None
         for run in runs:
-            # print("Run '", run.text, "' bold:", run.bold, " font:", run.font.name, run.font.size, " style:", run.style.name)
+            print("Run '", run.text, "' bold:", run.bold, " font:", run.font.name, run.font.size, " style:", run.style.name)
             if prevRun != None and prevRun.bold == run.bold and prevRun.italic == run.italic and \
                 prevRun.underline == run.underline and \
                 eqColor(prevRun, run) and \
@@ -177,17 +197,24 @@ def combineRuns(doc):
                 delete_run(run)
             else:
                 prevRun = run
+    paras = doc.paragraphs
+    for para in paras:
+        if para.text.find("${") > 0:
+            splitted = True
+            while splitted:
+                splitted = False
+                runs = para.runs
+                for run in runs:
+                    mp = paramRE.search(run.text, 1)
+                    if mp == None:
+                        continue
+                    sp = mp.span()
+                    split_run(para, runs, run, sp[0])
+                    splitted = True
+                    break
 
-def add_hyperlink_before_run(paragraph, run, url):
-    """
-    A function that places a hyperlink within a paragraph object.
-
-    :param paragraph: The paragraph we are adding the hyperlink to.
-    :param url: A string containing the required url
-    :param text: The text displayed for the url
-    :return: The hyperlink object
-    """
-
+def add_hyperlink_into_run(paragraph, run, i, url):
+    runs = paragraph.runs
     # This gets access to the document.xml.rels file and gets a new relation id value
     part = paragraph.part
     r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
@@ -195,30 +222,12 @@ def add_hyperlink_before_run(paragraph, run, url):
     # Create the w:hyperlink tag and add needed values
     hyperlink = docx.oxml.shared.OxmlElement('w:hyperlink')
     hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
+    hyperlink.append(run._r)
+    paragraph._p.insert(i+1, hyperlink)
 
-    # Create a w:r element
-    new_run = docx.oxml.shared.OxmlElement('w:r')
-
-    # Create a new w:rPr element
-    rPr = docx.oxml.shared.OxmlElement('w:rPr')
-    c = docx.oxml.shared.OxmlElement('w:color')
-    c.set(docx.oxml.shared.qn('w:val'), str(run.font.color.rgb))
-    rPr.append(c)
-
-    # Join all the xml elements together add add the required text to the w:r element
-    new_run.append(rPr)
-    new_run.text = run.text
-    hyperlink.append(new_run)
-
-    runs = paragraph.runs
-    for i in range(len(runs)):
-        if runs[i].text == run.text:
-            break
-    paragraph._p.insert(i+1,hyperlink)
-
-    return hyperlink
-
-
+def move_run_before(i, paragraph, run):
+    paragraph._p.insert(i, run._r)
+    print()
 
 class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
@@ -566,10 +575,13 @@ class DocxHandler:
             para = paragraphs[paraNo]
             if para.text.startswith("/template"):
                 p1 = paraNo
-                delete_paragraph(para)
-                while paragraphs[paraNo].text.find("/endtemplate") == -1:
-                    delete_paragraph(paragraphs[paraNo])
+                while True:
+                    if para.text.find("/endtemplate") >= 0:
+                        break
+                    delete_paragraph(para)
                     paraNo += 1
+                    para = paragraphs[paraNo]
+                delete_paragraph(para)
                 p2 = paraNo
                 paraNo += 1
                 self.paraBefore = None if paraNo == paraCnt else paragraphs[paraNo]
@@ -641,14 +653,18 @@ class DocxHandler:
         for tour in selectedTouren:
             for para in paras:
                 newp = insert_paragraph_copy_before(self.paraBefore, para)
-                for run in newp.runs:
+                self.para = newp
+                runs = newp.runs
+                l = len(runs)
+                for i in range(l):
+                    self.runX = i
+                    run = self.run = runs[i]
                     if run.text.startswith("/comment"):
                         continue
                     rtext = run.text.strip()
                     self.evalRun(run, tour)
                     if rtext == "${titel}":
-                        add_hyperlink_before_run(newp, run, self.url)
-                        run.clear()
+                        add_hyperlink_into_run(newp, run, i, self.url)
             if tour != lastTour: # extra line between touren, not after the last one
                 self.extraNl()
 
@@ -757,7 +773,10 @@ class DocxHandler:
         tl = tour.getPersonen()
         if len(tl) == 0:
             return
-        return "XXTourleiterXX"
+        run = self.para.add_run(text="Tourleiter: ", style=self.run.style)
+        run.bold = True
+        move_run_before(self.runX, self.para, run)
+        return ", ".join(tl)
         # self.evalLine("/bold Tourleiter: /block " + "\uaffe".join(tl), tour)
 
     def expAbfahrten(self, tour, format):
