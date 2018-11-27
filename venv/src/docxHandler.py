@@ -16,6 +16,7 @@ paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
+debug = False
 
 
 
@@ -147,7 +148,7 @@ def eqColor(r1, r2):
         c1 = r1._element.rPr.color
         c2 = r2._element.rPr.color
     except:
-        print("!!")
+        logger.exception("eqcolor")
     if c1 == None and c2 == None:
         return True
     if c1 != None and c2 == None:
@@ -171,7 +172,8 @@ def split_run(para, runs, run, x):
     while runX < len(runs):
         para._p.append(runs[runX]._r)
         runX += 1
-    print("splitRes:", " ".join(["<" + run.text + ">" for run in para.runs]))
+    if debug:
+        print("splitRes:", " ".join(["<" + run.text + ">" for run in para.runs]))
 
 """
     This function combines the texts of successive runs with same font,style,color into one run.
@@ -183,11 +185,13 @@ def split_run(para, runs, run, x):
 def combineRuns(doc):
     paras = doc.paragraphs
     for para in paras:
-        print("Para ", str(para), para.text, " align:", para.alignment, "style:", para.style.name)
+        if debug:
+            print("Para ", str(para), para.text, " align:", para.alignment, "style:", para.style.name)
         runs = para.runs
         prevRun = None
         for run in runs:
-            print("Run '", run.text, "' bold:", run.bold, " font:", run.font.name, run.font.size, " style:", run.style.name)
+            if debug:
+                print("Run '", run.text, "' bold:", run.bold, " font:", run.font.name, run.font.size, " style:", run.style.name)
             if prevRun != None and prevRun.bold == run.bold and prevRun.italic == run.italic and \
                 prevRun.underline == run.underline and \
                 eqColor(prevRun, run) and \
@@ -225,9 +229,12 @@ def add_hyperlink_into_run(paragraph, run, i, url):
     hyperlink.append(run._r)
     paragraph._p.insert(i+1, hyperlink)
 
-def move_run_before(i, paragraph, run):
-    paragraph._p.insert(i, run._r)
-    print()
+def move_run_before(i, para):
+    runs = para.runs
+    l = len(runs) - 1
+    while i < l:
+        para._p.append(runs[i]._r)
+        i += 1
 
 class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
@@ -258,7 +265,6 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 s = ""
 
     def walkOuter(self, node):
-        global debug
         if debug:
             print(" " * self.lvl,"<<<<")
         try:
@@ -281,7 +287,6 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 ltail = tail.replace("\n", "<nl>")
             else:
                 ltail = "None"
-            global debug
             if debug:
                 print(" " * self.lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
             if not text is None:
@@ -607,7 +612,6 @@ class DocxHandler:
         self.simpleNl()
 
     def evalPara(self, para):
-        global debug
         if debug:
             print("para", para.text)
         for run in para.runs:
@@ -615,7 +619,6 @@ class DocxHandler:
         self.simpleNl()
 
     def evalTemplate(self, paras):
-        global debug
         if debug:
             print("template:")
         para0 = paras[0]
@@ -654,29 +657,30 @@ class DocxHandler:
             for para in paras:
                 newp = insert_paragraph_copy_before(self.paraBefore, para)
                 self.para = newp
-                runs = newp.runs
-                l = len(runs)
-                for i in range(l):
-                    self.runX = i
-                    run = self.run = runs[i]
-                    if run.text.startswith("/comment"):
+                self.runX = 0
+                while self.runX < len(newp.runs):
+                    run = self.run = newp.runs[self.runX]
+                    if run.text.lower().startswith("/kommentar"):
+                        self.runX += 1
                         continue
                     rtext = run.text.strip()
                     self.evalRun(run, tour)
                     if rtext == "${titel}":
-                        add_hyperlink_into_run(newp, run, i, self.url)
+                        add_hyperlink_into_run(newp, run, self.runX, self.url)
+                    self.runX += 1
             if tour != lastTour: # extra line between touren, not after the last one
                 self.extraNl()
 
     def evalRun(self, run, tour):
-        global debug
         if debug:
             print("run", run.text)
         linesOut = []
         linesIn = run.text.split('\n')
         for line in linesIn:
             if not line.startswith("/template") and not line.startswith("/endtemplate"):
-                linesOut.append(self.expand(line, tour))
+                exp = self.expand(line, tour)
+                if exp != None:
+                    linesOut.append(exp)
         run.text = '\n'.join(linesOut)
         self.simpleNl()
 
@@ -696,7 +700,7 @@ class DocxHandler:
             else:
                 expanded = self.expandParam(gp, tour, None)
             if expanded == None: # special case for beschreibung, handled as markdown
-                return ""
+                return None
             try:
                 s = s[0:sp[0]] + expanded + s[sp[1]:]
             except Exception as e:
@@ -769,35 +773,70 @@ class DocxHandler:
     def expTourLength(self, tour, format):
         return tour.getStrecke()
 
-    def expTourLeiter(self, tour, format):
+    def expPersonen(self, bezeichnung, tour):
         tl = tour.getPersonen()
         if len(tl) == 0:
             return
-        run = self.para.add_run(text="Tourleiter: ", style=self.run.style)
+
+        #print("TL0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        run = self.para.add_run(text=bezeichnung + ": ", style=self.run.style)
         run.bold = True
-        move_run_before(self.runX, self.para, run)
-        return ", ".join(tl)
-        # self.evalLine("/bold Tourleiter: /block " + "\uaffe".join(tl), tour)
+        move_run_before(self.runX, self.para)
+        #print("TL1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        self.runX += 1
+
+        run = self.para.add_run(text=", ".join(tl), style=self.run.style)
+        move_run_before(self.runX, self.para)
+        #print("TL2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        return ""
+
+    def expTourLeiter(self, tour, format):
+        return self.expPersonen("Tourleiter", tour)
+
+    def expBetreuer(self, tour, format):
+        return self.expPersonen("Betreuer", tour)
 
     def expAbfahrten(self, tour, format):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
             return
-        afl = [ af[0] + " " + af[1] + " " + af[2] for af in afs]
-        return "XXAbfahrtenXX"
-        #self.evalLine("/bold Ort" + ("" if len(afs) == 1 else "e") + ": /block " + "\uaffe".join(afl), tour)
+        afl = []
+        for af in afs:
+            if af[1] == "":
+                afl.append(af[2])
+            else:
+                afl.append(af[0] + " " + af[1] + " " + af[2])
+        #print("AB0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
 
-    def expBetreuer(self, tour, format):
-        tl = tour.getPersonen()
-        if len(tl) == 0:
-            return
-        return "XXBetreuerXX"
-        #self.evalLine("/bold Betreuer: /block " + "\uaffe".join(tl), tour)
+        run = self.para.add_run(text="Ort" + ("" if len(afs) == 1 else "e") + ": ", style=self.run.style)
+        run.bold = True
+        move_run_before(self.runX, self.para)
+        #print("AB1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        self.runX += 1
+
+        run = self.para.add_run(text=", ".join(afl), style=self.run.style)
+        move_run_before(self.runX, self.para)
+        #print("AB2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+
+        return ""
 
     def expZusatzInfo(self, tour, format):
         zi = tour.getZusatzInfo()
         if len(zi) == 0:
-            return
-        return "XXZusatzInfoXX"
-        #self.evalLine("/bold Zusatzinfo: /block " + "\uaffe".join(zi), tour)
+            return None
+        for z in zi:
+            #print("ZU0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>",
+            # " ".join(["<" + run.text + ">" for run in self.para.runs]))
+            x = z.find(':') + 1
+            run = self.para.add_run(text=z[0:x], style=self.run.style)
+            run.bold = True
+            move_run_before(self.runX, self.para)
+            #print("ZU1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+            self.runX += 1
+
+            run = self.para.add_run(text=z[x+1:] + "\n", style=self.run.style)
+            move_run_before(self.runX, self.para)
+            #print("ZU2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+            self.runX += 1
+        return ""
 
