@@ -160,9 +160,7 @@ class TourServer:
         adfc_gliederungen.load(unitsJS)
 
     def calcNummern(self):
-        def tourdate(self):
-            return self.get("beginning")
-        self.alleTouren.sort(key=tourdate)  # sortieren nach Datum
+        self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         for tourJS in self.alleTouren:
             datum = tourJS.get("beginning")
@@ -183,7 +181,7 @@ class TourServer:
                 num = tnum
                 tnum += 1
             tourJS["tourNummer"] = str(num)
-        self.alleTermine.sort(key=tourdate)  # sortieren nach Datum
+        self.alleTermine.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         for tourJS in self.alleTermine:
             datum = tourJS.get("beginning")
@@ -193,4 +191,3 @@ class TourServer:
             num = tnum
             tnum += 1
             tourJS["tourNummer"] = str(num)
-

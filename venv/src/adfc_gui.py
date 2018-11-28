@@ -420,16 +420,9 @@ class MyApp(Frame):
                 unitKey = ""
             touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, type))
 
-        if (isinstance(handler, textHandler.TextHandler)
-            or isinstance(handler, csvHandler.CsvHandler)
-            #or isinstance(handler, pdfHandler.PDFHandler)
-            or isinstance(handler, docxHandler.DocxHandler)
-            or isinstance(handler, rawHandler.RawHandler)):
-            tourServerVar.calcNummern()
+        tourServerVar.calcNummern()
 
-        def tourdate(self):
-            return self.get("beginning")
-        touren.sort(key=tourdate)  # sortieren nach Datum
+        touren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 
         with contextlib.redirect_stdout(txtWriter):
             if len(touren) == 0:

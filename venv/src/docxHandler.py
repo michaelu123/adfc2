@@ -226,8 +226,8 @@ def combineRuns(doc):
 def add_hyperlink_into_run(paragraph, run, i, url):
     runs = paragraph.runs
     if i is None:
-        for i in range(len(runs)):
-            if run.text == runs[i].text:
+        for i, runi in enumerate(runs):
+            if run.text == runi.text:
                 break
     # This gets access to the document.xml.rels file and gets a new relation id value
     part = paragraph.part
@@ -438,6 +438,7 @@ class DocxHandler:
             debug = False
         self.docxExtension = DocxExtension()
         self.md = markdown.Markdown(extensions=[self.docxExtension])
+        self.docxExtension.docxTreeHandler.setDeps(self)
         self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = {
             "heute": self.expHeute,
@@ -464,7 +465,6 @@ class DocxHandler:
         for style in self.doc.styles:
             print("Style ", style, style.name)
         combineRuns(self.doc)
-        self.docxExtension.docxTreeHandler.setDeps(self)
         self.parseParams()
 
     def nothingFound(self):
@@ -569,24 +569,6 @@ class DocxHandler:
             typ = "Alles"
         self.gui.setRadTyp(typ)
 
-    def parseSel(self, word, lines, lx, selections):
-        selections[word] = sel = sel2 = {}
-        while lx < len(lines):
-            line = lines[lx]
-            if not line[0].isspace():
-                return lx
-            words = line.split()
-            word0 = words[0].lower().replace(":", "")
-            if word0 == "name":
-                word1 = words[1].lower()
-                sel[word1] = sel2 = {}
-                sel2["name"] = word1
-            else:
-                lst = ",".join(words[1:]).split(",")
-                sel2[word0] = lst[0] if len(lst) == 1 else lst
-            lx += 1
-        return lx
-
     def getIncludeSub(self):
         return self.includeSub
     def getType(self):
@@ -616,6 +598,24 @@ class DocxHandler:
         return self.start
     def getEnd(self):
         return self.end
+
+    def parseSel(self, word, lines, lx, selections):
+        selections[word] = sel = sel2 = {}
+        while lx < len(lines):
+            line = lines[lx]
+            if not line[0].isspace():
+                return lx
+            words = line.split()
+            word0 = words[0].lower().replace(":", "")
+            if word0 == "name":
+                word1 = words[1].lower()
+                sel[word1] = sel2 = {}
+                sel2["name"] = word1
+            else:
+                lst = ",".join(words[1:]).split(",")
+                sel2[word0] = lst[0] if len(lst) == 1 else lst
+            lx += 1
+        return lx
 
     def handleTour(self, tour):
         self.touren.append(tour)
@@ -709,17 +709,14 @@ class DocxHandler:
             for para in paras:
                 newp = insert_paragraph_copy_before(self.paraBefore, para)
                 self.para = newp
-                self.runX = 0
-                while self.runX < len(newp.runs):
-                    run = self.run = newp.runs[self.runX]
+                for self.runX, self.run in enumerate(newp.runs):
+                    run = self.run
                     if run.text.lower().startswith("/kommentar"):
-                        self.runX += 1
                         continue
                     rtext = run.text.strip()
                     self.evalRun(run, tour)
                     if rtext == "${titel}":
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
-                    self.runX += 1
             if tour != lastTour: # extra line between touren, not after the last one
                 self.extraNl()
 
