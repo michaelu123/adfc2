@@ -90,6 +90,12 @@ def normalizeText(t):
         while t.count('##'):
             t = t.replace('##', '')
             changed = True
+        while t.count('~~~'):
+            t = t.replace('~~~', '~~')
+            changed = True
+        while t.count('~~'):
+            t = t.replace('~~', '')
+            changed = True
         while t.count('\t'):
             t = t.replace('\t', ' ')
             changed = True
@@ -117,6 +123,9 @@ def normalizeText(t):
             changed = True
         while t.count('\n\n'):
             t = t.replace('\n\n', '\n')
+            changed = True
+        if t.startswith('> '):
+            t = t.replace('> ', '')
             changed = True
     return t
 
@@ -164,7 +173,7 @@ class Tour:
             name = tourLoc.get("name")
             street = tourLoc.get("street")
             city = tourLoc.get("city")
-            logger.debug("name %s street %s city %s", name, street, city)
+            logger.debug("name '%s' street '%s' city '%s'", name, street, city)
             loc = name
             if city != "":
                 if loc == "":

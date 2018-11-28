@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import logging
-import os,sys
+import os
 
 """
 see https://stackoverflow.com/questions/10706547/add-encoding-parameter-to-logging-basicconfig"""

@@ -12,7 +12,7 @@ import textHandler
 import rawHandler
 import printHandler
 import csvHandler
-import pdfHandler
+#import pdfHandler
 import docxHandler
 import contextlib
 import base64
@@ -53,6 +53,8 @@ class LabelEntry(Frame):
         self.entry.grid(row=0,column=1,sticky="w")
     def get(self):
         return self.svar.get()
+    def set(self, s):
+        return self.svar.set(s)
 
 class LabelOM(Frame):
     def __init__(self, master, labeltext, options, initVal, **kwargs):
@@ -68,36 +70,38 @@ class LabelOM(Frame):
         self.optionMenu.grid(row=0,column=1,sticky="w")
     def get(self):
         return self.svar.get()
+    def set(self, s):
+        self.svar.set(s)
 
 class ListBoxSB(Frame):
     def __init__(self, master, selFunc, entries):
         super().__init__(master)
         # for the "exportselection" param see
         # https://stackoverflow.com/questions/10048609/how-to-keep-selections-highlighted-in-a-tkinter-listbox
-        self.gliederungLB = Listbox(self, borderwidth=2, selectmode="extended", exportselection=False, width=50)
-        self.gliederungLB.bind("<<ListboxSelect>>", selFunc)
+        self.lb = Listbox(self, borderwidth=2, selectmode="extended", exportselection=False, width=50)
+        self.lb.bind("<<ListboxSelect>>", selFunc)
 
         self.entries = sorted(entries)
-        self.gliederungLB.insert("end", *self.entries)
-        self.lbVsb = Scrollbar(self, orient="vertical", command=self.gliederungLB.yview)
-        self.gliederungLB.configure(yscrollcommand=self.lbVsb.set)
+        self.lb.insert("end", *self.entries)
+        self.lbVsb = Scrollbar(self, orient="vertical", command=self.lb.yview)
+        self.lb.configure(yscrollcommand=self.lbVsb.set)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
-        self.gliederungLB.grid(row=0, column=0,sticky="nsew")
+        self.lb.grid(row=0, column=0,sticky="nsew")
         self.lbVsb.grid(row=0,column=1,sticky="ns")
     def curselection(self):
-        names = [ self.entries[i] for i in self.gliederungLB.curselection() ]
+        names = [ self.entries[i] for i in self.lb.curselection() ]
         if "0 Alles" in names:
             return "Alles"
         s = ",".join( [name.split(maxsplit=1)[0] for name in names] )
         return s
     def clearLB(self):
-        self.gliederungLB.selection_clear(0,len(self.entries))
+        self.lb.selection_clear(0,len(self.entries))
     def setEntries(self, entries):
         self.entries = sorted(entries)
-        self.gliederungLB.delete(0, "end")
-        self.gliederungLB.insert("end", *self.entries)
+        self.lb.delete(0, "end")
+        self.lb.insert("end", *self.entries)
 
 
 class MyApp(Frame):
@@ -107,15 +111,16 @@ class MyApp(Frame):
         self.pos = None
         self.searchVal = ""
         self.images = []
-        self.pdfTemplateName = ""
+        #self.pdfTemplateName = ""
         self.docxTemplateName = ""
+        self.handler = None
         menuBar = Menu(master)
         master.config(menu = menuBar)
         menuFile = Menu(menuBar)
         menuFile.add_command(label = "Speichern", command=self.store, accelerator="Ctrl+s")
         master.bind_all("<Control-s>", self.store)
         menuFile.add_command(label = "Speichern unter", command=self.storeas)
-        menuFile.add_command(label = "PDF Template", command=self.pdfTemplate)
+        #menuFile.add_command(label = "PDF Template", command=self.pdfTemplate)
         menuFile.add_command(label = "Word Template", command=self.docxTemplate)
         menuBar.add_cascade(label = "Datei", menu=menuFile)
 
@@ -148,22 +153,47 @@ class MyApp(Frame):
 
     def storeas(self, *args):
         format = self.formatOM.get()
-        self.savFile = asksaveasfilename(title="Select file", initialfile="adfc_export",
+        self.savFile = asksaveasfilename(title="Ausgabedatei", initialfile="adfc_export",
             defaultextension=".csv" if format == "CSV" else ".txt",
             filetypes=[("CSV", ".csv")] if format == "CSV" else [("TXT", ".txt")])
         if self.savFile == None or self.savFile == "":
             return
         self.store()
 
-    def pdfTemplate(self, *args):
-        self.pdfTemplateName = askopenfilename(title="Choose a PDF Template",
-            defaultextension=".json",
-            filetypes=[("JSON", ".json")])
+    # def pdfTemplate(self, *args):
+    #     self.pdfTemplateName = askopenfilename(title="Choose a PDF Template",
+    #         defaultextension=".json",
+    #         filetypes=[("JSON", ".json")])
 
     def docxTemplate(self, *args):
-        self.docxTemplateName = askopenfilename(title="Choose a Word Template",
-            defaultextension=".docx",
-            filetypes=[("DOCX", ".docx")])
+        old = self.docxTemplateName
+        if self.docxTemplateName == "" or len(args) == 0 or args[0] != "NO":
+            self.docxTemplateName = askopenfilename(title="Word Template auswählen",
+                defaultextension=".docx", filetypes=[("DOCX", ".docx")])
+        if self.docxTemplateName is None or self.docxTemplateName == "":
+            raise ValueError("Dateipfad des .docx Templates fehlt!")
+        if self.handler == None:
+            self.handler = docxHandler.DocxHandler(self)
+            self.handler.openDocx()
+        elif self.docxTemplateName != old:
+            self.startBtn.config(state=DISABLED)
+            self.handler.openDocx()
+            self.startBtn.config(state=NORMAL)
+
+    def setGliederung(self, gl):
+        self.gliederungSvar.set(gl)
+    def setIncludeSub(self, b):
+        self.includeSubVar.set(b)
+    def setStart(self, d):
+        self.startDateLE.set(d)
+    def setEnd(self, d):
+        self.endDateLE.set(d)
+    def setTyp(self, s):
+        self.typVar.set(s)
+    def setRadTyp(self, s):
+        self.radTypVar.set(s)
+    def setLinkType(self, s):
+        self.linkTypeOM.set(s)
 
     def cut(self, *args):
         savedText = self.text.get(SEL_FIRST, SEL_LAST)
@@ -208,17 +238,21 @@ class MyApp(Frame):
                 rtBtn.config(state=NORMAL)
 
     def gliederungSel(self, event):
-        sel = self.gliederungLBSB.curselection()
+        sel = self.gliederungLB.curselection()
         self.gliederungSvar.set(sel)
 
     def clearLB(self, event):
-        self.gliederungLBSB.clearLB()
+        self.gliederungLB.clearLB()
 
     def lvSelector(self, event):
         kvMap = adfc_gliederungen.getLV(event[0:3])
         entries = [ key + " " + kvMap[key] for key in kvMap.keys() ]
-        self.gliederungLBSB.setEntries(entries)
+        self.gliederungLB.setEntries(entries)
         self.gliederungSvar.set("")
+
+    def formatSelektor(self, event):
+        if event == "Word":
+            self.docxTemplate("NO")
 
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
@@ -229,7 +263,8 @@ class MyApp(Frame):
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master, text="Untergliederungen einbeziehen", variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "PDF", "Word"], "Word")
+        self.formatOM = LabelOM(master, "Ausgabeformat:", ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
+            "Text", command=self.formatSelektor)
         self.linkTypeOM = LabelOM(master, "Links to:", ["Frontend", "Backend", "Keine"], "frontEnd")
 
         typen = [ "Radtour", "Termin", "Alles" ]
@@ -271,20 +306,20 @@ class MyApp(Frame):
         self.lvOM = LabelOM(glContainer, "Landesverband:", self.lvList, "152", command=self.lvSelector)
         kvMap = adfc_gliederungen.getLV(self.lvOM.get()[0:3])
         entries = [ key + " " + kvMap[key] for key in kvMap.keys() ]
-        self.gliederungLBSB = ListBoxSB(glContainer, self.gliederungSel, entries)
+        self.gliederungLB = ListBoxSB(glContainer, self.gliederungSel, entries)
         self.gliederungSvar = StringVar()
         self.gliederungSvar.set("152085")
         self.gliederungEN = Entry(master, textvariable=self.gliederungSvar, borderwidth=2, width=60)
         self.gliederungEN.bind("<Key>", self.clearLB)
         self.lvOM.grid(row=0, column=0, sticky="nsew")
-        self.gliederungLBSB.grid(row=1, column=0, sticky="nsew")
+        self.gliederungLB.grid(row=1, column=0, sticky="nsew")
         glContainer.grid_rowconfigure(0, weight=1)
         glContainer.grid_rowconfigure(1, weight=1)
         glContainer.grid_columnconfigure(0, weight=1)
 
         self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
-        startBtn = Button(master, text="Start", bg="red", command=self.starten)
+        self.startBtn = Button(master, text="Start", bg="red", command=self.starten)
 
         textContainer = Frame(master, borderwidth=2, relief="sunken")
         self.text = Text(textContainer, wrap="none", borderwidth=0, cursor="arrow") # width=100, height=40,
@@ -312,7 +347,7 @@ class MyApp(Frame):
         self.startDateLE.grid(row=4, column=0,padx=5,pady=2, sticky="w")
         self.endDateLE.grid(row=4, column=1,padx=5,pady=2, sticky="w")
 
-        startBtn.grid(row=5, padx=5, pady=2, sticky="w")
+        self.startBtn.grid(row=5, padx=5, pady=2, sticky="w")
         textContainer.grid(row=6,columnspan = 2, padx=5,pady=2, sticky="nsew")
 
         self.pos = "1.0"
@@ -364,15 +399,17 @@ class MyApp(Frame):
             handler = csvHandler.CsvHandler(txtWriter)
         elif formatS == "Text":
             handler = rawHandler.RawHandler()
-        elif formatS == "PDF" or formatS == "Word":
-            handler = pdfHandler.PDFHandler(self) if formatS == "PDF" else docxHandler.DocxHandler(self)
-            # conditions obtained from PDF template!
-            includeSub = handler.getIncludeSub()
-            type = handler.getType()
-            radTyp = handler.getRadTyp()
-            unitKeys = handler.getUnitKeys().split(",")
-            start = toDate(handler.getStart())
-            end = toDate(handler.getEnd())
+        elif formatS == "Word":
+            handler = self.handler
+        # elif formatS == "PDF":
+        #     handler = pdfHandler.PDFHandler(self)
+        #     # conditions obtained from PDF template!
+        #     includeSub = handler.getIncludeSub()
+        #     type = handler.getType()
+        #     radTyp = handler.getRadTyp()
+        #     unitKeys = handler.getUnitKeys().split(",")
+        #     start = toDate(handler.getStart())
+        #     end = toDate(handler.getEnd())
         else:
             handler = rawHandler.RawHandler()
 
@@ -385,7 +422,7 @@ class MyApp(Frame):
 
         if (isinstance(handler, textHandler.TextHandler)
             or isinstance(handler, csvHandler.CsvHandler)
-            or isinstance(handler, pdfHandler.PDFHandler)
+            #or isinstance(handler, pdfHandler.PDFHandler)
             or isinstance(handler, docxHandler.DocxHandler)
             or isinstance(handler, rawHandler.RawHandler)):
             tourServerVar.calcNummern()
@@ -409,7 +446,7 @@ class MyApp(Frame):
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)
                     handler.handleTour(tour)
-            if isinstance(handler, pdfHandler.PDFHandler) or isinstance(handler, docxHandler.DocxHandler): # TODO
+            if hasattr(handler, "handleEnd"):
                 handler.handleEnd()
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
