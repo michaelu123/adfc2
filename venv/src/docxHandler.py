@@ -13,6 +13,8 @@ from myLogger import logger
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import RGBColor
+from docx.oxml.shared import OxmlElement
+from docx.oxml.ns import qn
 
 schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 paramRE = re.compile(r"\${(\w*?)}")
@@ -20,6 +22,7 @@ fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 debug = False
+nlctr = 0
 
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
@@ -234,10 +237,30 @@ def add_hyperlink_into_run(paragraph, run, i, url):
     r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
 
     # Create the w:hyperlink tag and add needed values
-    hyperlink = docx.oxml.shared.OxmlElement('w:hyperlink')
+    hyperlink = OxmlElement('w:hyperlink')
     hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
     hyperlink.append(run._r)
     paragraph._p.insert(i+1, hyperlink)
+
+def insertHR(paragraph):
+    p = paragraph._p  # p is the <w:p> XML element
+    pPr = p.get_or_add_pPr()
+    pBdr = OxmlElement('w:pBdr')
+    pPr.insert_element_before(pBdr,
+        'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:kinsoku', 'w:wordWrap',
+        'w:overflowPunct', 'w:topLinePunct', 'w:autoSpaceDE', 'w:autoSpaceDN',
+        'w:bidi', 'w:adjustRightInd', 'w:snapToGrid', 'w:spacing', 'w:ind',
+        'w:contextualSpacing', 'w:mirrorIndents', 'w:suppressOverlap', 'w:jc',
+        'w:textDirection', 'w:textAlignment', 'w:textboxTightWrap',
+        'w:outlineLvl', 'w:divId', 'w:cnfStyle', 'w:rPr', 'w:sectPr',
+        'w:pPrChange'
+    )
+    bottom = OxmlElement('w:bottom')
+    bottom.set(qn('w:val'), 'single')
+    bottom.set(qn('w:sz'), '6')
+    bottom.set(qn('w:space'), '1')
+    bottom.set(qn('w:color'), 'auto')
+    pBdr.append(bottom)
 
 def move_run_before(i, para):
     runs = para.runs
@@ -271,8 +294,6 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.docxHandler = docxHandler
 
     def printLines(self, s):
-        if s == "\n":
-            return None
         r = self.curPara.add_run(s) # style?
         r.bold = r.italic = r.font.strike = False
         for fst in self.fontStyles:
@@ -285,8 +306,23 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         return r
 
     def walkOuter(self, node):
+        global nlctr
         if debug:
+            if node.text != None:
+                ltext = node.text.replace("\n", "<" + str(nlctr) + "nl>")
+                #node.text = node.text.replace("\n", str(nlctr) + "\n")
+                nlctr += 1
+            else:
+                ltext = "None"
+            if node.tail != None:
+                ltail = node.tail.replace("\n", "<" + str(nlctr) + "nl>")
+                #node.tail = node.tail.replace("\n", str(nlctr) + "\n")
+                nlctr += 1
+            else:
+                ltail = "None"
+            self.lvl += 4
             print(" " * self.lvl,"<<<<")
+            print(" " * self.lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
         try:
             self.nodeHandler[node.tag](node)
             if not node.tail is None:
@@ -296,66 +332,60 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             print("Fehler während der Behandlung der Tourbeschreibung")
         if debug:
             print(" " * self.lvl,">>>>")
+            self.lvl -= 4
 
     def walkInner(self, node):
-        text = node.text
-        tail = node.tail
         run = None
-        if text != None:
-            ltext = text.replace("\n", "<nl>")
-        else:
-            ltext = "None"
-        if tail != None:
-            ltail = tail.replace("\n", "<nl>")
-        else:
-            ltail = "None"
-        if debug:
-            print(" " * self.lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
-        if not text is None:
-            run = self.printLines(text)
+        if not node.text is None:
+            run = self.printLines(node.text)
         for dnode in node:
-            self.lvl += 4
             self.walkOuter(dnode)
-            self.lvl -= 4
         return run
 
     def h1(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 1"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def h2(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 2"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def h3(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 3"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def h4(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 4"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def h5(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 5"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def h6(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Heading 6"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
         self.para.style = sav
     def p(self, node):
+        node.tail = None
         sav = self.para.style
         self.para.style = "Normal"
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
@@ -377,6 +407,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.fontStyles = sav
     def ul(self, node):
+        node.text = node.tail = None
         sav = self.para.style
         if self.para.style.name == "List Bullet":
             self.para.style = "List Bullet 2"
@@ -385,6 +416,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.para.style = sav
     def ol(self, node):
+        node.text = node.tail = None
         sav = self.para.style
         if self.para.style.name == "List Number":
             self.para.style = "List Number 2"
@@ -393,6 +425,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.para.style = sav
     def li(self, node):
+        node.tail = None
         self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
         self.walkInner(node)
     def a(self, node):
@@ -401,11 +434,15 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         add_hyperlink_into_run(self.curPara, run, None, url)
         run.font.color.rgb = RGBColor(238,126,13)
     def blockQuote(self, node):
+        node.text = node.tail = None
         savA = self.para.alignment
         self.para.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
         self.walkInner(node)
         self.para.alignment = savA
     def hr(self, node):
+        node.tail = None
+        self.curPara = insert_paragraph_before(self.paraBefore, None, self.para)
+        insertHR(self.curPara)
         self.walkInner(node)
 
 class DocxExtension(markdown.Extension):
@@ -462,8 +499,9 @@ class DocxHandler:
 
     def openDocx(self):
         self.doc = docx.Document(self.gui.docxTemplateName)
-        for style in self.doc.styles:
-            print("Style ", style, style.name)
+        if debug:
+            for style in self.doc.styles:
+                print("Style ", style, style.name)
         combineRuns(self.doc)
         self.parseParams()
 
@@ -658,17 +696,11 @@ class DocxHandler:
         except Exception as e:
             logger.exception("opening " + self.ausgabedatei)
 
-    def simpleNl(self):
-        pass
-    def extraNl(self):
-        self.simpleNl()
-
     def evalPara(self, para):
         if debug:
             print("para", para.text)
         for run in para.runs:
             self.evalRun(run, None)
-        self.simpleNl()
 
     def evalTemplate(self, paras):
         if debug:
@@ -704,7 +736,6 @@ class DocxHandler:
                 selectedTouren.append(tour)
         if len(selectedTouren) == 0:
             return
-        lastTour = selectedTouren[-1]
         for tour in selectedTouren:
             for para in paras:
                 newp = insert_paragraph_copy_before(self.paraBefore, para)
@@ -717,8 +748,8 @@ class DocxHandler:
                     self.evalRun(run, tour)
                     if rtext == "${titel}":
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
-            if tour != lastTour: # extra line between touren, not after the last one
-                self.extraNl()
+                    if newp.text == "":
+                        delete_paragraph(newp)
 
     def evalRun(self, run, tour):
         if debug:
@@ -731,7 +762,6 @@ class DocxHandler:
                 if exp != None:
                     linesOut.append(exp)
         run.text = '\n'.join(linesOut)
-        self.simpleNl()
 
     def expand(self, s, tour):
         while True:
@@ -807,7 +837,6 @@ class DocxHandler:
         #desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()
-        print("BS0:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
         return None
 
     def expName(self, tour, format):
