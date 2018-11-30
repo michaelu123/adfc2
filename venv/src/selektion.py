@@ -40,6 +40,14 @@ def selMerkmalEnthält(tour, lst):
                 return True
     return False
 
+def selMerkmalEnthältNicht(tour, lst):
+    merkmale = tour.getMerkmale()
+    for merkmal in merkmale:
+        for val in lst:
+            if merkmal.find(val) >= 0:
+                return False
+    return True
+
 def selected(tour, sel):
     for key in sel.keys():
         if key == "name" or key.startswith("comment"):
@@ -64,7 +72,8 @@ selFunctions = {
     "nichttournr": selNotTourNr,
     "radtyp": selRadTyp,
     "kategorie": selKategorie,
-    "merkmalenthält": selMerkmalEnthält
+    "merkmalenthält": selMerkmalEnthält,
+    "merkmalenthältnicht": selMerkmalEnthältNicht
 }
 
 def getSelFunctions():

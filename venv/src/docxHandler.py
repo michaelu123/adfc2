@@ -20,6 +20,9 @@ schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mit
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
+STX = '\u0002'  # Use STX ("Start of text") for start-of-placeholder
+ETX = '\u0003'  # Use ETX ("End of text") for end-of-placeholder
+stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 debug = False
 nlctr = 0
@@ -97,8 +100,11 @@ def add_run_copy(paragraph, run, text=None, style=None):
     newr.font.web_hidden = run.font.web_hidden
     return newr
 
-def insert_paragraph_copy_before(paraBefore, para):
-    newp = paraBefore.insert_paragraph_before()
+def insert_paragraph_copy_before(doc, paraBefore, para):
+    if paraBefore == None:
+        newp = doc.add_paragraph()
+    else:
+        newp = paraBefore.insert_paragraph_before()
     newp.alignment = para.alignment
     newp.style = para.style
     newp.paragraph_format.alignment = para.paragraph_format.alignment
@@ -240,7 +246,13 @@ def add_hyperlink_into_run(paragraph, run, i, url):
     hyperlink = OxmlElement('w:hyperlink')
     hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
     hyperlink.append(run._r)
-    paragraph._p.insert(i+1, hyperlink)
+    # see above comment about insert
+    #paragraph._p.insert(i+1, hyperlink)
+    paragraph._p.append(hyperlink)
+    i += 1
+    while i < len(runs):
+        paragraph._p.append(runs[i]._r)
+        i += 1
 
 def insertHR(paragraph):
     p = paragraph._p  # p is the <w:p> XML element
@@ -293,7 +305,11 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def setDeps(self, docxHandler):
         self.docxHandler = docxHandler
 
+    def unescape(self, m):
+        return chr(int(m.group(1)))
+
     def printLines(self, s):
+        s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
         r = self.curPara.add_run(s) # style?
         r.bold = r.italic = r.font.strike = False
         for fst in self.fontStyles:
@@ -323,13 +339,15 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             self.lvl += 4
             print(" " * self.lvl,"<<<<")
             print(" " * self.lvl, "node=", node.tag, ",text=", ltext, "tail=", ltail)
+            if ltext.find("Weitersagen!") >= 0:
+                print
         try:
             self.nodeHandler[node.tag](node)
             if not node.tail is None:
                 self.printLines(node.tail)
         except Exception as e:
             logger.exception("error while handling tour description")
-            print("Fehler während der Behandlung der Tourbeschreibung")
+            print("Fehler während der Behandlung der Beschreibung des Events" + self.docxHandler.tourMsg)
         if debug:
             print(" " * self.lvl,">>>>")
             self.lvl -= 4
@@ -467,6 +485,7 @@ class DocxHandler:
         self.url = None
         self.para = None
         self.run = None
+        self.ausgabedatei = None
         global debug
         try:
             lvl = os.environ["DEBUG"]
@@ -641,6 +660,9 @@ class DocxHandler:
         selections[word] = sel = sel2 = {}
         while lx < len(lines):
             line = lines[lx]
+            if line.strip() == "":
+                lx += 1
+                continue
             if not line[0].isspace():
                 return lx
             words = line.split()
@@ -661,6 +683,7 @@ class DocxHandler:
         self.termine.append(tour)
     def handleEnd(self):
         print("Template", self.gui.docxTemplateName, "wird abgearbeitet")
+        self.linkType = self.gui.getLinkType()
         if self.linkType == None or self.linkType == "":
             self.linkType = self.gui.getLinkType()
         paragraphs = self.doc.paragraphs
@@ -686,15 +709,17 @@ class DocxHandler:
                 self.evalPara(para)
                 paraNo += 1
 
-        if self.ausgabedatei == None or self.ausgabedatei == "":
-            self.ausgabedatei = self.gui.docxTemplateName.rsplit(".", 1)[0] + "_" + self.linkType[0] + ".docx"
-        self.doc.save(self.ausgabedatei)
-        print("Ausgabedatei", self.ausgabedatei, "wurde erzeugt")
+        ausgabedatei = self.ausgabedatei
+        if ausgabedatei == None or ausgabedatei == "":
+            ausgabedatei = os.path.join(os.path.dirname(self.gui.docxTemplateName),
+                "ADFC_" + self.gliederung + ("_I_" if self.includeSub else "_") + self.start + "-" + self.end + "_" + self.linkType[0] + ".docx")
+        self.doc.save(ausgabedatei)
+        print("Ausgabedatei", ausgabedatei, "wurde erzeugt")
         try:
-            opath = os.path.abspath(self.ausgabedatei)
+            opath = os.path.abspath(ausgabedatei)
             os.startfile(opath)
         except Exception as e:
-            logger.exception("opening " + self.ausgabedatei)
+            logger.exception("opening " + ausgabedatei)
 
     def evalPara(self, para):
         if debug:
@@ -738,7 +763,7 @@ class DocxHandler:
             return
         for tour in selectedTouren:
             for para in paras:
-                newp = insert_paragraph_copy_before(self.paraBefore, para)
+                newp = insert_paragraph_copy_before(self.doc, self.paraBefore, para)
                 self.para = newp
                 for self.runX, self.run in enumerate(newp.runs):
                     run = self.run
@@ -746,7 +771,7 @@ class DocxHandler:
                         continue
                     rtext = run.text.strip()
                     self.evalRun(run, tour)
-                    if rtext == "${titel}":
+                    if rtext == "${titel}" and self.url != None:
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
                     if newp.text == "":
                         delete_paragraph(newp)
@@ -835,6 +860,7 @@ class DocxHandler:
         desc = tour.eventItem.get("description")
         desc = tourRest.removeHTML(desc)
         #desc = codecs.decode(desc, encoding = "unicode_escape")
+        self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
         self.md.convert(desc)
         self.md.reset()
         return None

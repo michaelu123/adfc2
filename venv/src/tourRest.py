@@ -246,7 +246,7 @@ class Tour:
             if category.startswith("Aktionen,") or category.startswith("Radlertreff") or category.startswith("Service") \
                     or category.startswith("Versammlungen") or category.startswith("Vortr")\
                     or category.startswith("Typen ")                     :
-                return tag.split()[0]
+                return tag
         return "Ohne"
 
     def getRadTyp(self):
