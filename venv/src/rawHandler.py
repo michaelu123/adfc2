@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-import tourRest
 from myLogger import logger
 
 
@@ -90,7 +89,6 @@ class RawHandler:
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
                 raise ValueError("keine Anfangszeit für Termin %s", titel)
-                return
             logger.info("zeiten %s ", str(zeiten))
 
             beschreibung = tour.getBeschreibung(False)

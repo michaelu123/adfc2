@@ -1,32 +1,30 @@
 # encoding: utf-8
 
-import os
-import json
-import logging
 import time
 import xml.sax
 from myLogger import logger
 
-weekdays = [ "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-character = [ "", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
+weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+character = ["", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
 
-def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
+
+def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     # scribus/Python2 does not support %z
-    beginning = beginning[0:19] # '2018-04-29T06:30:00'
+    beginning = beginning[0:19]  # '2018-04-29T06:30:00'
     d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
     oldDay = d.tm_yday
     if beginning.startswith("2017"):
         begSZ = "2017-03-26"
         endSZ = "2017-10-29"
-        sz = beginning >= begSZ and beginning < endSZ
+        sz = begSZ <= beginning < endSZ
     elif beginning.startswith("2018"):
         begSZ = "2018-03-25"
         endSZ = "2018-10-28"
-        sz = beginning >= begSZ and beginning < endSZ
+        sz = begSZ <= beginning < endSZ
     elif beginning.startswith("2019"):
         begSZ = "2019-03-31"
         endSZ = "2019-10-27"
-        sz = beginning >= begSZ and beginning < endSZ
+        sz = begSZ <= beginning < endSZ
         """ Zeitumstellung wird eh 2020 abgeschafft!?
         elif beginning.startswith("2020"):
             begSZ = "2020-03-29"
@@ -44,21 +42,30 @@ def convertToMEZOrMSZ(beginning): # '2018-04-29T06:30:00+00:00'
         logger.warning("day rollover from %s to %s", beginning, mez)
     return mez
 
+
 class SAXHandler(xml.sax.handler.ContentHandler):
     def __init__(self):
+        super().__init__()
         self.r = []
+
     def startElement(self, name, attrs):
         pass
+
     def endElement(self, name):
         pass
+
     def characters(self, content):
         self.r.append(content)
+
     def ignorableWhiteSpace(self, whitespace):
         pass
+
     def skippedEntity(self, name):
         pass
+
     def val(self):
         return "".join(self.r)
+
 
 def removeHTML(s):
     if s.find("</") == -1:  # no HTML
@@ -67,13 +74,14 @@ def removeHTML(s):
         htmlHandler = SAXHandler()
         xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
         return htmlHandler.val()
-    except:
-        logger.exception("can not parse '%s'", s )
+    except Exception:
+        logger.exception("can not parse '%s'", s)
         return s
+
 
 # Clean text
 def normalizeText(t):
-    '''Rip off blank paragraphs, double spaces, html tags, quotes etc.'''
+    # Rip off blank paragraphs, double spaces, html tags, quotes etc.
     changed = True
     while changed:
         changed = False
@@ -129,6 +137,7 @@ def normalizeText(t):
             changed = True
     return t
 
+
 class Tour:
     def __init__(self, tourJS, tourJSSearch, tourServer):
         self.tourJS = tourJS
@@ -142,8 +151,10 @@ class Tour:
 
     def getTitel(self):
         return self.titel
+
     def getFrontendLink(self):
         return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
+
     def getBackendLink(self):
         return "https://intern-touren-termine.adfc.de/modules/events/" + self.eventItem.get("eventItemId")
 
@@ -156,18 +167,18 @@ class Tour:
     def getAbfahrten(self):
         abfahrten = []
         for tourLoc in self.tourLocations:
-            type = tourLoc.get("type")
-            logger.debug("type %s", type)
-            if type != "Startpunkt" and type != "Treffpunkt":
+            typ = tourLoc.get("type")
+            logger.debug("type %s", typ)
+            if typ != "Startpunkt" and typ != "Treffpunkt":
                 continue
             if not tourLoc.get("withoutTime"):
                 if len(abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
                     beginning = self.getDatum()[1]
                 else:
                     beginning = tourLoc.get("beginning")
-                    logger.debug("beginning %s", beginning) # '2018-04-24T12:00:00'
-                    beginning = convertToMEZOrMSZ(beginning) # '2018-04-24T14:00:00'
-                    beginning = beginning[11:16] # 14:00
+                    logger.debug("beginning %s", beginning)  # '2018-04-24T12:00:00'
+                    beginning = convertToMEZOrMSZ(beginning)  # '2018-04-24T14:00:00'
+                    beginning = beginning[11:16]  # 14:00
             else:
                 beginning = ""
             name = tourLoc.get("name")
@@ -185,16 +196,16 @@ class Tour:
                     loc = street
                 else:
                     loc = loc + " " + street
-            if type == "Startpunkt":
+            if typ == "Startpunkt":
                 if self.isTermin():
-                    type = "Treffpunkt"
+                    typ = "Treffpunkt"
                 else:
-                    type = "Start"
-            abfahrt = (type, beginning, loc)
+                    typ = "Start"
+            abfahrt = (typ, beginning, loc)
             abfahrten.append(abfahrt)
         return abfahrten
 
-    def getBeschreibung(self, removeNL):
+    def getBeschreibung(self, _):
         desc = self.eventItem.get("description")
         desc = normalizeText(desc)
         desc = removeHTML(desc)
@@ -214,7 +225,7 @@ class Tour:
         schwierigkeit = self.eventItem.get("cTourDifficulty")
         # apparently either 0 or between 1.0 and 5.0
         i = int(schwierigkeit + 0.5)
-        return i # ["unbekannt", "sehr einfach, "einfach", "mittel", "schwer", "sehr schwer"][i] ??
+        return i  # ["unbekannt", "sehr einfach, "einfach", "mittel", "schwer", "sehr schwer"][i] ??
 
     """ 
     itemtags has categories
@@ -245,22 +256,22 @@ class Tour:
             category = itemTag.get("category")
             if category.startswith("Aktionen,") or category.startswith("Radlertreff") or category.startswith("Service") \
                     or category.startswith("Versammlungen") or category.startswith("Vortr")\
-                    or category.startswith("Typen ")                     :
+                    or category.startswith("Typen "):
                 return tag
         return "Ohne"
 
     def getRadTyp(self):
         # wenn nur Rennrad oder nur Mountainbike, dann dieses, sonst Tourenrad
-        l = 0
+        rtCnt = 0
         for itemTag in self.itemTags:
             category = itemTag.get("category")
             if category.startswith("Geeignet "):
-                l += 1
+                rtCnt += 1
         for itemTag in self.itemTags:
             tag = itemTag.get("tag")
             category = itemTag.get("category")
             if category.startswith("Geeignet "):
-                if l == 1 and (tag == "Rennrad" or tag == "Mountainbike"):
+                if rtCnt == 1 and (tag == "Rennrad" or tag == "Mountainbike"):
                     return tag
         return "Tourenrad"
 
@@ -289,10 +300,9 @@ class Tour:
             zusatzinfo.append(zielgruppe)
         return zusatzinfo
 
-
     def getStrecke(self):
-        l = self.eventItem.get("cTourLengthKm")
-        return str(l) + " km"
+        tl = self.eventItem.get("cTourLengthKm")
+        return str(tl) + " km"
 
     def getHoehenmeter(self):
         h = self.eventItem.get("cTourHeight")
@@ -311,7 +321,7 @@ class Tour:
         day = str(datum[0:10])
         date = time.strptime(day, "%Y-%m-%d")
         weekday = weekdays[date.tm_wday]
-        res =  (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
+        res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
         return res
 
     def getDatumRaw(self):
@@ -337,12 +347,12 @@ class Tour:
         organizer = self.eventItem.get("cOrganizingUserId")
         if organizer is not None and len(organizer) > 0:
             org = self.tourServer.getUser(organizer)
-            if org != None:
+            if org is not None:
                 personen.append(str(org))
         organizer2 = self.eventItem.get("cSecondOrganizingUserId")
         if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
             org = self.tourServer.getUser(organizer2)
-            if org != None:
+            if org is not None:
                 personen.append(str(org))
         return personen
 
@@ -369,12 +379,13 @@ class User:
         self.lastName = u.get("lastName")
         try:
             self.phone = u.get("cellPhone")
-            if self.phone == None or self.phone == "":
+            if self.phone is None or self.phone == "":
                 self.phone = userJS.get("temporaryContacts")[0].get("phone")
-        except:
+        except Exception:
             self.phone = None
+
     def __repr__(self):
         name = self.firstName + " " + self.lastName
-        if self.phone != None and self.phone != "":
+        if self.phone is not None and self.phone != "":
             name += " (" + self.phone + ")"
         return name

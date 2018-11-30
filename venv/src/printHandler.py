@@ -24,17 +24,17 @@ class PrintHandler:
         logger.info("Abfahrt: typ=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
         self.scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n')
 
-    def handleTextfeld(self, stil,textelement):
-        logger.info("Textfeld: stil=%s text=%s", stil, textelement)
+    def handleTextfeld(self, textelement):
+        logger.info("Textfeld: text=%s", textelement)
         if textelement != None:
             self.scribus.insertText(textelement+'\n')
 
-    def handleTextfeldList(self, stil,textList):
-        logger.info("TextfeldList: stil=%s text=%s", stil, str(textList))
+    def handleTextfeldList(self, textList):
+        logger.info("TextfeldList: text=%s", str(textList))
         for text in textList:
             if len(text) == 0:
                 continue
-            logger.info("Text: stil=%s text=%s", stil, text)
+            logger.info("Text: text=%s", text)
             self.scribus.insertText(text+'\n')
 
     def handleBeschreibung(self, textelement):
@@ -85,7 +85,6 @@ class PrintHandler:
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
-                return
             logger.info("abfahrten %s ", str(abfahrten))
 
             beschreibung = tour.getBeschreibung(False)
@@ -134,10 +133,10 @@ class PrintHandler:
         self.handleTitel(titel)
         for abfahrt in abfahrten:
             self.handleAbfahrt(abfahrt)
-        self.handleTextfeld('Radtour_beschreibung',beschreibung)
+        self.handleTextfeld(beschreibung)
         self.handleTourenleiter(personen)
-        self.handleTextfeldList('Radtour_zusatzinfo',zusatzinfo)
+        self.handleTextfeldList(zusatzinfo)
 
-    def handleTermin(self, tour):
+    def handleTermin(self, _):
         print("Scribus für Termine nicht implementiert")
         pass

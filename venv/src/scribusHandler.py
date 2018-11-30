@@ -1,11 +1,11 @@
 # encoding: utf-8
+import sys
+from myLogger import logger
 
 try:
     import scribus
 except ModuleNotFoundError:
     raise ImportError
-
-from myLogger import logger
 
 yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
@@ -97,9 +97,6 @@ class ScribusHandler:
             scribus.setStyle(stil, self.textbox)
             scribus.insertText(text+'\n', -1, self.textbox)
 
-    def handleBeschreibung(self, textelement):
-        self.handleTextfeld(textelement)
-
     def handleTel(self, Name):
         telfestnetz = Name.getElementsByTagName("TelFestnetz")
         telmobil = Name.getElementsByTagName("TelMobil")
@@ -149,7 +146,6 @@ class ScribusHandler:
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
-                return
             logger.info("abfahrten %s ", str(abfahrten))
 
             beschreibung = tour.getBeschreibung(True)

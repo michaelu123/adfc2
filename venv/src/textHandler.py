@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-import tourRest
 from myLogger import logger
 
 
@@ -14,9 +13,9 @@ class TextHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            radTyp = tour.getRadTyp()[0] # T,R,M
+            radTyp = tour.getRadTyp()[0]  # T,R,M
             tourTyp = tour.getKategorie()[0]
-            if tourTyp == "T": # Tagestour
+            if tourTyp == "T":  # Tagestour
                 tourTyp = "G"   # Ganztagstour...
             datum = tour.getDatum()[0]
             logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
@@ -89,7 +88,6 @@ class TextHandler:
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
                 raise ValueError("keine Anfangszeit für Termin %s", titel)
-                return
             logger.info("zeiten %s ", str(zeiten))
 
             beschreibung = tour.getBeschreibung(False)
@@ -100,20 +98,19 @@ class TextHandler:
             logger.info("kategorie %s", kategorie)
 
         except Exception as e:
-            logger.exception("Fehler im Termin '%s': %s", titel, e)
+            logger.exception("Fehler im Termin '%s': %s",   titel, e)
             return
 
-        print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{} - {}".format(titel, terminTyp))  # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
             if zeit[1] != "":
                 print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
             else:
-                 print("${}: {}".format(zeit[0], zeit[2]))
+                print("${}: {}".format(zeit[0], zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
                 continue
             print(info)
         print()
-

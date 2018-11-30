@@ -1,11 +1,14 @@
 # encoding: utf-8
 
-import tourRest
 import csv
-import sys
 from myLogger import logger
 
-schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
+schwierigkeitMap = { 0: "sehr einfach",
+                     1: "sehr einfach",
+                     2: "einfach",
+                     3: "mittel",
+                     4: "schwer",
+                     5: "sehr schwer"}
 
 
 class excel2(csv.Dialect):
@@ -23,7 +26,8 @@ class CsvHandler:
         self.fieldNames = [ "Typ", "Titel", "Nummer", "Radtyp", "Tourtyp",
             "Datum", "Endedatum",
             "Tourlänge", "Schwierigkeit", "Höhenmeter", "Charakter",
-            "Abfahrten", "Kurzbeschreibung", "Beschreibung", "ZusatzInfo", "Tourleiter"]
+            "Abfahrten", "Kurzbeschreibung", "Beschreibung",
+            "ZusatzInfo", "Tourleiter"]
 
         csv.register_dialect("excel2", excel2)
         self.writer = csv.DictWriter(f, self.fieldNames, dialect="excel2")
@@ -41,13 +45,15 @@ class CsvHandler:
             radTyp = tour.getRadTyp()
             tourTyp = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
+            logger.info("tourNummer %s radTyp %s tourTyp %s datum %s",
+                        tourNummer, radTyp, tourTyp, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
                 raise ValueError("kein Startpunkt in tour %s", titel)
             logger.info("abfahrten %s ", str(abfahrten))
-            abfahrten = "\n".join([ "{}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]) for abfahrt in abfahrten])
+            abfahrten = "\n".join([ "{}: {} Uhr; {}".format(
+                abfahrt[0], abfahrt[1], abfahrt[2]) for abfahrt in abfahrten])
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
             kurzbeschreibung = tour.getKurzbeschreibung()
@@ -84,10 +90,13 @@ class CsvHandler:
             return
 
         row = {
-            "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer, "Radtyp": radTyp, "Tourtyp": tourTyp,
+            "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer,
+            "Radtyp": radTyp, "Tourtyp": tourTyp,
             "Datum":datum, "Endedatum": enddatum,
-            "Tourlänge": strecke, "Schwierigkeit": schwierigkeit, "Höhenmeter":hoehenmeter, "Charakter":character,
-            "Abfahrten":abfahrten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
+            "Tourlänge": strecke, "Schwierigkeit": schwierigkeit,
+            "Höhenmeter":hoehenmeter, "Charakter":character,
+            "Abfahrten":abfahrten, "Kurzbeschreibung":kurzbeschreibung,
+            "Beschreibung":beschreibung,
             "ZusatzInfo":zusatzinfo, "Tourleiter":tourLeiter }
         self.writer.writerow(row)
 
@@ -104,7 +113,8 @@ class CsvHandler:
                 raise ValueError("keine Anfangszeit für Termin %s", titel)
                 return
             logger.info("zeiten %s ", str(zeiten))
-            zeiten = "\n".join([ "{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]) for zeit in zeiten])
+            zeiten = "\n".join([ "{}: {} Uhr; {}".format(
+                zeit[0], zeit[1], zeit[2]) for zeit in zeiten])
             beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
             kurzbeschreibung = tour.getKurzbeschreibung()
@@ -118,8 +128,12 @@ class CsvHandler:
             return
 
         row = {
-            "Typ":"Termin", "Titel":titel, "Tourtyp": terminTyp,
+            "Typ":"Termin",
+            "Titel":titel,
+            "Tourtyp": terminTyp,
             "Datum":datum,
-            "Abfahrten":zeiten, "Kurzbeschreibung":kurzbeschreibung, "Beschreibung":beschreibung,
+            "Abfahrten":zeiten,
+            "Kurzbeschreibung":kurzbeschreibung,
+            "Beschreibung":beschreibung,
             "ZusatzInfo":zusatzinfo }
         self.writer.writerow(row)

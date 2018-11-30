@@ -8,7 +8,7 @@ see https://stackoverflow.com/questions/10706547/add-encoding-parameter-to-loggi
 global logger
 logger = logging.getLogger("adfc")
 try:
-    lvl = os.environ["DEBUG"]
+    _ = os.environ["DEBUG"]
     lvl = logging.DEBUG
 except:
     lvl = logging.ERROR

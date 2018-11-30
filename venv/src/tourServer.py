@@ -39,7 +39,7 @@ class TourServer:
         if self.useRest or not os.path.exists(jsonPath):
             req = "/api/eventItems/search"
             if unitKey != None and unitKey != "":
-                req += "?unitKey=" + unitKey;
+                req += "?unitKey=" + unitKey
                 if self.includeSub:
                     req += "&includeSubsidiary=true"
             if start != None and start != "":
@@ -69,9 +69,9 @@ class TourServer:
             titel = item.get("title")
             if titel is None:
                 logger.error("Kein Titel für die Tour %s", str(item))
-                continue;
+                continue
             if type != "Alles" and item.get("eventType") != type:
-                continue;
+                continue
             beginning = item.get("beginning")
             if beginning is None:
                 logger.error("Kein Beginn für die Tour %s", titel)
@@ -93,7 +93,7 @@ class TourServer:
 
     def getTour(self, tourJsSearch):
         global tpConn
-        eventItemId = tourJsSearch.get("eventItemId");
+        eventItemId = tourJsSearch.get("eventItemId")
         imagePreview = tourJsSearch.get("imagePreview")
         escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in tourJsSearch.get("title")])
         jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"

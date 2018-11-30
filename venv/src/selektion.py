@@ -57,7 +57,7 @@ def selected(tour, sel):
             lst = sel[key]
             if not f(tour, lst):
                 return False
-        except Exception as e:
+        except Exception:
             logger.exception("no function for selection verb " + key + " in selection " + sel.get("name"))
     else:
         return True
