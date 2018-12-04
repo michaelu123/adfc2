@@ -68,13 +68,15 @@ class SAXHandler(xml.sax.handler.ContentHandler):
 
 
 def removeHTML(s):
+    while s.count("<br>"):
+        s = s.replace("<br>", "\n")
     if s.find("</") == -1:  # no HTML
         return s
     try:
         htmlHandler = SAXHandler()
         xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
         return htmlHandler.val()
-    except Exception:
+    except Exception as e:
         logger.exception("can not parse '%s'", s)
         return s
 

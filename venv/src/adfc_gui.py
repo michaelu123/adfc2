@@ -195,13 +195,10 @@ class MyApp(Frame):
                 defaultextension=".docx", filetypes=[("DOCX", ".docx")])
         if self.docxTemplateName is None or self.docxTemplateName == "":
             raise ValueError("Dateipfad des .docx Templates fehlt!")
-        if self.handler is None:
-            self.handler = docxHandler.DocxHandler(self)
-            self.handler.openDocx()
-        elif self.docxTemplateName != old:
-            self.startBtn.config(state=DISABLED)
-            self.handler.openDocx()
-            self.startBtn.config(state=NORMAL)
+        self.handler = docxHandler.DocxHandler(self)
+        self.startBtn.config(state=DISABLED)
+        self.handler.openDocx(True)
+        self.startBtn.config(state=NORMAL)
 
     def setGliederung(self, gl):
         self.gliederungSvar.set(gl)
@@ -300,8 +297,8 @@ class MyApp(Frame):
         self.formatOM = LabelOM(master, "Ausgabeformat:",
                         ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
                         "Text", command=self.formatSelektor)
-        self.linkTypeOM = LabelOM(master, "Links to:",
-                        ["Frontend", "Backend", "Keine"], "frontEnd")
+        self.linkTypeOM = LabelOM(master, "Links ins:",
+                        ["Frontend", "Backend", ""], "FrontEnd")
 
         typen = ["Radtour", "Termin", "Alles"]
         typenLF = LabelFrame(master)

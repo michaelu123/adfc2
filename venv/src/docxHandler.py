@@ -298,6 +298,8 @@ def move_run_before(i, para):
 class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
         super().__init__(md)
+        self.curPara = None
+        self.curRun = None
         self.ancestors = []
         self.states = []
         self.nodeHandler = {
@@ -316,6 +318,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             "ol": self.ol,
             "li": self.li,
             "a": self.a,
+            "img": self.img,
             "hr": self.hr }
 
     def run(self, root):
@@ -347,20 +350,20 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 r.italic = True
             elif fst == 'X':
                 r.font.strike = True
-        return r
+        self.curRun = r
 
     def walkOuter(self, node):
         global nlctr
         if debug:
             if node.text != None:
                 ltext = node.text.replace("\n", "<" + str(nlctr) + "nl>")
-                #node.text = node.text.replace("\n", str(nlctr) + "\n")
+                # node.text = node.text.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltext = "None"
             if node.tail != None:
                 ltail = node.tail.replace("\n", "<" + str(nlctr) + "nl>")
-                #node.tail = node.tail.replace("\n", str(nlctr) + "\n")
+                # node.tail = node.tail.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltail = "None"
@@ -373,7 +376,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             if node.tail is not None:
                 self.printLines(node.tail)
         except Exception:
-            msg = "Fehler während der Behandlung der Beschreibung des Events" +\
+            msg = "Fehler während der Behandlung der Beschreibung des Events " +\
                   self.docxHandler.tourMsg
             logger.exception(msg)
             print(msg)
@@ -382,12 +385,10 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             self.lvl -= 4
 
     def walkInner(self, node):
-        run = None
         if node.text is not None:
-            run = self.printLines(node.text)
+            self.printLines(node.text)
         for dnode in node:
             self.walkOuter(dnode)
-        return run
 
     def h1(self, node):
         node.tail = None
@@ -490,9 +491,9 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
 
     def a(self, node):
         url = node.attrib["href"]
-        run = self.walkInner(node)
-        add_hyperlink_into_run(self.curPara, run, None, url)
-        run.font.color.rgb = RGBColor(238,126,13)
+        self.walkInner(node)
+        add_hyperlink_into_run(self.curPara, self.curRun, None, url)
+        self.curRun.font.color.rgb = RGBColor(238,126,13)
 
     def blockQuote(self, node):
         node.text = node.tail = None
@@ -507,6 +508,8 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         insertHR(self.curPara)
         self.walkInner(node)
 
+    def img(self, node):
+        self.walkInner(node)
 
 class DocxExtension(markdown.Extension):
     def extendMarkdown(self, md):
@@ -558,13 +561,14 @@ class DocxHandler:
             "zusatzinfo": self.expZusatzInfo
         }
 
-    def openDocx(self):
+    def openDocx(self, pp):
         self.doc = docx.Document(self.gui.docxTemplateName)
-        if debug:
-            for style in self.doc.styles:
-                print("Style ", style, style.name)
         combineRuns(self.doc)
         self.parseParams()
+        if pp:
+            if debug:
+                logger.debug("Styles: " + ", ".join([style.name for style in self.doc.styles]))
+            self.setGuiParams()
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
@@ -613,31 +617,36 @@ class DocxHandler:
                     ", erwarte selektion, terminselektion oder tourselektion")
             else:
                 lx = self.parseSel(word0, lines, lx+1, selections)
-        self.gui.setLinkType(self.linkType)
+
         selection = selections.get("selektion")
         self.gliederung = selection.get("gliederungen")
-        if self.gliederung != None and self.gliederung != "":
-            self.gui.setGliederung(self.gliederung)
         self.includeSub = selection.get("mituntergliederungen") == "ja"
-        self.gui.setIncludeSub(self.includeSub)
         self.start = selection.get("beginn")
-        if self.start != None and self.start != "":
-            self.gui.setStart(self.start)
         self.end = selection.get("ende")
-        if self.end != None and self.end != "":
-             self.gui.setEnd(self.end)
+
         sels = selections.get("terminselektion")
         for sel in sels.values():
             self.terminselections[sel.get("name")] = sel
             for key in sel.keys():
                 if key != "name" and not isinstance(sel[key], list):
                     sel[key] = [ sel[key] ]
+
         sels = selections.get("tourselektion")
         for sel in sels.values():
             self.tourselections[sel.get("name")] = sel
             for key in sel.keys():
                 if key != "name" and not isinstance(sel[key], list):
                     sel[key] = [ sel[key] ]
+
+    def setGuiParams(self):
+        self.gui.setLinkType(self.linkType.capitalize())
+        if self.gliederung != None and self.gliederung != "":
+            self.gui.setGliederung(self.gliederung)
+        self.gui.setIncludeSub(self.includeSub)
+        if self.start != None and self.start != "":
+            self.gui.setStart(self.start)
+        if self.end != None and self.end != "":
+             self.gui.setEnd(self.end)
         self.setTyp()
         self.setRadTyp()
 
@@ -721,13 +730,17 @@ class DocxHandler:
 
     def handleTour(self, tour):
         self.touren.append(tour)
+
     def handleTermin(self, tour):
         self.termine.append(tour)
+
     def handleEnd(self):
         print("Template", self.gui.docxTemplateName, "wird abgearbeitet")
+        if self.doc is None:
+            self.openDocx(False)
         self.linkType = self.gui.getLinkType()
-        if self.linkType == None or self.linkType == "":
-            self.linkType = self.gui.getLinkType()
+        self.gliederung = self.gui.getGliederung()
+        self.includeSub = self.gui.getIncludeSub()
         paragraphs = self.doc.paragraphs
         paraCnt = len(paragraphs)
         paraNo = 0
@@ -763,13 +776,21 @@ class DocxHandler:
                 self.end + "_" +
                 self.linkType[0] +
                 ".docx")
-        self.doc.save(ausgabedatei)
-        print("Ausgabedatei", ausgabedatei, "wurde erzeugt")
         try:
-            opath = os.path.abspath(ausgabedatei)
-            os.startfile(opath)
-        except Exception:
-            logger.exception("opening " + ausgabedatei)
+            self.doc.save(ausgabedatei)
+            print("Ausgabedatei", ausgabedatei, "wurde erzeugt")
+            try:
+                opath = os.path.abspath(ausgabedatei)
+                os.startfile(opath)
+            except Exception:
+                logger.exception("opening " + ausgabedatei)
+        except Exception as e:
+            print("Ausgabedatei", ausgabedatei, "konnte nicht geschrieben werden")
+            raise e
+        finally:
+            self.doc = None
+            self.touren = []
+            self.termine = []
 
     def evalPara(self, para):
         if debug:

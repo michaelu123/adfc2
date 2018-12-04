@@ -32,20 +32,23 @@ class TourServer:
         self.loadUnits()
 
     def getTouren(self, unitKey, start, end, type):
-        if unitKey != None and unitKey != "":
-            jsonPath = "c:/temp/tpjson/search-" + unitKey + ("_I_" if self.includeSub else "_") + start + "-" + end + ".json"
-        else:
-            jsonPath = "c:/temp/tpjson/search.json"
+        unit = "Alles" if unitKey is None or unitKey == "" else unitKey
+        jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + start + "-" + end + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             req = "/api/eventItems/search"
+            par = ""
             if unitKey != None and unitKey != "":
-                req += "?unitKey=" + unitKey
+                par += "?" if par == "" else "&"
+                par += "unitKey=" + unitKey
                 if self.includeSub:
-                    req += "&includeSubsidiary=true"
+                    par += "&includeSubsidiary=true"
             if start != None and start != "":
-                req += "&beginning=" + start
+                par += "?" if par == "" else "&"
+                par += "beginning=" + start
             if end != None and end != "":
-                req += "&end=" + end
+                par += "?" if par == "" else "&"
+                par += "end=" + end
+            req += par
             self.tpConn.request("GET", req)
             resp = self.tpConn.getresponse()
             try:
