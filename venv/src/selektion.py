@@ -3,14 +3,14 @@ from myLogger import logger
 def selTitelEnthält(tour, lst):
     titel = tour.getTitel()
     for  elem in lst:
-        if titel.find(elem) > 0:
+        if titel.find(elem) >= 0:
             return True
     return False
 
 def selTitelEnthältNicht(tour, lst):
     titel = tour.getTitel()
     for  elem in lst:
-        if titel.find(elem) > 0:
+        if titel.find(elem) >= 0:
             return False
     return True
 

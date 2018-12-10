@@ -25,6 +25,7 @@ schwierigkeitMap = { 0: "sehr einfach",
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
+ulRE = r'(\^{2})(.+?)\1'
 STX = '\u0002'  # Use STX ("Start of text") for start-of-placeholder
 ETX = '\u0003'  # Use ETX ("End of text") for end-of-placeholder
 stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
@@ -314,6 +315,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             "em": self.em,
             "blockquote": self.blockQuote,
             "stroke": self.stroke,
+            "underline": self.underline,
             "ul": self.ul,
             "ol": self.ol,
             "li": self.li,
@@ -342,7 +344,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def printLines(self, s):
         s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
         r = self.curPara.add_run(s) # style?
-        r.bold = r.italic = r.font.strike = False
+        r.bold = r.italic = r.font.strike = r.font.underline = False
         for fst in self.fontStyles:
             if fst == 'B':
                 r.bold = True
@@ -350,6 +352,8 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 r.italic = True
             elif fst == 'X':
                 r.font.strike = True
+            elif fst == 'U':
+                r.font.underline = True
         self.curRun = r
 
     def walkOuter(self, node):
@@ -458,6 +462,12 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.fontStyles = sav
 
+    def underline(self, node):
+        sav = self.fontStyles
+        self.fontStyles += "U"
+        self.walkInner(node)
+        self.fontStyles = sav
+
     def em(self, node):
         sav = self.fontStyles
         self.fontStyles += "I"
@@ -518,6 +528,9 @@ class DocxExtension(markdown.Extension):
         md.inlinePatterns.register(
             markdown.inlinepatterns.SimpleTagInlineProcessor(
                 strokeRE, 'stroke'), 'stroke', 40)
+        md.inlinePatterns.register(
+            markdown.inlinepatterns.SimpleTagInlineProcessor(
+                ulRE, 'underline'), 'underline', 41)
 
 
 class DocxHandler:
@@ -625,18 +638,20 @@ class DocxHandler:
         self.end = selection.get("ende")
 
         sels = selections.get("terminselektion")
-        for sel in sels.values():
-            self.terminselections[sel.get("name")] = sel
-            for key in sel.keys():
-                if key != "name" and not isinstance(sel[key], list):
-                    sel[key] = [ sel[key] ]
+        if sels is not None:
+            for sel in sels.values():
+                self.terminselections[sel.get("name")] = sel
+                for key in sel.keys():
+                    if key != "name" and not isinstance(sel[key], list):
+                        sel[key] = [ sel[key] ]
 
         sels = selections.get("tourselektion")
-        for sel in sels.values():
-            self.tourselections[sel.get("name")] = sel
-            for key in sel.keys():
-                if key != "name" and not isinstance(sel[key], list):
-                    sel[key] = [ sel[key] ]
+        if sels is not None:
+            for sel in sels.values():
+                self.tourselections[sel.get("name")] = sel
+                for key in sel.keys():
+                    if key != "name" and not isinstance(sel[key], list):
+                        sel[key] = [ sel[key] ]
 
     def setGuiParams(self):
         self.gui.setLinkType(self.linkType.capitalize())
@@ -672,7 +687,7 @@ class DocxHandler:
         if "Alles" in rts:
             typ = "Alles"
         elif len(rts) == 1:
-            typ = rts[0]
+            typ = rts.pop()
         else:
             typ = "Alles"
         self.gui.setRadTyp(typ)
@@ -741,6 +756,8 @@ class DocxHandler:
         self.linkType = self.gui.getLinkType()
         self.gliederung = self.gui.getGliederung()
         self.includeSub = self.gui.getIncludeSub()
+        self.start = self.gui.getStart()
+        self.end = self.gui.getEnd()
         paragraphs = self.doc.paragraphs
         paraCnt = len(paragraphs)
         paraNo = 0
@@ -888,7 +905,7 @@ class DocxHandler:
         try:
             f = self.expFunctions[param]
             return f(tour, format)
-        except Exception:
+        except Exception as e:
             err = 'Fehler mit dem Parameter "' + param + \
                   '" des Events ' + self.tourMsg
             print(err)
@@ -932,6 +949,7 @@ class DocxHandler:
         if len(self.para.runs) != 1:
             raise ValueError("${beschreibung} muß in einem Paragraphen einzeln stehen")
         desc = tour.eventItem.get("description")
+        desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
         #desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)

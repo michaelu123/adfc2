@@ -298,7 +298,7 @@ class MyApp(Frame):
                         ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
                         "Text", command=self.formatSelektor)
         self.linkTypeOM = LabelOM(master, "Links ins:",
-                        ["Frontend", "Backend", ""], "FrontEnd")
+                        ["Frontend", "Backend", ""], "Frontend")
 
         typen = ["Radtour", "Termin", "Alles"]
         typenLF = LabelFrame(master)

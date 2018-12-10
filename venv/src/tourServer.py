@@ -1,5 +1,5 @@
 # encoding: utf-8
-
+import http
 import os
 import json
 import tourRest
@@ -125,8 +125,24 @@ class TourServer:
         global tpConn
         jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            self.tpConn.request("GET", "/api/users/" + userId)
-            resp = self.tpConn.getresponse()
+            for retries in range(2):
+                try:
+                    self.tpConn.request("GET", "/api/users/" + userId)
+                except Exception as e:
+                    logger.exception("error in request /api/users/" + userId)
+                    if isinstance(e, http.client.CannotSendRequest):
+                        self.tpConn.close()
+                        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                        continue
+                try:
+                    resp = self.tpConn.getresponse()
+                except Exception as e:
+                    logger.exception("cannot get response for request /api/users/" + userId)
+                    if isinstance(e, http.client.ResponseNotReady):
+                        self.tpConn.close()
+                        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                        continue
+                break
             logger.debug("resp %d %s", resp.status, resp.reason)
             if resp.status >= 300:
                 logger.error("request /api/users/" + userId + " failed: " + resp.reason)

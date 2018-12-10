@@ -2,11 +2,13 @@
 
 import time
 import xml.sax
+import re
 from myLogger import logger
 
 weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 character = ["", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
-
+span1RE = r'<span.*?>'
+span2RE = r'</span>'
 
 def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     # scribus/Python2 does not support %z
@@ -66,10 +68,18 @@ class SAXHandler(xml.sax.handler.ContentHandler):
     def val(self):
         return "".join(self.r)
 
-
-def removeHTML(s):
+def removeSpcl(s):
     while s.count("<br>"):
         s = s.replace("<br>", "\n")
+    while s.count("&nbsp;"):
+        s = s.replace("&nbsp;", " ")
+    while s.count("<u>"):
+        s = s.replace("<u>", "^^")
+    while s.count("</u>"):
+        s = s.replace("</u>", "^^")
+    return s
+
+def OLDremoveHTML(s):
     if s.find("</") == -1:  # no HTML
         return s
     try:
@@ -80,6 +90,10 @@ def removeHTML(s):
         logger.exception("can not parse '%s'", s)
         return s
 
+def removeHTML(s):
+    s = re.sub(span1RE, "", s)
+    s = re.sub(span2RE, "", s)
+    return s
 
 # Clean text
 def normalizeText(t):
