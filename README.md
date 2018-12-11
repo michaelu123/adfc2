@@ -1,5 +1,5 @@
 # adfc2
-read bicycle tours from "ADFC Tourenportal" and convert to text or pdf
+read bicycle events from "ADFC Tourenportal" and convert to text or Word (.docx).
 
 This is a Python program either running in a UI, if started from adfc_gui.py,
 or running as a Scribus script, when Scribus is told to run the script adfc_rest2.py.
