@@ -58,7 +58,7 @@ def selected(tour, sel):
             if not f(tour, lst):
                 return False
         except Exception:
-            logger.exception("no function for selection verb " + key + " in selection " + sel.get("name"))
+            logger.exception("Keine Funktion für den Ausdruck " + key + " in der Selektion " + sel.get("name") + " gefunden")
     else:
         return True
 

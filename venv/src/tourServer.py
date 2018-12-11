@@ -188,9 +188,14 @@ class TourServer:
                 tnum = 100
                 rnum = 300
                 mnum = 400
+                mtnum = 600
             tour = self.getTour(tourJS)
             radTyp = tour.getRadTyp()
-            if radTyp == "Rennrad":
+            kategorie = tour.getKategorie()
+            if kategorie == "Mehrtagestour":
+                num = mtnum
+                mtnum += 1
+            elif radTyp == "Rennrad":
                 num = rnum
                 rnum += 1
             elif radTyp == "Mountainbike":
@@ -206,7 +211,7 @@ class TourServer:
             datum = tourJS.get("beginning")
             if datum[0:4] != yyyy:
                 yyyy = datum[0:4]
-                tnum = 100
+                tnum = 700
             num = tnum
             tnum += 1
             tourJS["tourNummer"] = str(num)

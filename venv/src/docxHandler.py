@@ -916,7 +916,8 @@ class DocxHandler:
         if format == None:
             return str(datetime.date.today())
         else:
-            return datetime.date.today().strftime(format)
+            #return datetime.date.today().strftime(format)
+            return datetime.datetime.now().strftime(format)
 
     def expStart(self, tour, format):
         dt = convertToMEZOrMSZ(tour.getDatumRaw())
