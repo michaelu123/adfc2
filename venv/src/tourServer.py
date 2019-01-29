@@ -1,5 +1,4 @@
 # encoding: utf-8
-import http
 import os
 import json
 import tourRest
@@ -25,8 +24,8 @@ class TourServer:
             self.cacheMem = {}  # for Python2
             self.py2 = True
         else:
-            import http.client
-            self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+            import http.client as httplib
+            self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
             self.cacheMem = None  # for Python3
             self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
@@ -130,17 +129,17 @@ class TourServer:
                     self.tpConn.request("GET", "/api/users/" + userId)
                 except Exception as e:
                     logger.exception("error in request /api/users/" + userId)
-                    if isinstance(e, http.client.CannotSendRequest):
+                    if isinstance(e, httplib.CannotSendRequest):
                         self.tpConn.close()
-                        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                        self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
                         continue
                 try:
                     resp = self.tpConn.getresponse()
                 except Exception as e:
                     logger.exception("cannot get response for request /api/users/" + userId)
-                    if isinstance(e, http.client.ResponseNotReady):
+                    if isinstance(e, httplib.ResponseNotReady):
                         self.tpConn.close()
-                        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                        self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
                         continue
                 break
             logger.debug("resp %d %s", resp.status, resp.reason)
