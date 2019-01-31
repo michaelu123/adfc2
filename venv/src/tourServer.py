@@ -72,6 +72,9 @@ class TourServer:
             if titel is None:
                 logger.error("Kein Titel für die Tour %s", str(item))
                 continue
+            if item.get("cStatus") == "Cancelled" or item.get("isCancelled"):
+                logger.info("Tour %s ist gecancelt", titel)
+                continue
             if type != "Alles" and item.get("eventType") != type:
                 continue
             beginning = item.get("beginning")
