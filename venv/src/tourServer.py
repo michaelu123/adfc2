@@ -48,12 +48,9 @@ class TourServer:
                 par += "?" if par == "" else "&"
                 par += "end=" + end
             req += par
-            self.tpConn.request("GET", req)
-            resp = self.tpConn.getresponse()
-            try:
-                logger.debug("http status  %d", resp.getcode())
-            except: # Scribus/Python2.7 has no resp.getcode()
-                pass
+            resp = self.httpget(req)
+            if resp is None:
+                return None
             jsRoot = json.load(resp)
         else:
             resp = None
@@ -103,9 +100,9 @@ class TourServer:
         escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in tourJsSearch.get("title")])
         jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            self.tpConn.request("GET", "/api/eventItems/" + eventItemId)
-            resp = self.tpConn.getresponse()
-            logger.debug("resp %d %s", resp.status, resp.reason)
+            resp = self.httpget("/api/eventItems/" + eventItemId)
+            if resp is None:
+                return None
             tourJS = json.load(resp)
             tourJS["eventItemFiles"] = None  # save space
             tourJS["imagePreview"] = imagePreview
@@ -127,27 +124,8 @@ class TourServer:
         global tpConn
         jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            for retries in range(2):
-                try:
-                    self.tpConn.request("GET", "/api/users/" + userId)
-                except Exception as e:
-                    logger.exception("error in request /api/users/" + userId)
-                    if isinstance(e, httplib.CannotSendRequest):
-                        self.tpConn.close()
-                        self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
-                        continue
-                try:
-                    resp = self.tpConn.getresponse()
-                except Exception as e:
-                    logger.exception("cannot get response for request /api/users/" + userId)
-                    if isinstance(e, httplib.ResponseNotReady):
-                        self.tpConn.close()
-                        self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
-                        continue
-                break
-            logger.debug("resp %d %s", resp.status, resp.reason)
-            if resp.status >= 300:
-                logger.error("request /api/users/" + userId + " failed: " + resp.reason)
+            resp = self.httpget("/api/users/" + userId)
+            if resp is None:
                 return None
             else:
                 userJS = json.load(resp)
@@ -169,9 +147,9 @@ class TourServer:
         global tpConn
         jsonPath = "c:/temp/tpjson/units.json"
         if not os.path.exists(jsonPath):
-            self.tpConn.request("GET", "/api/units/")
-            resp = self.tpConn.getresponse()
-            logger.debug("resp %d %s", resp.status, resp.reason)
+            resp = self.httpget("/api/units/")
+            if resp is None:
+                return None
             unitsJS = json.load(resp)
             with open(jsonPath, "w") as jsonFile:
                 json.dump(unitsJS, jsonFile, indent=4)
@@ -217,3 +195,33 @@ class TourServer:
             num = tnum
             tnum += 1
             tourJS["tourNummer"] = str(num)
+
+    def httpget(self, req):
+        for retries in range(2):
+            try:
+                self.tpConn.request("GET", req)
+            except Exception as e:
+                logger.exception("error in request " + req)
+                if isinstance(e, httplib.CannotSendRequest):
+                    self.tpConn.close()
+                    self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+                    continue
+            try:
+                resp = self.tpConn.getresponse()
+            except Exception as e:
+                logger.exception("cannot get response for " + req)
+                if isinstance(e, httplib.ResponseNotReady):
+                    self.tpConn.close()
+                    self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+                    continue
+            break
+
+        try:
+            if resp.status >= 300:
+                logger.error("request %s failed: code %s reason %s: %s", req, resp.status, resp.reason, resp.read())
+                return None
+            else:
+                logger.debug("resp %d %s", resp.status, resp.reason)
+        except:
+            pass
+        return resp
