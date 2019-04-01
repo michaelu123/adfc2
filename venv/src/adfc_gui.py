@@ -353,7 +353,7 @@ class MyApp(Frame):
         glContainer.grid_rowconfigure(1, weight=1)
         glContainer.grid_columnconfigure(0, weight=1)
 
-        self.startDateLE = LabelEntry(master, "Start Datum:", "01.01.2018")
+        self.startDateLE = LabelEntry(master,  "Start Datum:", "01.01.2019")
         self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
         self.startBtn = Button(master, text="Start", bg="red",
                                command=self.starten)

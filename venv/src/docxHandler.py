@@ -224,7 +224,8 @@ def combineRuns(doc):
                 prevRun.underline == run.underline and \
                 eqColor(prevRun, run) and \
                 eqFont(prevRun.font, run.font) and \
-                eqStyle(prevRun.style, run.style):
+                eqStyle(prevRun.style, run.style) and \
+                run.text != "":
                 prevRun.text += run.text
                 delete_run(run)
             else:
@@ -877,7 +878,9 @@ class DocxHandler:
                 exp = self.expand(line, tour)
                 if exp != None:
                     linesOut.append(exp)
-        run.text = '\n'.join(linesOut)
+        newtext = '\n'.join(linesOut)
+        if run.text != newtext:
+            run.text = newtext  # assignment to run.text lets images disappear!?!?
 
     def expand(self, s, tour):
         while True:
