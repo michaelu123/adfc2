@@ -563,6 +563,7 @@ class DocxHandler:
             "nummer": self.expNummer,
             "titel": self.expTitel,
             "beschreibung": self.expBeschreibung,
+            "kurz": self.expKurzBeschreibung,
             "tourleiter": self.expTourLeiter,
             "betreuer": self.expBetreuer,
             "name": self.expName,
@@ -962,6 +963,8 @@ class DocxHandler:
 
     def expName(self, tour, _):
         return tour.getName()
+    def expKurzBeschreibung(self, tour, _):
+        return tour.getShortDesc()
     def expCity(self, tour, _):
         return tour.getCity()
     def expStreet(self, tour, _):
