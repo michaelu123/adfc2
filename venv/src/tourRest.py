@@ -387,6 +387,8 @@ class Tour:
         tourLoc = self.tourLocations[0]
         return tourLoc.get("street")
 
+    def getShortDesc(self):
+        return self.eventItem.get("cShortDescription")
 
 class User:
     def __init__(self, userJS):
