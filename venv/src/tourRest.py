@@ -18,23 +18,22 @@ def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     if beginning.startswith("2017"):
         begSZ = "2017-03-26"
         endSZ = "2017-10-29"
-        sz = begSZ <= beginning < endSZ
     elif beginning.startswith("2018"):
         begSZ = "2018-03-25"
         endSZ = "2018-10-28"
-        sz = begSZ <= beginning < endSZ
     elif beginning.startswith("2019"):
         begSZ = "2019-03-31"
         endSZ = "2019-10-27"
-        sz = begSZ <= beginning < endSZ
-        """ Zeitumstellung wird eh 2020 abgeschafft!?
-        elif beginning.startswith("2020"):
-            begSZ = "2020-03-29"
-            endSZ = "2020-10-25"
-            sz = beginning >= begSZ and beginning < endSZ
-        """
+    #Zeitumstellung wird eh 2020 abgeschafft!?
+    elif beginning.startswith("2020"):
+        begSZ = "2020-03-29"
+        endSZ = "2020-10-25"
+    elif beginning.startswith("2021"):
+        begSZ = "2021-03-28"
+        endSZ = "2021-10-31"
     else:
         raise ValueError("year " + beginning + " not configured")
+    sz = begSZ <= beginning < endSZ
     epochGmt = time.mktime(d)
     epochMez = epochGmt + ((2 if sz else 1) * 3600)
     mezTuple = time.localtime(epochMez)
@@ -184,7 +183,7 @@ class Tour:
         abfahrten = []
         for tourLoc in self.tourLocations:
             typ = tourLoc.get("type")
-            logger.debug("type %s", typ)
+            logger.debug("typ %s", typ)
             if typ != "Startpunkt" and typ != "Treffpunkt":
                 continue
             if not tourLoc.get("withoutTime"):
@@ -247,14 +246,14 @@ class Tour:
     itemtags has categories
         for Termine:
         "Aktionen, bei denen Rad gefahren wird" : getKategorie, e.g. Fahrrad-Demo, Critical Mass
-        "Radlertreff / Stammtisch / \u00f6ffentliche Arbeits..." : getKategorie, e.g. Stammtisch
+        "Radlertreff / Stammtisch / Öffentliche Arbeits..." : getKategorie, e.g. Stammtisch
         "Serviceangebote": getKategorie, e.g. Codierung, Selbsthilfewerkstatt
         "Versammlungen" : getKategorie, e.g. Aktiventreff, Mitgliederversammlung
-        "Vortr\u00e4ge & Kurse": getKategorie, e.g. Kurse, Radreisevortrag
+        "Vorträge & Kurse": getKategorie, e.g. Kurse, Radreisevortrag
         for Touren:
         "Besondere Charakteristik /Thema": getZusatzInfo
         "Besondere Zielgruppe" : getZusatzInfo
-        "Geeignet f\u00fcr": getRadTyp
+        "Geeignet für": getBikeType
         "Typen (nach Dauer und Tageslage)" : getKategorie, e.g. Ganztagstour
         "Weitere Eigenschaften"  : getZusatzinfo, e.g. Bahnfahrt
     """
@@ -276,7 +275,7 @@ class Tour:
                 return tag
         return "Ohne"
 
-    def getRadTyp(self):
+    def getBikeType(self):
         # wenn nur Rennrad oder nur Mountainbike, dann dieses, sonst Tourenrad
         rtCnt = 0
         for itemTag in self.itemTags:

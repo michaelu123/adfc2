@@ -11,8 +11,8 @@ yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt w
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
 yOrN = scribus.valueDialog("IncludeSub", "Sollen Untergliederungen einbezogen werden? (j/n)").lower()[0]
 includeSub = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-type = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
-rad  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
+tourType = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
+bikeType  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
 unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
 start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
 end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
@@ -57,10 +57,10 @@ class ScribusHandler:
         return start
     def getEnd(self):
         return end
-    def getType(self):
-        return type
-    def getRad(self):
-        return rad
+    def getTourType(self):
+        return tourType
+    def getBikeType(self):
+        return bikeType
 
     def addStyle(self, style, frame):
          try:
@@ -74,11 +74,11 @@ class ScribusHandler:
         scribus.insertText("Nichts gefunden\n", -1, self.textbox)
 
     def handleAbfahrt(self, abfahrt):
-        # abfahrt = (typ, beginning, loc)
+        # abfahrt = (type, beginning, loc)
         typ = abfahrt[0]
         uhrzeit = abfahrt[1]
         ort = abfahrt[2]
-        logger.info("Abfahrt: typ=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
+        logger.info("Abfahrt: type=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
         scribus.setStyle('Radtour_start',self.textbox)
         scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n', -1, self.textbox)
 
@@ -153,13 +153,13 @@ class ScribusHandler:
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            radTyp = tour.getRadTyp()
-            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
+            bikeType = tour.getBikeType()
+            logger.info("kategorie %s bikeType %s", kategorie, bikeType)
             if kategorie == "Feierabendtour":
                 schwierigkeit = "F"
-            elif radTyp == "Rennrad":
+            elif bikeType == "Rennrad":
                 schwierigkeit = "RR"
-            elif radTyp == "Mountainbike":
+            elif bikeType == "Mountainbike":
                 schwierigkeit = "MTB"
             else:
                 schwierigkeit = str(tour.getSchwierigkeit())

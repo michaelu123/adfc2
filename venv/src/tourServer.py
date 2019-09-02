@@ -32,7 +32,8 @@ class TourServer:
 
     def getTouren(self, unitKey, start, end, type):
         unit = "Alles" if unitKey is None or unitKey == "" else unitKey
-        jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + start + "-" + end + ".json"
+        startYear = start[0:4]
+        jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + startYear + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             req = "/api/eventItems/search"
             par = ""
@@ -41,12 +42,10 @@ class TourServer:
                 par += "unitKey=" + unitKey
                 if self.includeSub:
                     par += "&includeSubsidiary=true"
-            if start != None and start != "":
-                par += "?" if par == "" else "&"
-                par += "beginning=" + start
-            if end != None and end != "":
-                par += "?" if par == "" else "&"
-                par += "end=" + end
+            par += "?" if par == "" else "&"
+            par += "beginning=" + startYear + "-01-01"
+            par += "?" if par == "" else "&"
+            par += "end=" + startYear + "-12-31"
             req += par
             resp = self.httpget(req)
             if resp is None:
@@ -87,7 +86,7 @@ class TourServer:
                 self.alleTermine.append(item)
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
-                logger.error("tour " + titel + " unexpectedly skipped")
+                logger.info("tour " + titel + " not in timerange")
                 continue
             # add other filter conditions here
             touren.append(item)
@@ -170,15 +169,15 @@ class TourServer:
                 mnum = 400
                 mtnum = 600
             tour = self.getTour(tourJS)
-            radTyp = tour.getRadTyp()
+            bikeType = tour.getBikeType()
             kategorie = tour.getKategorie()
             if kategorie == "Mehrtagestour":
                 num = mtnum
                 mtnum += 1
-            elif radTyp == "Rennrad":
+            elif bikeType == "Rennrad":
                 num = rnum
                 rnum += 1
-            elif radTyp == "Mountainbike":
+            elif bikeType == "Mountainbike":
                 num = mnum
                 mnum += 1
             else:

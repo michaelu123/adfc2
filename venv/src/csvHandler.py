@@ -42,11 +42,11 @@ class CsvHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            radTyp = tour.getRadTyp()
-            tourTyp = tour.getKategorie()
+            bikeType = tour.getBikeType()
+            kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s radTyp %s tourTyp %s datum %s",
-                        tourNummer, radTyp, tourTyp, datum)
+            logger.info("tourNummer %s bikeType %s kategorie %s datum %s",
+                        tourNummer, bikeType, kategorie, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
@@ -61,8 +61,6 @@ class CsvHandler:
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             zusatzinfo = "\n".join(zusatzinfo)
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
             schwierigkeit = schwierigkeitMap[tour.getSchwierigkeit()]
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
@@ -91,7 +89,7 @@ class CsvHandler:
 
         row = {
             "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer,
-            "Radtyp": radTyp, "Tourtyp": tourTyp,
+            "Radtyp": bikeType, "Tourtyp": tourType,
             "Datum":datum, "Endedatum": enddatum,
             "Tourlänge": strecke, "Schwierigkeit": schwierigkeit,
             "Höhenmeter":hoehenmeter, "Charakter":character,
@@ -104,9 +102,9 @@ class CsvHandler:
         try:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            terminTyp = tour.getKategorie()
+            kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("terminTyp %s datum %s", terminTyp, datum)
+            logger.info("kategorie %s datum %s", kategorie, datum)
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
@@ -130,7 +128,7 @@ class CsvHandler:
         row = {
             "Typ":"Termin",
             "Titel":titel,
-            "Tourtyp": terminTyp,
+            "Tourtyp": kategorie,
             "Datum":datum,
             "Abfahrten":zeiten,
             "Kurzbeschreibung":kurzbeschreibung,

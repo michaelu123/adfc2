@@ -13,12 +13,12 @@ class TextHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            radTyp = tour.getRadTyp()[0]  # T,R,M
-            tourTyp = tour.getKategorie()[0]
-            if tourTyp == "T":  # Tagestour
-                tourTyp = "G"   # Ganztagstour...
+            bikeType = tour.getBikeType()[0]  # T,R,M
+            kategorie = tour.getKategorie()[0]
+            if kategorie == "T":  # Tagestour
+                kategorie = "G"   # Ganztagstour...
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
+            logger.info("tourNummer %s bikeType %s kategorie %s datum %s", tourNummer, bikeType, kategorie, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
@@ -29,8 +29,6 @@ class TextHandler:
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
             schwierigkeit = str(tour.getSchwierigkeit())
             if schwierigkeit == "0":
                 schwierigkeit = "1"
@@ -56,7 +54,7 @@ class TextHandler:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             return
 
-        print("{} ${} {} {}".format(titel, radTyp, tourNummer, tourTyp))
+        print("{} ${} {} {}".format(titel, bikeType, tourNummer, kategorie))
         print("{} ${}$ ${}".format(datum, strecke, schwierigkeit))
         if hoehenmeter != "0" and len(character) > 0:
             print("${} m; {}".format(hoehenmeter, character))
@@ -66,24 +64,27 @@ class TextHandler:
             print(character)
         for abfahrt in abfahrten:
             if abfahrt[1] != "":
-                print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+#                print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+                print("${} Uhr; {}".format(abfahrt[1], abfahrt[2]))
             else:
-                print("${}: {}".format(abfahrt[0], abfahrt[2]))
+#                print("${}: {}".format(abfahrt[0], abfahrt[2]))
+                print("${}".format(abfahrt[2]))
 
-            print(beschreibung)
+        print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
                 continue
             print(info)
         print("Leitung: {}".format(", ".join(personen)))
+        print()
 
     def handleTermin(self, tour):
         try:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            terminTyp = tour.getKategorie()
+            kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("terminTyp %s datum %s", terminTyp, datum)
+            logger.info("terminTyp %s datum %s", kategorie, datum)
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
@@ -94,20 +95,20 @@ class TextHandler:
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
 
         except Exception as e:
             logger.exception("Fehler im Termin '%s': %s",   titel, e)
             return
 
-        print("{} - {}".format(titel, terminTyp))  # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{} - {}".format(titel, kategorie))  # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
             if zeit[1] != "":
-                print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+#                print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+                print("{} Uhr; {}".format(zeit[1], zeit[2]))
             else:
-                print("${}: {}".format(zeit[0], zeit[2]))
+#                print("${}: {}".format(zeit[0], zeit[2]))
+                print("{}".format(zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:

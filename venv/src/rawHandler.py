@@ -15,10 +15,10 @@ class RawHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            radTyp = tour.getRadTyp()
-            tourTyp = tour.getKategorie()
+            bikeType = tour.getBikeType()
+            kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s radTyp %s tourTyp %s datum %s", tourNummer, radTyp, tourTyp, datum)
+            logger.info("tourNummer %s bikeType %s kategorie %s datum %s", tourNummer, bikeType, kategorie, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
@@ -29,8 +29,6 @@ class RawHandler:
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
             schwierigkeit = tour.getSchwierigkeit()
             logger.info("schwierigkeit %d", schwierigkeit)
             schwierigkeit = schwierigkeitMap[schwierigkeit]
@@ -55,7 +53,7 @@ class RawHandler:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             return
 
-        print("{} {} {} {}".format(titel, radTyp, tourNummer, tourTyp))
+        print("{} {} {} {}".format(titel, bikeType, tourNummer, tourType))
         print("{} {} {}".format(datum, strecke, schwierigkeit))
         if hoehenmeter != "0" and len(character) > 0:
             print("{} m; {}".format(hoehenmeter, character))
@@ -81,10 +79,10 @@ class RawHandler:
         try:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
-            terminTyp = tour.getKategorie()
+            kategorie = tour.getKategorie()
             datum = tour.getDatum()
             enddatum = tour.getEndDatum()
-            logger.info("terminTyp %s datum %s enddatum %s", terminTyp, datum, enddatum)
+            logger.info("kategorie %s datum %s enddatum %s", kategorie, datum, enddatum)
 
             zeiten = tour.getAbfahrten()
             if len(zeiten) == 0:
@@ -95,14 +93,12 @@ class RawHandler:
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
-            kategorie = tour.getKategorie()
-            logger.info("kategorie %s", kategorie)
 
         except Exception as e:
             logger.exception("Fehler im Termin '%s': %s", titel, e)
             return
 
-        print("{} - {}".format(titel, terminTyp)) # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{} - {}".format(titel, kategorie)) # terminTyp z.B. Stammtisch, entbehrlich?
         print("{} {}-{}".format(datum[0], datum[1], enddatum[1]))
         for zeit in zeiten:
             if zeit[1] != "":

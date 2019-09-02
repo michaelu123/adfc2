@@ -14,6 +14,7 @@ import docxHandler
 import contextlib
 import base64
 import locale
+import json
 
 import adfc_gliederungen
 from PIL import ImageTk
@@ -42,15 +43,86 @@ class TxtWriter:
     def write(self, s):
         self.txt.insert("end", s)
 
+class Prefs:
+    def __init__(self):
+        self.useRest = False
+        self.includeSub = True
+        self.format = "Text"
+        self.linkType = "Frontend"
+        self.tourType = "Alles"
+        self.bikeType = "Alles"
+        self.unitKeys = "152"
+        self.start = "01.01.2020"
+        self.end = "31.12.2020"
+
+    def set(self, useRest, includeSub, format, linkType, tourType, bikeType, unitKeys, start, end):
+        self.useRest = useRest
+        self.includeSub = includeSub
+        self.format = format
+        self.linkTo = linkType
+        self.tourType = tourType
+        self.bikeType = bikeType
+        self.unitKeys = unitKeys
+        self.start = start
+        self.end = end
+
+    def load(self):
+        try:
+            with open("c:/temp/tpjson/prefs.json", "r") as jsonFile:
+                prefJS = json.load(jsonFile)
+                self.useRest = prefJS.get("userest")
+                self.includeSub = prefJS.get("includesub")
+                self.format = prefJS.get("format")
+                self.linkType = prefJS.get("linktype")
+                self.tourType = prefJS.get("tourtype")
+                self.bikeType = prefJS.get("biketype")
+                self.unitKeys = prefJS.get("unitkeys")
+                self.start = prefJS.get("start")
+                self.end = prefJS.get("end")
+        except:
+            pass
+
+    def save(self):
+        prefJS = {}
+        prefJS["userest"] = self.useRest
+        prefJS["includesub"] = self.includeSub
+        prefJS["format"] = self.format
+        prefJS["linktype"] = self.linkType
+        prefJS["tourtype"] = self.tourType
+        prefJS["biketype"] = self.bikeType
+        prefJS["unitkeys"] = ",".join(self.unitKeys)
+        prefJS["start"] = self.start
+        prefJS["end"] = self.end
+        with open("c:/temp/tpjson/prefs.json", "w") as jsonFile:
+            json.dump(prefJS, jsonFile, indent=4)
+
+    def getUseRest(self):
+        return self.useRest
+    def getIncludeSub(self):
+        return self.includeSub
+    def getFormat(self):
+        return self.format
+    def getLinkType(self):
+        return self.linkType
+    def getTourType(self):
+        return self.tourType
+    def getBikeType(self):
+        return self.bikeType
+    def getUnitKeys(self):
+        return self.unitKeys
+    def getStart(self):
+        return self.start
+    def getEnd(self):
+        return self.end
 
 class LabelEntry(Frame):
-    def __init__(self, master, labeltext, stringtext):
+    def __init__(self, master, labeltext, stringtext,**kw):
         super().__init__(master)
         self.label = Label(self, text=labeltext)
         self.svar = StringVar()
         self.svar.set(stringtext)
         self.entry = Entry(self, textvariable=self.svar,
-                    width=len(stringtext) + 2, borderwidth=2)
+                    width=len(stringtext) + 2, borderwidth=2, **kw)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.label.grid(row=0, column=0, sticky="w")
@@ -156,6 +228,8 @@ class MyApp(Frame):
                              accelerator="F3")
         master.bind_all("<F3>", self.searchAgain)
         menuBar.add_cascade(label="Bearbeiten", menu=menuEdit)
+        self.prefs = Prefs()
+        self.prefs.load()
         self.createWidgets(master)
 
     def createPhoto(self, b64):
@@ -212,11 +286,11 @@ class MyApp(Frame):
     def setEnd(self, d):
         self.endDateLE.set(d)
 
-    def setTyp(self, s):
-        self.typVar.set(s)
+    def setTourType(self, s):
+        self.tourTypeVar.set(s)
 
-    def setRadTyp(self, s):
-        self.radTypVar.set(s)
+    def setBikeType(self, s):
+        self.bikeTypeVar.set(s)
 
     def setLinkType(self, s):
         self.linkTypeOM.set(s)
@@ -256,9 +330,9 @@ class MyApp(Frame):
             self.text.see(self.pos)
         self.text.focus_set()
 
-    def typHandler(self):
-        typ = self.typVar.get()
-        for rtBtn in self.radTypBtns:
+    def tourTypeHandler(self):
+        typ = self.tourTypeVar.get()
+        for rtBtn in self.bikeTypeBtns:
             if typ == "Termin":
                 rtBtn.config(state=DISABLED)
             else:
@@ -283,7 +357,7 @@ class MyApp(Frame):
 
     def createWidgets(self, master):
         self.useRestVar = BooleanVar()
-        self.useRestVar.set(False)
+        self.useRestVar.set(self.prefs.useRest)
         useRestCB = Checkbutton(master,
                     text="Aktuelle Daten werden vom Server geholt",
                     variable=self.useRestVar)
@@ -296,39 +370,39 @@ class MyApp(Frame):
 
         self.formatOM = LabelOM(master, "Ausgabeformat:",
                         ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
-                        "Text", command=self.formatSelektor)
+                        self.prefs.getFormat(), command=self.formatSelektor)
         self.linkTypeOM = LabelOM(master, "Links ins:",
                         ["Frontend", "Backend", ""], "Frontend")
 
-        typen = ["Radtour", "Termin", "Alles"]
-        typenLF = LabelFrame(master)
-        typenLF["text"] = "Typen"
-        self.typVar = StringVar()
-        self.typBtns = []
-        for typ in typen:
-            typRB = Radiobutton(typenLF, text=typ, value=typ,
-                    variable=self.typVar, command=self.typHandler)
-            self.typBtns.append(typRB)
-            if typ == "Alles":
+        tourTypes = ["Radtour", "Termin", "Alles"]
+        tourTypesLF = LabelFrame(master)
+        tourTypesLF["text"] = "Typen"
+        self.tourTypeVar = StringVar()
+        self.tourTypeBtns = []
+        for typ in tourTypes:
+            typRB = Radiobutton(tourTypesLF, text=typ, value=typ,
+                                variable=self.tourTypeVar, command=self.tourTypeHandler)
+            self.tourTypeBtns.append(typRB)
+            if typ == self.prefs.getTourType():
                 typRB.select()
             else:
                 typRB.deselect()
             typRB.grid(sticky="w")
 
-        radTypen = ["Rennrad", "Tourenrad", "Mountainbike", "Alles"]
-        radTypenLF = LabelFrame(master)
-        radTypenLF["text"] = "Fahrradtyp"
-        self.radTypVar = StringVar()
-        self.radTypBtns = []
-        for radTyp in radTypen:
-            radTypRB = Radiobutton(radTypenLF, text=radTyp, value=radTyp,
-                    variable=self.radTypVar) #, command=self.radTypHandler)
-            self.radTypBtns.append(radTypRB)
-            if radTyp == "Alles":
-                radTypRB.select()
+        bikeTypes = ["Rennrad", "Tourenrad", "Mountainbike", "Alles"]
+        bikeTypesLF = LabelFrame(master)
+        bikeTypesLF["text"] = "Fahrradtyp"
+        self.bikeTypeVar = StringVar()
+        self.bikeTypeBtns = []
+        for bikeType in bikeTypes:
+            bikeTypeRB = Radiobutton(bikeTypesLF, text=bikeType, value=bikeType,
+                    variable=self.bikeTypeVar) #, command=self.bikeTypeHandler)
+            self.bikeTypeBtns.append(bikeTypeRB)
+            if bikeType == self.prefs.getBikeType():
+                bikeTypeRB.select()
             else:
-                radTypRB.deselect()
-            radTypRB.grid(sticky="w")
+                bikeTypeRB.deselect()
+            bikeTypeRB.grid(sticky="w")
 
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
@@ -343,7 +417,7 @@ class MyApp(Frame):
         entries = [key + " " + kvMap[key] for key in kvMap.keys()]
         self.gliederungLB = ListBoxSB(glContainer, self.gliederungSel, entries)
         self.gliederungSvar = StringVar()
-        self.gliederungSvar.set("152085")
+        self.gliederungSvar.set(self.prefs.getUnitKeys())
         self.gliederungEN = Entry(master, textvariable=self.gliederungSvar,
                                   borderwidth=2, width=60)
         self.gliederungEN.bind("<Key>", self.clearLB)
@@ -353,8 +427,8 @@ class MyApp(Frame):
         glContainer.grid_rowconfigure(1, weight=1)
         glContainer.grid_columnconfigure(0, weight=1)
 
-        self.startDateLE = LabelEntry(master,  "Start Datum:", "01.01.2019")
-        self.endDateLE = LabelEntry(master, "Ende Datum:", "31.12.2019")
+        self.startDateLE = LabelEntry(master,  "Start Datum:", self.prefs.getStart())
+        self.endDateLE = LabelEntry(master, "Ende Datum:", self.prefs.getEnd())
         self.startBtn = Button(master, text="Start", bg="red",
                                command=self.starten)
 
@@ -381,8 +455,8 @@ class MyApp(Frame):
         includeSubCB.grid(row=0, column=1, padx=5, pady=2, sticky="w")
         self.formatOM.grid(row=1, column=0, padx=5, pady=2, sticky="w")
         self.linkTypeOM.grid(row=1, column=1, padx=5, pady=2, sticky="w")
-        typenLF.grid(row=2, column=0, padx=5, pady=2, sticky="w")
-        radTypenLF.grid(row=2, column=1, padx=5, pady=2, sticky="w")
+        tourTypesLF.grid(row=2, column=0, padx=5, pady=2, sticky="w")
+        bikeTypesLF.grid(row=2, column=1, padx=5, pady=2, sticky="w")
         glContainer.grid(row=3, column=0, padx=5, pady=2, sticky="w")
         self.gliederungEN.grid(row=3, column=1, padx=5, pady=2, sticky="w")
         self.startDateLE.grid(row=4, column=0, padx=5, pady=2, sticky="w")
@@ -406,11 +480,11 @@ class MyApp(Frame):
     def getLinkType(self):
         return self.linkTypeOM.get().lower()
 
-    def getRadTyp(self):
-        return self.radTypVar.get()
+    def getBikeType(self):
+        return self.bikeTypeVar.get()
 
-    def getTyp(self):
-        return self.typVar.get()
+    def getTourType(self):
+        return self.tourTypeVar.get()
 
     def getGliederung(self):
         return self.gliederungSvar.get()
@@ -418,22 +492,29 @@ class MyApp(Frame):
     def getIncludeSub(self):
         return self.includeSubVar.get()
 
+    def checkDate(self, d):
+        dparts = d.split(".")
+        if len(dparts) != 3 or len(dparts[0]) != 2  or len(dparts[1]) != 2  or len(dparts[2]) != 4:
+            raise ValueError("Datum im Format dd.mm.yyyy")
+        return d
+
     def getStart(self):
-        return self.startDateLE.get().strip()
+        return self.checkDate(self.startDateLE.get().strip())
 
     def getEnd(self):
-        return self.endDateLE.get().strip()
+        return self.checkDate(self.endDateLE.get().strip())
 
     def starten(self):
         useRest = self.useRestVar.get()
         includeSub = self.includeSubVar.get()
-        typ = self.typVar.get()
-        radTyp = self.radTypVar.get()
+        typ = self.tourTypeVar.get()
+        bikeType = self.bikeTypeVar.get()
         unitKeys = self.gliederungSvar.get().split(",")
-        start = toDate(self.startDateLE.get().strip())
-        end = toDate(self.endDateLE.get().strip())
+        start = toDate(self.getStart())
+        end = toDate(self.getEnd())
+        if start[0:4] != end[0:4]:
+            raise ValueError("Start und Ende in unterschiedlichem Jahr")
         self.images.clear()
-
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)
 
@@ -452,13 +533,16 @@ class MyApp(Frame):
         #     handler = pdfHandler.PDFHandler(self)
         #     # conditions obtained from PDF template!
         #     includeSub = handler.getIncludeSub()
-        #     typ = handler.getType()
-        #     radTyp = handler.getRadTyp()
+        #     tourType = handler.getTourType()
+        #     bikeType = handler.getBikeType()
         #     unitKeys = handler.getUnitKeys().split(",")
         #     start = toDate(handler.getStart())
         #     end = toDate(handler.getEnd())
         else:
             handler = rawHandler.RawHandler()
+
+        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getTourType(), self.getBikeType(), unitKeys, self.getStart(), self.getEnd())
+        self.prefs.save()
 
         tourServerVar = tourServer.TourServer(False, useRest, includeSub)
         touren = []
@@ -482,7 +566,7 @@ class MyApp(Frame):
                         self.insertImage(tour)
                     handler.handleTermin(tour)
                 else:
-                    if radTyp != "Alles" and tour.getRadTyp() != radTyp:
+                    if bikeType != "Alles" and tour.getBikeType() != bikeType:
                         continue
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)

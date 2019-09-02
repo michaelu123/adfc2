@@ -21,7 +21,7 @@ class PrintHandler:
         typ = abfahrt[0]
         uhrzeit = abfahrt[1]
         ort = abfahrt[2]
-        logger.info("Abfahrt: typ=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
+        logger.info("Abfahrt: type=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
         self.scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n')
 
     def handleTextfeld(self, textelement):
@@ -92,13 +92,13 @@ class PrintHandler:
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            radTyp = tour.getRadTyp()
-            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
+            bikeType = tour.getBikeType()
+            logger.info("kategorie %s bikeType %s", kategorie, bikeType)
             if kategorie == "Feierabendtour":
                 schwierigkeit = "F"
-            elif radTyp == "Rennrad":
+            elif bikeType == "Rennrad":
                 schwierigkeit = "RR"
-            elif radTyp == "Mountainbike":
+            elif bikeType == "Mountainbike":
                 schwierigkeit = "MTB"
             else:
                 schwierigkeit = str(tour.getSchwierigkeit())
