@@ -35,17 +35,14 @@ class TourServer:
         startYear = start[0:4]
         jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + startYear + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            req = "/api/eventItems/search"
+            req = "/api/eventItems/search?limit=10000"
             par = ""
             if unitKey != None and unitKey != "":
-                par += "?" if par == "" else "&"
-                par += "unitKey=" + unitKey
+                par += "&unitKey=" + unitKey
                 if self.includeSub:
                     par += "&includeSubsidiary=true"
-            par += "?" if par == "" else "&"
-            par += "beginning=" + startYear + "-01-01"
-            par += "?" if par == "" else "&"
-            par += "end=" + startYear + "-12-31"
+            par += "&beginning=" + startYear + "-01-01"
+            par += "&end=" + startYear + "-12-31"
             req += par
             resp = self.httpget(req)
             if resp is None:

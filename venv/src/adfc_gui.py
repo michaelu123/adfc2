@@ -54,8 +54,9 @@ class Prefs:
         self.unitKeys = "152"
         self.start = "01.01.2020"
         self.end = "31.12.2020"
+        self.docxTemplateName = ""
 
-    def set(self, useRest, includeSub, format, linkType, tourType, bikeType, unitKeys, start, end):
+    def set(self, useRest, includeSub, format, linkType, tourType, bikeType, unitKeys, start, end, docxTN):
         self.useRest = useRest
         self.includeSub = includeSub
         self.format = format
@@ -65,6 +66,7 @@ class Prefs:
         self.unitKeys = unitKeys
         self.start = start
         self.end = end
+        self.docxTemplateName = docxTN
 
     def load(self):
         try:
@@ -79,6 +81,7 @@ class Prefs:
                 self.unitKeys = prefJS.get("unitkeys")
                 self.start = prefJS.get("start")
                 self.end = prefJS.get("end")
+                self.docxTemplateName = prefJS.get("docxtemplatename")
         except:
             pass
 
@@ -93,6 +96,7 @@ class Prefs:
         prefJS["unitkeys"] = ",".join(self.unitKeys)
         prefJS["start"] = self.start
         prefJS["end"] = self.end
+        prefJS["docxtemplatename"] = self.docxTemplateName
         with open("c:/temp/tpjson/prefs.json", "w") as jsonFile:
             json.dump(prefJS, jsonFile, indent=4)
 
@@ -114,6 +118,8 @@ class Prefs:
         return self.start
     def getEnd(self):
         return self.end
+    def getDocxTemplateName(self):
+        return self.docxTemplateName
 
 class LabelEntry(Frame):
     def __init__(self, master, labeltext, stringtext,**kw):
@@ -403,6 +409,7 @@ class MyApp(Frame):
             else:
                 bikeTypeRB.deselect()
             bikeTypeRB.grid(sticky="w")
+        self.docxTemplateName = self.prefs.getDocxTemplateName()
 
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
@@ -541,7 +548,7 @@ class MyApp(Frame):
         else:
             handler = rawHandler.RawHandler()
 
-        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getTourType(), self.getBikeType(), unitKeys, self.getStart(), self.getEnd())
+        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getTourType(), self.getBikeType(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
         self.prefs.save()
 
         tourServerVar = tourServer.TourServer(False, useRest, includeSub)
