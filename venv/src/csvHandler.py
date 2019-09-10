@@ -89,7 +89,7 @@ class CsvHandler:
 
         row = {
             "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer,
-            "Radtyp": bikeType, "Tourtyp": tourType,
+            "Radtyp": bikeType, "Tourtyp": kategorie,
             "Datum":datum, "Endedatum": enddatum,
             "Tourlänge": strecke, "Schwierigkeit": schwierigkeit,
             "Höhenmeter":hoehenmeter, "Charakter":character,

@@ -53,7 +53,7 @@ class RawHandler:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             return
 
-        print("{} {} {} {}".format(titel, bikeType, tourNummer, tourType))
+        print("{} {} {} {}".format(titel, bikeType, tourNummer, kategorie))
         print("{} {} {}".format(datum, strecke, schwierigkeit))
         if hoehenmeter != "0" and len(character) > 0:
             print("{} m; {}".format(hoehenmeter, character))
