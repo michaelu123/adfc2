@@ -101,6 +101,7 @@ class TourServer:
                 return None
             tourJS = json.load(resp)
             tourJS["eventItemFiles"] = None  # save space
+            tourJS["images"] = []  # save space
             tourJS["imagePreview"] = imagePreview
             # if not os.path.exists(jsonPath):
             with open(jsonPath, "w") as jsonFile:
