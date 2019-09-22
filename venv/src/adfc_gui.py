@@ -535,7 +535,10 @@ class MyApp(Frame):
         elif formatS == "Text":
             handler = rawHandler.RawHandler()
         elif formatS == "Word":
+            if self.handler is None:
+                self.docxTemplate("NO")
             handler = self.handler
+
         # elif formatS == "PDF":
         #     handler = pdfHandler.PDFHandler(self)
         #     # conditions obtained from PDF template!
