@@ -12,6 +12,7 @@ import copy
 from myLogger import logger
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.oxml.shared import OxmlElement
 from docx.oxml.ns import qn
@@ -22,6 +23,13 @@ schwierigkeitMap = { 0: "sehr einfach",
                      3: "mittel",
                      4: "schwer",
                      5: "sehr schwer"}
+# schwarzes Quadrat = Wingdings 2 0xA2, weißes Quadrat = 0xA3
+schwierigkeitMMap = { 0: "\u00a3\u00a3\u00a3\u00a3\u00a3",
+                      1: "\u00a2\u00a3\u00a3\u00a3\u00a3",
+                      2: "\u00a2\u00a2\u00a3\u00a3\u00a3",
+                      3: "\u00a2\u00a2\u00a2\u00a3\u00a3",
+                      4: "\u00a2\u00a2\u00a2\u00a2\u00a3",
+                      5: "\u00a2\u00a2\u00a2\u00a2\u00a2"}
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
@@ -126,7 +134,7 @@ def insert_paragraph_copy_before(doc, paraBefore, para):
     newp.paragraph_format.space_after = para.paragraph_format.space_after
     newp.paragraph_format.space_before = para.paragraph_format.space_before
     for ts in para.paragraph_format.tab_stops:
-        newp.paragraph_format.add_tab_stop(ts.position, ts.alignment, ts.leader)
+        newp.paragraph_format.tab_stops.add_tab_stop(ts.position, ts.alignment, ts.leader)
     newp.paragraph_format.widow_control = para.paragraph_format.widow_control
     for run in para.runs:
         add_run_copy(newp, run)
@@ -573,7 +581,11 @@ class DocxHandler:
             "schwierigkeit": self.expSchwierigkeit,
             "tourlänge": self.expTourLength,
             "abfahrten": self.expAbfahrten,
-            "zusatzinfo": self.expZusatzInfo
+            "zusatzinfo": self.expZusatzInfo,
+            "höhenmeter": self.expHöhenMeter,
+            "character": self.expCharacter,
+            "schwierigkeitM": self.expSchwierigkeitM,
+            "startM": self.expStartM
         }
 
     def openDocx(self, pp):
@@ -584,6 +596,10 @@ class DocxHandler:
             if debug:
                 logger.debug("Styles: " + ", ".join([style.name for style in self.doc.styles]))
             self.setGuiParams()
+        doc_styles = self.doc.styles
+        wd2_style = doc_styles.add_style("WD2_STYLE", WD_STYLE_TYPE.CHARACTER)
+        wd2_font = wd2_style.font
+        wd2_font.name = "Wingdings 2"
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
@@ -865,8 +881,9 @@ class DocxHandler:
                     self.evalRun(run, tour)
                     if rtext == "${titel}" and self.url != None:
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
-                    if newp.text == "":
-                        delete_paragraph(newp)
+                #xxx
+                #if newp.text == "":
+                #    delete_paragraph(newp)
 
     def evalRun(self, run, tour):
         if debug:
@@ -881,7 +898,12 @@ class DocxHandler:
                     linesOut.append(exp)
         newtext = '\n'.join(linesOut)
         if run.text != newtext:
-            run.text = newtext  # assignment to run.text lets images disappear!?!?
+            if run.text == "${schwierigkeitM}":
+                self.para.add_run(text=newtext, style= "WD2_STYLE")
+                move_run_before(self.runX, self.para)
+                delete_run(run)
+            else:
+                run.text = newtext  # assignment to run.text lets images disappear!?!?
 
     def expand(self, s, tour):
         while True:
@@ -938,7 +960,10 @@ class DocxHandler:
             return dt.strftime(format)
 
     def expNummer(self, tour, _):
-        return tour.getBikeType()[0].upper() + tour.getNummer()
+        k = tour.getKategorie()[0]
+        if k == "T":
+            k = "G" # Tagestour -> Ganztagestour
+        return tour.getBikeType()[0].upper() + " " + tour.getNummer() + " " + k
 
     def expTitel(self, tour, _):
         if self.linkType == "frontend":
@@ -976,6 +1001,9 @@ class DocxHandler:
     def expSchwierigkeit(self, tour, _):
         return schwierigkeitMap[tour.getSchwierigkeit()]
 
+    def expSchwierigkeitM(self, tour, _):
+        return schwierigkeitMMap[tour.getSchwierigkeit()]
+
     def expTourLength(self, tour, _):
         return tour.getStrecke()
 
@@ -1005,7 +1033,7 @@ class DocxHandler:
     def expAbfahrten(self, tour, _):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
-            return
+            return ""
         afl = []
         for af in afs:
             if af[1] == "":
@@ -1046,3 +1074,19 @@ class DocxHandler:
             self.runX += 1
         return ""
 
+    def expHöhenMeter(self, tour, _):
+        return tour.getHoehenmeter()
+
+    def expCharacter(self, tour, _):
+        return tour.getCharacter()
+
+    def expStartM(self, tour, _):
+        afs = tour.getAbfahrten()
+        if len(afs) == 0:
+            return ""
+        s = afs[0][1] + "; " + afs[0][2]
+        if len(afs) >= 2:
+            s = s + ", 2. Startpunkt: " + afs[1][1] + ";" + afs[1][2]
+        if len(afs) >= 3:
+                s = s + ", 3. Startpunkt: " + afs[2][1] + ";" + afs[2][2]
+        return s
