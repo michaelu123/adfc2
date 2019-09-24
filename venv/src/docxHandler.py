@@ -571,7 +571,7 @@ class DocxHandler:
         self.md = markdown.Markdown(extensions=[self.docxExtension])
         self.docxExtension.docxTreeHandler.setDeps(self)
         self.selFunctions = selektion.getSelFunctions()
-        self.expFunctions = {
+        self.expFunctions = { # keys in lower case
             "heute": self.expHeute,
             "start": self.expStart,
             "end": self.expEnd,
@@ -591,9 +591,9 @@ class DocxHandler:
             "zusatzinfo": self.expZusatzInfo,
             "höhenmeter": self.expHöhenMeter,
             "character": self.expCharacter,
-            "schwierigkeitM": self.expSchwierigkeitM,
-            "startM": self.expStartM,
-            "tourleiterM": self.expTourLeiterM
+            "schwierigkeitm": self.expSchwierigkeitM,
+            "abfahrtenm": self.expAbfahrtenM,
+            "tourleiterm": self.expTourLeiterM
         }
 
     def openDocx(self, pp):
@@ -917,7 +917,7 @@ class DocxHandler:
             mp = paramRE.search(s)
             if mp == None:
                 return s
-            gp = mp.group(1)
+            gp = mp.group(1).lower()
             sp = mp.span()
             mf = fmtRE.search(s, pos=sp[1])
             if mf != None and sp[1] == mf.span()[0]: # i.e. if ${param] is followed immediately by .fmt()
@@ -1093,7 +1093,7 @@ class DocxHandler:
     def expCharacter(self, tour, _):
         return tour.getCharacter()
 
-    def expStartM(self, tour, _):
+    def expAbfahrtenM(self, tour, _):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
             return ""
