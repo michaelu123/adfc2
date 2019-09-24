@@ -50,20 +50,20 @@ class Prefs:
         self.includeSub = True
         self.format = "Text"
         self.linkType = "Frontend"
-        self.tourType = "Alles"
-        self.bikeType = "Alles"
+        self.eventType = "Alles"
+        self.radTyp = "Alles"
         self.unitKeys = "152"
         self.start = "01.01.2020"
         self.end = "31.12.2020"
         self.docxTemplateName = ""
 
-    def set(self, useRest, includeSub, format, linkType, tourType, bikeType, unitKeys, start, end, docxTN):
+    def set(self, useRest, includeSub, format, linkType, eventType, radTyp, unitKeys, start, end, docxTN):
         self.useRest = useRest
         self.includeSub = includeSub
         self.format = format
         self.linkType = linkType
-        self.tourType = tourType
-        self.bikeType = bikeType
+        self.eventType = eventType
+        self.radTyp = radTyp
         self.unitKeys = unitKeys
         self.start = start
         self.end = end
@@ -78,8 +78,8 @@ class Prefs:
                 self.includeSub = prefJS.get("includesub")
                 self.format = prefJS.get("format")
                 self.linkType = prefJS.get("linktype")
-                self.tourType = prefJS.get("tourtype")
-                self.bikeType = prefJS.get("biketype")
+                self.eventType = prefJS.get("eventtype")
+                self.radTyp = prefJS.get("radtyp")
                 self.unitKeys = prefJS.get("unitkeys")
                 self.start = prefJS.get("start")
                 self.end = prefJS.get("end")
@@ -94,8 +94,8 @@ class Prefs:
         prefJS["includesub"] = self.includeSub
         prefJS["format"] = self.format
         prefJS["linktype"] = self.linkType
-        prefJS["tourtype"] = self.tourType
-        prefJS["biketype"] = self.bikeType
+        prefJS["eventtype"] = self.eventType
+        prefJS["radtyp"] = self.radTyp
         prefJS["unitkeys"] = ",".join(self.unitKeys)
         prefJS["start"] = self.start
         prefJS["end"] = self.end
@@ -111,10 +111,10 @@ class Prefs:
         return self.format
     def getLinkType(self):
         return self.linkType
-    def getTourType(self):
-        return self.tourType
-    def getBikeType(self):
-        return self.bikeType
+    def getEventType(self):
+        return self.eventType
+    def getRadTyp(self):
+        return self.radTyp
     def getUnitKeys(self):
         return self.unitKeys
     def getStart(self):
@@ -295,11 +295,11 @@ class MyApp(Frame):
     def setEnd(self, d):
         self.endDateLE.set(d)
 
-    def setTourType(self, s):
-        self.tourTypeVar.set(s)
+    def setEventType(self, s):
+        self.eventTypeVar.set(s)
 
-    def setBikeType(self, s):
-        self.bikeTypeVar.set(s)
+    def setRadTyp(self, s):
+        self.radTypVar.set(s)
 
     def setLinkType(self, s):
         self.linkTypeOM.set(s)
@@ -339,9 +339,9 @@ class MyApp(Frame):
             self.text.see(self.pos)
         self.text.focus_set()
 
-    def tourTypeHandler(self):
-        typ = self.tourTypeVar.get()
-        for rtBtn in self.bikeTypeBtns:
+    def eventTypeHandler(self):
+        typ = self.eventTypeVar.get()
+        for rtBtn in self.radTypBtns:
             if typ == "Termin":
                 rtBtn.config(state=DISABLED)
             else:
@@ -385,35 +385,35 @@ class MyApp(Frame):
                         ["Frontend", "Backend", ""],
                         self.prefs.getLinkType())
 
-        tourTypes = ["Radtour", "Termin", "Alles"]
-        tourTypesLF = LabelFrame(master)
-        tourTypesLF["text"] = "Typen"
-        self.tourTypeVar = StringVar()
-        self.tourTypeBtns = []
-        for typ in tourTypes:
-            typRB = Radiobutton(tourTypesLF, text=typ, value=typ,
-                                variable=self.tourTypeVar, command=self.tourTypeHandler)
-            self.tourTypeBtns.append(typRB)
-            if typ == self.prefs.getTourType():
+        eventTypes = ["Radtour", "Termin", "Alles"]
+        eventTypesLF = LabelFrame(master)
+        eventTypesLF["text"] = "Typen"
+        self.eventTypeVar = StringVar()
+        self.eventTypeBtns = []
+        for typ in eventTypes:
+            typRB = Radiobutton(eventTypesLF, text=typ, value=typ,
+                                variable=self.eventTypeVar, command=self.eventTypeHandler)
+            self.eventTypeBtns.append(typRB)
+            if typ == self.prefs.getEventType():
                 typRB.select()
             else:
                 typRB.deselect()
             typRB.grid(sticky="w")
 
-        bikeTypes = ["Rennrad", "Tourenrad", "Mountainbike", "Alles"]
-        bikeTypesLF = LabelFrame(master)
-        bikeTypesLF["text"] = "Fahrradtyp"
-        self.bikeTypeVar = StringVar()
-        self.bikeTypeBtns = []
-        for bikeType in bikeTypes:
-            bikeTypeRB = Radiobutton(bikeTypesLF, text=bikeType, value=bikeType,
-                    variable=self.bikeTypeVar) #, command=self.bikeTypeHandler)
-            self.bikeTypeBtns.append(bikeTypeRB)
-            if bikeType == self.prefs.getBikeType():
-                bikeTypeRB.select()
+        radTyps = ["Rennrad", "Tourenrad", "Mountainbike", "Alles"]
+        radTypsLF = LabelFrame(master)
+        radTypsLF["text"] = "Fahrradtyp"
+        self.radTypVar = StringVar()
+        self.radTypBtns = []
+        for radTyp in radTyps:
+            radTypRB = Radiobutton(radTypsLF, text=radTyp, value=radTyp,
+                    variable=self.radTypVar) #, command=self.radTypHandler)
+            self.radTypBtns.append(radTypRB)
+            if radTyp == self.prefs.getRadTyp():
+                radTypRB.select()
             else:
-                bikeTypeRB.deselect()
-            bikeTypeRB.grid(sticky="w")
+                radTypRB.deselect()
+            radTypRB.grid(sticky="w")
         self.docxTemplateName = self.prefs.getDocxTemplateName()
 
         # container for LV selector and Listbox for KVs
@@ -467,8 +467,8 @@ class MyApp(Frame):
         includeSubCB.grid(row=0, column=1, padx=5, pady=2, sticky="w")
         self.formatOM.grid(row=1, column=0, padx=5, pady=2, sticky="w")
         self.linkTypeOM.grid(row=1, column=1, padx=5, pady=2, sticky="w")
-        tourTypesLF.grid(row=2, column=0, padx=5, pady=2, sticky="w")
-        bikeTypesLF.grid(row=2, column=1, padx=5, pady=2, sticky="w")
+        eventTypesLF.grid(row=2, column=0, padx=5, pady=2, sticky="w")
+        radTypsLF.grid(row=2, column=1, padx=5, pady=2, sticky="w")
         glContainer.grid(row=3, column=0, padx=5, pady=2, sticky="w")
         self.gliederungEN.grid(row=3, column=1, padx=5, pady=2, sticky="w")
         self.startDateLE.grid(row=4, column=0, padx=5, pady=2, sticky="w")
@@ -492,11 +492,11 @@ class MyApp(Frame):
     def getLinkType(self):
         return self.linkTypeOM.get()
 
-    def getBikeType(self):
-        return self.bikeTypeVar.get()
+    def getRadTyp(self):
+        return self.radTypVar.get()
 
-    def getTourType(self):
-        return self.tourTypeVar.get()
+    def getEventType(self):
+        return self.eventTypeVar.get()
 
     def getGliederung(self):
         return self.gliederungSvar.get()
@@ -519,8 +519,8 @@ class MyApp(Frame):
     def starten(self):
         useRest = self.useRestVar.get()
         includeSub = self.includeSubVar.get()
-        typ = self.tourTypeVar.get()
-        bikeType = self.bikeTypeVar.get()
+        typ = self.eventTypeVar.get()
+        radTyp = self.radTypVar.get()
         unitKeys = self.gliederungSvar.get().split(",")
         start = toDate(self.getStart())
         end = toDate(self.getEnd())
@@ -548,15 +548,15 @@ class MyApp(Frame):
         #     handler = pdfHandler.PDFHandler(self)
         #     # conditions obtained from PDF template!
         #     includeSub = handler.getIncludeSub()
-        #     tourType = handler.getTourType()
-        #     bikeType = handler.getBikeType()
+        #     eventType = handler.getEventType()
+        #     radTyp = handler.getRadTyp()
         #     unitKeys = handler.getUnitKeys().split(",")
         #     start = toDate(handler.getStart())
         #     end = toDate(handler.getEnd())
         else:
             handler = rawHandler.RawHandler()
 
-        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getTourType(), self.getBikeType(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
+        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
         self.prefs.save()
 
         tourServerVar = tourServer.TourServer(False, useRest, includeSub)
@@ -581,7 +581,7 @@ class MyApp(Frame):
                         self.insertImage(tour)
                     handler.handleTermin(tour)
                 else:
-                    if bikeType != "Alles" and tour.getBikeType() != bikeType:
+                    if radTyp != "Alles" and tour.getRadTyp() != radTyp:
                         continue
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)

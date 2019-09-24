@@ -253,7 +253,7 @@ class Tour:
         for Touren:
         "Besondere Charakteristik /Thema": getZusatzInfo
         "Besondere Zielgruppe" : getZusatzInfo
-        "Geeignet für": getBikeType
+        "Geeignet für": getRadTyp
         "Typen (nach Dauer und Tageslage)" : getKategorie, e.g. Ganztagstour
         "Weitere Eigenschaften"  : getZusatzinfo, e.g. Bahnfahrt
     """
@@ -275,7 +275,7 @@ class Tour:
                 return tag
         return "Ohne"
 
-    def getBikeType(self):
+    def getRadTyp(self):
         # wenn nur Rennrad oder nur Mountainbike, dann dieses, sonst Tourenrad
         rtCnt = 0
         for itemTag in self.itemTags:

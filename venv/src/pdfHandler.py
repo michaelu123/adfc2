@@ -373,20 +373,20 @@ class PDFHandler:
 
     def getIncludeSub(self):
         return self.includeSub
-    def getTourType(self):
+    def getEventType(self):
         if len(self.terminselections) != 0 and len(self.tourselections) != 0:
             return "Alles";
         if len(self.terminselections) != 0:
             return "Termin"
         if len(self.tourselections) != 0:
             return "Radtour"
-        return self.gui.getTourType()
-    def getBikeType(self):
+        return self.gui.getEventType()
+    def getRadTyp(self):
         rts = set()
         for sel in self.tourselections.values():
             l = sel.get("radtyp")
             if l is None or len(l) == 0:
-                l = [self.gui.getBikeType()]
+                l = [self.gui.getRadTyp()]
             for elem in l:
                 rts.add(elem)
         if "Alles" in rts:
@@ -682,7 +682,7 @@ class PDFHandler:
             return dt.strftime(format)
 
     def expNummer(self, tour, format):
-        return tour.getBikeType()[0].upper() + tour.getNummer()
+        return tour.getRadTyp()[0].upper() + tour.getNummer()
 
     def expTitel(self, tour, format):
         if self.linkType == "frontend":

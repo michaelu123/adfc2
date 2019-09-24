@@ -167,15 +167,15 @@ class TourServer:
                 mnum = 400
                 mtnum = 600
             tour = self.getTour(tourJS)
-            bikeType = tour.getBikeType()
+            radTyp = tour.getRadTyp()
             kategorie = tour.getKategorie()
             if kategorie == "Mehrtagestour":
                 num = mtnum
                 mtnum += 1
-            elif bikeType == "Rennrad":
+            elif radTyp == "Rennrad":
                 num = rnum
                 rnum += 1
-            elif bikeType == "Mountainbike":
+            elif radTyp == "Mountainbike":
                 num = mnum
                 mnum += 1
             else:

@@ -11,8 +11,8 @@ yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt w
 useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
 yOrN = scribus.valueDialog("IncludeSub", "Sollen Untergliederungen einbezogen werden? (j/n)").lower()[0]
 includeSub = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-tourType = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
-bikeType  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
+eventType = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
+radTyp  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
 unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
 start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
 end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
@@ -57,10 +57,10 @@ class ScribusHandler:
         return start
     def getEnd(self):
         return end
-    def getTourType(self):
-        return tourType
-    def getBikeType(self):
-        return bikeType
+    def getEventType(self):
+        return eventType
+    def getRadTyp(self):
+        return radTyp
 
     def addStyle(self, style, frame):
          try:
@@ -153,13 +153,13 @@ class ScribusHandler:
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            bikeType = tour.getBikeType()
-            logger.info("kategorie %s bikeType %s", kategorie, bikeType)
+            radTyp = tour.getRadTyp()
+            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
             if kategorie == "Feierabendtour":
                 schwierigkeit = "F"
-            elif bikeType == "Rennrad":
+            elif radTyp == "Rennrad":
                 schwierigkeit = "RR"
-            elif bikeType == "Mountainbike":
+            elif radTyp == "Mountainbike":
                 schwierigkeit = "MTB"
             else:
                 schwierigkeit = str(tour.getSchwierigkeit())

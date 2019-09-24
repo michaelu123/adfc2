@@ -14,11 +14,11 @@ def selTitelEnthältNicht(tour, lst):
             return False
     return True
 
-def selBikeType(tour, lst):
+def selRadTyp(tour, lst):
     if "Alles" in lst:
         return True
-    bikeType = tour.getBikeType()
-    return bikeType in lst
+    radTyp = tour.getRadTyp()
+    return radTyp in lst
 
 def selTourNr(tour, lst):
     nr = int(tour.getNummer())
@@ -70,7 +70,7 @@ selFunctions = {
     "nichtterminnr": selNotTourNr,
     "tournr": selTourNr,
     "nichttournr": selNotTourNr,
-    "radtyp": selBikeType,
+    "radtyp": selRadTyp,
     "kategorie": selKategorie,
     "merkmalenthält": selMerkmalEnthält,
     "merkmalenthältnicht": selMerkmalEnthältNicht

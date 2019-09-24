@@ -45,8 +45,8 @@ try:
     unitKeys = handler.getUnitKeys().split(",")
     start = handler.getStart()
     end = handler.getEnd()
-    tourType = handler.getTourType()
-    bikeType = handler.getBikeType()
+    eventType = handler.getEventType()
+    radTyp = handler.getRadTyp()
 except ImportError:
     import printHandler
     import http.client as httplib
@@ -59,10 +59,10 @@ except ImportError:
     parser.add_argument("-f", "--format", dest="ausgabeformat", choices=["S", "M", "C"],
                         help="Ausgabeformat (S=Starnberg, M=München, C=CSV",
                         default="S")
-    parser.add_argument("-t", "--type", dest="tourType", choices=["R", "T", "A"],
+    parser.add_argument("-t", "--type", dest="eventType", choices=["R", "T", "A"],
                         help="Typ (R=Radtour, T=Termin, A=Alles), default=A",
                         default="A")
-    parser.add_argument("-r", "--rad", dest="bikeType",
+    parser.add_argument("-r", "--rad", dest="radTyp",
                         choices=["R", "T", "M", "A"],
                         help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A",
                         default="A")
@@ -76,8 +76,8 @@ except ImportError:
     includeSub = args.includeSub
     start = args.start
     end = args.end
-    tourType = args.tourType
-    bikeType = args.bikeType
+    eventType = args.eventType
+    radTyp = args.radTyp
     tourServerVar = tourServer.TourServer(False, useRest, includeSub)
     ausgabeformat = args.ausgabeformat
     if ausgabeformat == "S":
@@ -92,29 +92,29 @@ except ImportError:
 start = toDate(start)
 end = toDate(end)
 
-if tourType == "R":
-    tourType = "Radtour"
-elif tourType == "T":
-    tourType = "Termin"
-elif tourType == "A":
-    tourType = "Alles"
+if eventType == "R":
+    eventType = "Radtour"
+elif eventType == "T":
+    eventType = "Termin"
+elif eventType == "A":
+    eventType = "Alles"
 else:
     raise ValueError("Typ muss R für Radtour, T für Termin, oder A für beides sein")
 
-if bikeType == "R":
-    bikeType = "Rennrad"
-elif bikeType == "T":
-    bikeType = "Tourenrad"
-elif bikeType == "M":
-    bikeType = "Mountainbike"
-elif bikeType == "A":
-    bikeType = "Alles"
+if radTyp == "R":
+    radTyp = "Rennrad"
+elif radTyp == "T":
+    radTyp = "Tourenrad"
+elif radTyp == "M":
+    radTyp = "Mountainbike"
+elif radTyp == "A":
+    radTyp = "Alles"
 else:
     raise ValueError("Rad muss R für Rennrad, T für Tourenrad, M für Mountainbike, oder A für Alles sein")
 
 touren = []
 for unitKey in unitKeys:
-    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, tourType))
+    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, eventType))
 
 
 touren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
@@ -127,6 +127,6 @@ for tour in touren:
     if tour.isTermin():
         handler.handleTermin(tour)
     else:
-        if bikeType != "Alles" and tour.getBikeType() != bikeType:
+        if radTyp != "Alles" and tour.getRadTyp() != radTyp:
             continue
         handler.handleTour(tour)

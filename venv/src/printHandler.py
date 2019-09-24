@@ -92,13 +92,13 @@ class PrintHandler:
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
             kategorie = tour.getKategorie()
-            bikeType = tour.getBikeType()
-            logger.info("kategorie %s bikeType %s", kategorie, bikeType)
+            radTyp = tour.getRadTyp()
+            logger.info("kategorie %s radTyp %s", kategorie, radTyp)
             if kategorie == "Feierabendtour":
                 schwierigkeit = "F"
-            elif bikeType == "Rennrad":
+            elif radTyp == "Rennrad":
                 schwierigkeit = "RR"
-            elif bikeType == "Mountainbike":
+            elif radTyp == "Mountainbike":
                 schwierigkeit = "MTB"
             else:
                 schwierigkeit = str(tour.getSchwierigkeit())

@@ -15,10 +15,10 @@ class RawHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            bikeType = tour.getBikeType()
+            radTyp = tour.getRadTyp()
             kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s bikeType %s kategorie %s datum %s", tourNummer, bikeType, kategorie, datum)
+            logger.info("tourNummer %s radTyp %s kategorie %s datum %s", tourNummer, radTyp, kategorie, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
@@ -53,7 +53,7 @@ class RawHandler:
             logger.exception("Fehler in der Tour '%s': %s", titel, e)
             return
 
-        print("{} {} {} {}".format(titel, bikeType, tourNummer, kategorie))
+        print("{} {} {} {}".format(titel, radTyp, tourNummer, kategorie))
         print("{} {} {}".format(datum, strecke, schwierigkeit))
         if hoehenmeter != "0" and len(character) > 0:
             print("{} m; {}".format(hoehenmeter, character))

@@ -688,10 +688,10 @@ class DocxHandler:
             self.gui.setStart(self.start)
         if self.end != None and self.end != "":
              self.gui.setEnd(self.end)
-        self.setTourType()
-        self.setBikeType()
+        self.setEventType()
+        self.setRadTyp()
 
-    def setTourType(self):
+    def setEventType(self):
         typ = ""
         if len(self.terminselections) != 0 and len(self.tourselections) != 0:
             typ = "Alles"
@@ -700,14 +700,14 @@ class DocxHandler:
         elif len(self.tourselections) != 0:
             typ = "Radtour"
         if typ != "":
-            self.gui.setTourType(typ)
+            self.gui.setEventType(typ)
 
-    def setBikeType(self):
+    def setRadTyp(self):
         rts = set()
         for sel in self.tourselections.values():
             l = sel.get("radtyp")
             if l is None or len(l) == 0:
-                l = [self.gui.getBikeType()]
+                l = [self.gui.getRadTyp()]
             for elem in l:
                 rts.add(elem)
         if "Alles" in rts:
@@ -716,24 +716,24 @@ class DocxHandler:
             typ = rts.pop()
         else:
             typ = "Alles"
-        self.gui.setBikeType(typ)
+        self.gui.setRadTyp(typ)
 
     def getIncludeSub(self):
         return self.includeSub
-    def getTourType(self):
+    def getEventType(self):
         if len(self.terminselections) != 0 and len(self.tourselections) != 0:
             return "Alles"
         if len(self.terminselections) != 0:
             return "Termin"
         if len(self.tourselections) != 0:
             return "Radtour"
-        return self.gui.getTourType()
-    def getBikeType(self):
+        return self.gui.getEventType()
+    def getRadTyp(self):
         rts = set()
         for sel in self.tourselections.values():
             l = sel.get("radtyp")
             if l is None or len(l) == 0:
-                l = [self.gui.getBikeType()]
+                l = [self.gui.getRadTyp()]
             for elem in l:
                 rts.add(elem)
         if "Alles" in rts:
@@ -970,7 +970,7 @@ class DocxHandler:
         k = tour.getKategorie()[0]
         if k == "T":
             k = "G" # Tagestour -> Ganztagestour
-        return tour.getBikeType()[0].upper() + " " + tour.getNummer() + " " + k
+        return tour.getRadTyp()[0].upper() + " " + tour.getNummer() + " " + k
 
     def expTitel(self, tour, _):
         if self.linkType == "Frontend":

@@ -42,11 +42,11 @@ class CsvHandler:
             titel = tour.getTitel()
             logger.info("Title %s", titel)
             tourNummer = tour.getNummer()
-            bikeType = tour.getBikeType()
+            radTyp = tour.getRadTyp()
             kategorie = tour.getKategorie()
             datum = tour.getDatum()[0]
-            logger.info("tourNummer %s bikeType %s kategorie %s datum %s",
-                        tourNummer, bikeType, kategorie, datum)
+            logger.info("tourNummer %s radTyp %s kategorie %s datum %s",
+                        tourNummer, radTyp, kategorie, datum)
 
             abfahrten = tour.getAbfahrten()
             if len(abfahrten) == 0:
@@ -89,7 +89,7 @@ class CsvHandler:
 
         row = {
             "Typ":"Radtour", "Titel":titel, "Nummer":tourNummer,
-            "Radtyp": bikeType, "Tourtyp": kategorie,
+            "Radtyp": radTyp, "Tourtyp": kategorie,
             "Datum":datum, "Endedatum": enddatum,
             "Tourlänge": strecke, "Schwierigkeit": schwierigkeit,
             "Höhenmeter":hoehenmeter, "Charakter":character,
