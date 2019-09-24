@@ -45,6 +45,7 @@ class TxtWriter:
 
 class Prefs:
     def __init__(self):
+        self.isDefault = True
         self.useRest = False
         self.includeSub = True
         self.format = "Text"
@@ -60,13 +61,14 @@ class Prefs:
         self.useRest = useRest
         self.includeSub = includeSub
         self.format = format
-        self.linkTo = linkType
+        self.linkType = linkType
         self.tourType = tourType
         self.bikeType = bikeType
         self.unitKeys = unitKeys
         self.start = start
         self.end = end
         self.docxTemplateName = docxTN
+        self.isDefault = False
 
     def load(self):
         try:
@@ -82,6 +84,7 @@ class Prefs:
                 self.start = prefJS.get("start")
                 self.end = prefJS.get("end")
                 self.docxTemplateName = prefJS.get("docxtemplatename")
+                self.isDefault = False
         except:
             pass
 
@@ -277,7 +280,7 @@ class MyApp(Frame):
             raise ValueError("Dateipfad des .docx Templates fehlt!")
         self.handler = docxHandler.DocxHandler(self)
         self.startBtn.config(state=DISABLED)
-        self.handler.openDocx(True)
+        self.handler.openDocx(self.prefsDefault) # set GUI from doc params unless obtained from prefs
         self.startBtn.config(state=NORMAL)
 
     def setGliederung(self, gl):
@@ -362,6 +365,7 @@ class MyApp(Frame):
             self.docxTemplate("NO")
 
     def createWidgets(self, master):
+        self.prefsDefault = self.prefs.isDefault
         self.useRestVar = BooleanVar()
         self.useRestVar.set(self.prefs.useRest)
         useRestCB = Checkbutton(master,
@@ -485,7 +489,7 @@ class MyApp(Frame):
             print()
 
     def getLinkType(self):
-        return self.linkTypeOM.get().lower()
+        return self.linkTypeOM.get()
 
     def getBikeType(self):
         return self.bikeTypeVar.get()

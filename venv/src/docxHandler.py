@@ -41,6 +41,9 @@ headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24
 debug = False
 nlctr = 0
 
+def str2hex(s: str):
+    return ":".join("{:04x}".format(ord(c)) for c in s)
+
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
 """
@@ -115,11 +118,7 @@ def add_run_copy(paragraph, run, text=None, style=None):
     newr.font.web_hidden = run.font.web_hidden
     return newr
 
-def insert_paragraph_copy_before(doc, paraBefore, para):
-    if paraBefore == None:
-        newp = doc.add_paragraph()
-    else:
-        newp = paraBefore.insert_paragraph_before()
+def copyPara(para, newp):
     newp.alignment = para.alignment
     newp.style = para.style
     newp.paragraph_format.alignment = para.paragraph_format.alignment
@@ -136,13 +135,20 @@ def insert_paragraph_copy_before(doc, paraBefore, para):
     for ts in para.paragraph_format.tab_stops:
         newp.paragraph_format.tab_stops.add_tab_stop(ts.position, ts.alignment, ts.leader)
     newp.paragraph_format.widow_control = para.paragraph_format.widow_control
+
+def insert_paragraph_copy_before(doc, paraBefore, para):
+    if paraBefore == None:
+        newp = doc.add_paragraph()
+    else:
+        newp = paraBefore.insert_paragraph_before()
+    copyPara(para, newP)
     for run in para.runs:
         add_run_copy(newp, run)
     return newp
 
 def insert_paragraph_before(paraBefore, text, para):
     newp = paraBefore.insert_paragraph_before(text, para.style)
-    newp.alignment = para.alignment
+    copyPara(para, newP)
     return newp
 
 def eqFont(f1, f2):
@@ -227,6 +233,7 @@ def combineRuns(doc):
                 print("Run '", run.text, "' bold:", run.bold,
                       " font:", run.font.name, run.font.size,
                       " style:", run.style.name)
+                # print("len ", len(run.text), " hex ", str2hex(run.text))
             if prevRun != None and prevRun.bold == run.bold and \
                 prevRun.italic == run.italic and \
                 prevRun.underline == run.underline and \
@@ -334,10 +341,10 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
 
     def run(self, root):
         self.paraBefore = self.docxHandler.para # we insert everything before this paragraph
-        self.para = copy.copy(self.paraBefore)
-        self.para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        self.para = copy.deepcopy(self.paraBefore)
+        # self.para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        # self.para.style = "Normal"
         self.curPara = None
-        self.para.style = "Normal"
         self.lvl = 4
         self.fontStyles = ""
         for child in root: # skip <div> root
@@ -585,7 +592,8 @@ class DocxHandler:
             "höhenmeter": self.expHöhenMeter,
             "character": self.expCharacter,
             "schwierigkeitM": self.expSchwierigkeitM,
-            "startM": self.expStartM
+            "startM": self.expStartM,
+            "tourleiterM": self.expTourLeiterM
         }
 
     def openDocx(self, pp):
@@ -620,7 +628,7 @@ class DocxHandler:
             texts.append(para.text)
         lines = "\n".join(texts).split('\n')
         #defaults:
-        self.linkType = "frontend"
+        self.linkType = "Frontend"
         self.includeSub = True
         lx = 0
         selections = {}
@@ -633,7 +641,7 @@ class DocxHandler:
             word0 = words[0].lower().replace(":", "")
             if len(words) > 1:
                 if word0 == "linktyp":
-                    self.linkType = words[1].lower()
+                    self.linkType = words[1].lower().capitalize()
                     lx += 1
                 elif word0 == "ausgabedatei":
                     self.ausgabedatei = words[1]
@@ -672,7 +680,7 @@ class DocxHandler:
                         sel[key] = [ sel[key] ]
 
     def setGuiParams(self):
-        self.gui.setLinkType(self.linkType.capitalize())
+        self.gui.setLinkType(self.linkType)
         if self.gliederung != None and self.gliederung != "":
             self.gui.setGliederung(self.gliederung)
         self.gui.setIncludeSub(self.includeSub)
@@ -881,9 +889,8 @@ class DocxHandler:
                     self.evalRun(run, tour)
                     if rtext == "${titel}" and self.url != None:
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
-                #xxx
-                #if newp.text == "":
-                #    delete_paragraph(newp)
+                if newp.text == "":
+                    delete_paragraph(newp)
 
     def evalRun(self, run, tour):
         if debug:
@@ -966,9 +973,9 @@ class DocxHandler:
         return tour.getBikeType()[0].upper() + " " + tour.getNummer() + " " + k
 
     def expTitel(self, tour, _):
-        if self.linkType == "frontend":
+        if self.linkType == "Frontend":
             self.url = tour.getFrontendLink()
-        elif self.linkType == "backend":
+        elif self.linkType == "Backend":
             self.url = tour.getBackendLink()
         else:
             self.url = None
@@ -1010,7 +1017,7 @@ class DocxHandler:
     def expPersonen(self, bezeichnung, tour):
         tl = tour.getPersonen()
         if len(tl) == 0:
-            return
+            return ""
 
         # print("TL0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
         run = self.para.add_run(text=bezeichnung + ": ", style=self.run.style)
@@ -1029,6 +1036,12 @@ class DocxHandler:
 
     def expBetreuer(self, tour, _):
         return self.expPersonen("Betreuer", tour)
+
+    def expTourLeiterM(self, tour, _):
+        tl = tour.getPersonen()
+        if len(tl) == 0:
+            return ""
+        return ", ".join(tl)
 
     def expAbfahrten(self, tour, _):
         afs = tour.getAbfahrten()
@@ -1084,9 +1097,7 @@ class DocxHandler:
         afs = tour.getAbfahrten()
         if len(afs) == 0:
             return ""
-        s = afs[0][1] + "; " + afs[0][2]
-        if len(afs) >= 2:
-            s = s + ", 2. Startpunkt: " + afs[1][1] + ";" + afs[1][2]
-        if len(afs) >= 3:
-                s = s + ", 3. Startpunkt: " + afs[2][1] + ";" + afs[2][2]
+        s = afs[0][1] + " Uhr; " + afs[0][2]
+        for afx, af in enumerate(afs[1:]):
+            s = s + "\n " + str(afx+2) + ". Startpunkt: " + afs[afx][1] + " Uhr;" + afs[afx][2]
         return s
