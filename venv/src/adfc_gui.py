@@ -382,7 +382,8 @@ class MyApp(Frame):
                         ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
                         self.prefs.getFormat(), command=self.formatSelektor)
         self.linkTypeOM = LabelOM(master, "Links ins:",
-                        ["Frontend", "Backend", ""], "Frontend")
+                        ["Frontend", "Backend", ""],
+                        self.prefs.getLinkType())
 
         tourTypes = ["Radtour", "Termin", "Alles"]
         tourTypesLF = LabelFrame(master)

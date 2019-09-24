@@ -141,14 +141,14 @@ def insert_paragraph_copy_before(doc, paraBefore, para):
         newp = doc.add_paragraph()
     else:
         newp = paraBefore.insert_paragraph_before()
-    copyPara(para, newP)
+    copyPara(para, newp)
     for run in para.runs:
         add_run_copy(newp, run)
     return newp
 
 def insert_paragraph_before(paraBefore, text, para):
     newp = paraBefore.insert_paragraph_before(text, para.style)
-    copyPara(para, newP)
+    copyPara(para, newp)
     return newp
 
 def eqFont(f1, f2):
