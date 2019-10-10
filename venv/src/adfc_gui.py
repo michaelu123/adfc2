@@ -576,6 +576,8 @@ class MyApp(Frame):
                 handler.nothingFound()
             for tour in touren:
                 tour = tourServerVar.getTour(tour)
+                if tour is None or tour.isExternalEvent():   # add a GUI switch?
+                    continue
                 if tour.isTermin():
                     if isinstance(handler, rawHandler.RawHandler):
                         self.insertImage(tour)

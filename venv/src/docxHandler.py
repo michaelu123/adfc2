@@ -40,6 +40,8 @@ stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 debug = False
 nlctr = 0
+adfc_blue = 0x004b7c  # CMYK=90 60 10 30
+adfc_yellow = 0xee7c00 # CMYK=0 60 100 0
 
 def str2hex(s: str):
     return ":".join("{:04x}".format(ord(c)) for c in s)

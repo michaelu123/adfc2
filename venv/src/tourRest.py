@@ -389,6 +389,9 @@ class Tour:
     def getShortDesc(self):
         return self.eventItem.get("cShortDescription")
 
+    def isExternalEvent(self):
+        return self.eventItem.get("cExternalEvent") == "true"
+
 class User:
     def __init__(self, userJS):
         u = userJS.get("user")
