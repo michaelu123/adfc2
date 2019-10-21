@@ -7,6 +7,7 @@ import sys
 import re
 import datetime
 import time
+import copy
 #import markdown
 from myLogger import logger
 
@@ -65,8 +66,8 @@ STX = '\u0002'  # Use STX ("Start of text") for start-of-placeholder
 ETX = '\u0003'  # Use ETX ("End of text") for end-of-placeholder
 stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
 headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
-debug = False
 nlctr = 0
+debug = False
 adfc_blue = 0x004b7c  # CMYK=90 60 10 30
 adfc_yellow = 0xee7c00 # CMYK=0 60 100 0
 noPStyle = 'Default Paragraph Style'
@@ -299,7 +300,6 @@ class ScrbHandler:
         self.touren = []
         self.termine = []
         self.url = None
-        self.para = None
         self.run = None
         self.textbox = None
         global debug
@@ -406,10 +406,13 @@ class ScrbHandler:
         return runs
 
     def insertText(self, text, run):
+        if text is None or text == "":
+            return
         pos = self.insertPos
         scribus.insertText(text, pos, self.textbox)
         tlen = len(unicode(text))
-        logger.debug("insert pos=%d len=%d npos=%d", pos, tlen, pos+tlen)
+        logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s font=%s size=%s col=%s" ,
+                     pos, tlen, pos+tlen, text, run.style, run.charstyle, run.fontname, run.fontsize, run.textcolor)
         scribus.selectText(pos, tlen, self.textbox)
         scribus.setStyle(noPStyle if run.style is None else run.style, self.textbox)
         scribus.selectText(pos, tlen, self.textbox)
@@ -611,12 +614,6 @@ class ScrbHandler:
         self.touren = []
         self.termine = []
 
-    def evalPara(self, para):
-        if debug:
-            print("para", para.text)
-        for run in para.runs:
-            self.evalRun(run, None)
-
     def evalTemplate(self, alltext):
         logger.debug("alltext: %s %s", type(alltext), alltext)
 
@@ -628,10 +625,10 @@ class ScrbHandler:
             raise Exception("kein /endtemplate nach /template")
         pos2 += 12   # len("/endtemplate")
         lines = alltext[pos1:pos2].split('\r')
-        logger.debug("lines:%s %s", type(lines), str(lines))
+        #logger.debug("lines:%s %s", type(lines), str(lines))
         line0 = lines[0]
         lineN = lines[-1]
-        logger.debug("lineN: %s %s", type(lineN), lineN)
+        #logger.debug("lineN: %s %s", type(lineN), lineN)
         if lineN != "/endtemplate":
             raise ValueError("Die letzte Zeile des templates darf nur /endtemplate enthalten")
         words = line0.split()
@@ -666,7 +663,7 @@ class ScrbHandler:
         logger.debug("seltouren: %d", len(selectedTouren))
         if len(selectedTouren) == 0:
             return
-        selectedTouren = selectedTouren[0:3]  # TODO weg
+        selectedTouren = selectedTouren[0:5]  # TODO weg
         for tour in selectedTouren:
             self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
             logger.debug("tourMsg: %s", self.tourMsg)
@@ -681,42 +678,48 @@ class ScrbHandler:
                     add_hyperlink(pos, self.url)
 
     def evalRun(self, tour):
-        logger.debug("evalRun1 %s %s", type(self.run.text), self.run.text)
-        linesOut = []
-        linesIn = self.run.text.split('\r')
-        for line in linesIn:
+        # logger.debug("evalRun1 %s", self.run.text)
+        lines = self.run.text.split('\r')
+        nl = ""
+        for line in lines:
             if not line.startswith("/template") and\
                     not line.startswith("/endtemplate"):
-                exp = self.expand(line, tour)
-                if exp != None:
-                    linesOut.append(exp)
-        newtext = '\n'.join(linesOut)
-        logger.debug("evalRun2 %s", newtext)
-        self.insertText(newtext, self.run)
+                self.insertText(nl, self.run)
+                self.expandLine(line, tour)
+                nl = "\n"
 
-    def expand(self, s, tour):
+    def expandLine(self, s, tour):
+        logger.debug("expand1 <%s>", s)
+        spos = 0
         while True:
-            mp = paramRE.search(s)
+            mp = paramRE.search(s, spos)
             if mp == None:
-                logger.debug("noexp %s %s", type(s), s)
-                return s
+                logger.debug("noexp %s", s[spos:])
+                self.insertText(s[spos:], self.run)
+                return
             gp = mp.group(1).lower()
-            logger.debug("expand %s", gp)
+            logger.debug("expand2 %s", gp)
             sp = mp.span()
-            mf = fmtRE.search(s, pos=sp[1])
+            self.insertText(s[spos:sp[0]], self.run)
+            mf = fmtRE.search(s, pos=spos)
             if mf != None and sp[1] == mf.span()[0]: # i.e. if ${param] is followed immediately by .fmt()
                 gf = mf.group(1)
                 sf = mf.span()
-                s = s[0:sf[0]] + s[sf[1]:]
+                spos = sf[1]
                 expanded = self.expandParam(gp, tour, gf)
             else:
                 expanded = self.expandParam(gp, tour, None)
-            if expanded == None: # special case for beschreibung, handled as markdown
-                return None
-            try:
-                s = s[0:sp[0]] + expanded + s[sp[1]:]
-            except Exception:
-                logger.error("expanded = " + expanded)
+                spos = sp[1]
+            logger.debug("expand3 <%s>", str(expanded))
+            if expanded != None: # special case for beschreibung, handled as markdown
+                if isinstance(expanded, list): # list is n runs + 1 string
+                    for run in expanded:
+                        if isinstance(run, ScrbRun):
+                            self.insertText(run.text, run)
+                        else:
+                            self.insertText(run, self.run)
+                else:
+                    self.insertText(expanded, self.run)
 
     def expandParam(self, param, tour, format):
         try:
@@ -802,18 +805,10 @@ class ScrbHandler:
         tl = tour.getPersonen()
         if len(tl) == 0:
             return ""
-
-        # print("TL0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-        run = self.para.add_run(text=bezeichnung + ": ", style=self.run.style)
-        run.bold = True
-        move_run_before(self.runX, self.para)
-        # print("TL1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-        self.runX += 1
-
-        self.para.add_run(text=", ".join(tl), style=self.run.style)
-        move_run_before(self.runX, self.para)
-        # print("TL2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-        return ""
+        run = copy.copy(self.run)
+        run.charstyle = "ArialBold"
+        run.text = bezeichnung + ": "
+        return [ run, ", ".join(tl)]
 
     def expTourLeiter(self, tour, _):
         return self.expPersonen("Tourleiter", tour)
@@ -837,39 +832,28 @@ class ScrbHandler:
                 afl.append(af[2])
             else:
                 afl.append(af[0] + " " + af[1] + " " + af[2])
-        #print("AB0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
 
-        run = self.para.add_run(text="Ort" + ("" if len(afs) == 1 else "e") + ": ", style=self.run.style)
-        run.bold = True
-        move_run_before(self.runX, self.para)
-        #print("AB1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-        self.runX += 1
-
-        self.para.add_run(text=", ".join(afl), style=self.run.style)
-        move_run_before(self.runX, self.para)
-        #print("AB2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-
-        return ""
+        run = copy.copy(self.run)
+        run.charstyle = "ArialBold"
+        run.text = "Ort" + ("" if len(afs) == 1 else "e") + ": "
+        return [ run, ", ".join(afl)]
 
     def expZusatzInfo(self, tour, _):
         zi = tour.getZusatzInfo()
         if len(zi) == 0:
             return None
+        runs = []
         for z in zi:
-            #print("ZU0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>",
-            # " ".join(["<" + run.text + ">" for run in self.para.runs]))
             x = z.find(':') + 1
-            run = self.para.add_run(text=z[0:x], style=self.run.style)
-            run.bold = True
-            move_run_before(self.runX, self.para)
-            #print("ZU1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-            self.runX += 1
-
-            self.para.add_run(text=z[x+1:] + "\n", style=self.run.style)
-            move_run_before(self.runX, self.para)
-            #print("ZU2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
-            self.runX += 1
-        return ""
+            run = copy.deepcopy(self.run)
+            run.charstyle = "ArialBold"
+            run.fontname = "Arial Bold"
+            run.text = z[0:x] + " "
+            runs.append(run)
+            run = copy.deepcopy(self.run)
+            run.text = z[x + 1:] + "\n"
+            runs.append(run)
+        return runs
 
     def expHoehenMeter(self, tour, _):
         return tour.getHoehenmeter()
