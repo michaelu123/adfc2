@@ -1,13 +1,14 @@
+# encoding: utf-8
 from myLogger import logger
 
-def selTitelEnthält(tour, lst):
+def selTitelEnthaelt(tour, lst):
     titel = tour.getTitel()
     for  elem in lst:
         if titel.find(elem) >= 0:
             return True
     return False
 
-def selTitelEnthältNicht(tour, lst):
+def selTitelEnthaeltNicht(tour, lst):
     titel = tour.getTitel()
     for  elem in lst:
         if titel.find(elem) >= 0:
@@ -32,7 +33,7 @@ def selKategorie(tour, lst):
     kat = tour.getKategorie()
     return kat in lst
 
-def selMerkmalEnthält(tour, lst):
+def selMerkmalEnthaelt(tour, lst):
     merkmale = tour.getMerkmale()
     for merkmal in merkmale:
         for val in lst:
@@ -40,7 +41,7 @@ def selMerkmalEnthält(tour, lst):
                 return True
     return False
 
-def selMerkmalEnthältNicht(tour, lst):
+def selMerkmalEnthaeltNicht(tour, lst):
     merkmale = tour.getMerkmale()
     for merkmal in merkmale:
         for val in lst:
@@ -64,16 +65,16 @@ def selected(tour, sel):
 
 selFunctions = {
 
-    "titelenthält": selTitelEnthält,
-    "titelenthältnicht": selTitelEnthältNicht,
+    "titelenthält": selTitelEnthaelt,
+    "titelenthältnicht": selTitelEnthaeltNicht,
     "terminnr": selTourNr,
     "nichtterminnr": selNotTourNr,
     "tournr": selTourNr,
     "nichttournr": selNotTourNr,
     "radtyp": selRadTyp,
     "kategorie": selKategorie,
-    "merkmalenthält": selMerkmalEnthält,
-    "merkmalenthältnicht": selMerkmalEnthältNicht
+    "merkmalenthält": selMerkmalEnthaelt,
+    "merkmalenthältnicht": selMerkmalEnthaeltNicht
 }
 
 def getSelFunctions():
