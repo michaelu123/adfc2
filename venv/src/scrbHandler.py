@@ -160,13 +160,13 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
     def walkOuter(self, node):
         global nlctr
         if debug:
-            if node.text != None:
+            if node.text is not None:
                 ltext = node.text.replace("\n", "<" + str(nlctr) + "nl>")
                 # node.text = node.text.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltext = "None"
-            if node.tail != None:
+            if node.tail is not None:
                 ltail = node.tail.replace("\n", "<" + str(nlctr) + "nl>")
                 # node.tail = node.tail.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
@@ -274,15 +274,12 @@ class ScrbExtension(markdown.Extension):
 """
 
 class ScrbRun:
-    def __init__(self, text, style, charstyle, fontname, fontsize, textcolor):
+    def __init__(self, text, style, charstyle):
         self.text = text
         self.style = style
         self.charstyle = charstyle
-        self.fontname = fontname
-        self.fontsize = fontsize
-        self.textcolor = textcolor
     def __str__(self):
-        return "\n{ text:" + self.text + ",pstyle:" + str(self.style) + ",cstyle:" + str(self.charstyle) + "}"
+        return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.style) + ",cstyle:" + str(self.charstyle) + "}"
     def __repr__(self):
         return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.style) + ",cstyle:" + str(self.charstyle) + "}"
 
@@ -302,6 +299,12 @@ class ScrbHandler:
         self.url = None
         self.run = None
         self.textbox = None
+        self.linkType = "Frontend"
+        self.gliederung = None
+        self.includeSub = False
+        self.start = None
+        self.end = None
+
         global debug
         try:
             _ = os.environ["DEBUG"]
@@ -345,13 +348,13 @@ class ScrbHandler:
         if pp:
             self.setGuiParams()
         logger.debug("3openScrb")
-        allStyles = scribus.getAllStyles()
         paraStyles = scribus.getParagraphStyles()
         charStyles = scribus.getCharStyles()
         logger.debug("paraStyles: %s\ncharStyles:%s", str(paraStyles), str(charStyles))
-        # wd2_style = doc_styles.add_style("WD2_STYLE", WD_STYLE_TYPE.CHARACTER)
-        # wd2_font = wd2_style.font
-        # wd2_font.name = "Wingdings 2"
+
+        scribus.defineColor("ADFC_Yellow_", 0, 153, 255, 0)
+        scribus.defineColor("ADFC_Blue_", 230, 153, 26, 77)
+        scribus.createCharStyle(name="WD2_Y_", font="Wingdings 2 Regular", fillcolor = "ADFC_Yellow_")
         logger.debug("4openScrb")
 
     def nothingFound(self):
@@ -363,9 +366,6 @@ class ScrbHandler:
         scribus.selectText(pos1, 1, self.textbox)
         last_style = scribus.getStyle(self.textbox)
         last_charstyle = scribus.getCharacterStyle(self.textbox)
-        last_fontname = scribus.getFont(self.textbox)
-        last_fontsize = scribus.getFontSize(self.textbox)
-        last_textcolor = scribus.getTextColor(self.textbox)
 
         text = u""
         changed = False
@@ -381,28 +381,15 @@ class ScrbHandler:
             if charstyle != last_charstyle:
                 changed = True
 
-            fontname = scribus.getFont(self.textbox)
-            if fontname != last_fontname:
-                changed = True
-
-            fontsize = scribus.getFontSize(self.textbox)
-            if fontsize != last_fontsize:
-                changed = True
-
-            textcolor = scribus.getTextColor(self.textbox)
-            if textcolor != last_textcolor:
-                changed = True
-
             if changed:
-                runs.append(ScrbRun(text, last_style, last_charstyle, last_fontname, last_fontsize, last_textcolor))
-                text = u""
-                last_fontname = fontname
-                last_fontsize = fontsize
-                last_textcolor = textcolor
+                runs.append(ScrbRun(text, last_style, last_charstyle))
                 last_style = style
                 last_charstyle = charstyle
+                text = u""
                 changed = False
             text = text + char
+        if text != "":
+            runs.append(ScrbRun(text, last_style, last_charstyle))
         return runs
 
     def insertText(self, text, run):
@@ -411,25 +398,15 @@ class ScrbHandler:
         pos = self.insertPos
         scribus.insertText(text, pos, self.textbox)
         tlen = len(unicode(text))
-        logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s font=%s size=%s col=%s" ,
-                     pos, tlen, pos+tlen, text, run.style, run.charstyle, run.fontname, run.fontsize, run.textcolor)
+        logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s" ,
+                     pos, tlen, pos+tlen, text, run.style, run.charstyle)
         scribus.selectText(pos, tlen, self.textbox)
         scribus.setStyle(noPStyle if run.style is None else run.style, self.textbox)
         scribus.selectText(pos, tlen, self.textbox)
         scribus.setCharacterStyle(noCStyle if run.charstyle is None else run.charstyle, self.textbox)
-        scribus.selectText(pos, tlen, self.textbox)
-        scribus.setFont(run.fontname, self.textbox)
-        scribus.selectText(pos, tlen, self.textbox)
-        scribus.setFontSize(run.fontsize, self.textbox)
-        scribus.selectText(pos, tlen, self.textbox)
-        scribus.setTextColor(run.textcolor, self.textbox)
-        scribus.selectText(pos, tlen, self.textbox)
         self.insertPos += tlen
 
     def parseParams(self, lines):
-        texts = []
-        #defaults:
-        self.linkType = "Frontend"
         self.includeSub = True
         lx = 0
         selections = {}
@@ -444,13 +421,10 @@ class ScrbHandler:
                 if word0 == "linktyp":
                     self.linkType = words[1].lower().capitalize()
                     lx += 1
-                elif word0 == "ausgabedatei":
-                    self.ausgabedatei = words[1]
-                    lx += 1
                 else:
                     raise ValueError(
                         "Unbekannter Parameter " + word0 +
-                        ", erwarte linktyp oder ausgabedatei")
+                        ", erwarte linktyp")
             elif word0 not in ["selektion", "terminselektion", "tourselektion" ]:
                 raise ValueError(
                     "Unbekannter Parameter " + word0 +
@@ -484,12 +458,12 @@ class ScrbHandler:
         if self.gui is None:
             return
         self.gui.setLinkType(self.linkType)
-        if self.gliederung != None and self.gliederung != "":
+        if self.gliederung is not None and self.gliederung != "":
             self.gui.setGliederung(self.gliederung)
         self.gui.setIncludeSub(self.includeSub)
-        if self.start != None and self.start != "":
+        if self.start is not None and self.start != "":
             self.gui.setStart(self.start)
-        if self.end != None and self.end != "":
+        if self.end is not None and self.end != "":
              self.gui.setEnd(self.end)
         self.setEventType()
         self.setRadTyp()
@@ -619,7 +593,7 @@ class ScrbHandler:
 
         pos1 = alltext.find("/template")
         if pos1 < 0:
-            return;
+            return
         pos2 = alltext.find("/endtemplate")
         if pos2 < 0:
             raise Exception("kein /endtemplate nach /template")
@@ -674,7 +648,7 @@ class ScrbHandler:
                 rtext = run.text.strip()
                 self.evalRun(tour)
                 pos = self.insertPos
-                if rtext == "${titel}" and self.url != None:
+                if rtext == "${titel}" and self.url is not None:
                     add_hyperlink(pos, self.url)
 
     def evalRun(self, tour):
@@ -693,7 +667,7 @@ class ScrbHandler:
         spos = 0
         while True:
             mp = paramRE.search(s, spos)
-            if mp == None:
+            if mp is None:
                 logger.debug("noexp %s", s[spos:])
                 self.insertText(s[spos:], self.run)
                 return
@@ -702,7 +676,7 @@ class ScrbHandler:
             sp = mp.span()
             self.insertText(s[spos:sp[0]], self.run)
             mf = fmtRE.search(s, pos=spos)
-            if mf != None and sp[1] == mf.span()[0]: # i.e. if ${param] is followed immediately by .fmt()
+            if mf is not None and sp[1] == mf.span()[0]: # i.e. if ${param] is followed immediately by .fmt()
                 gf = mf.group(1)
                 sf = mf.span()
                 spos = sf[1]
@@ -711,7 +685,7 @@ class ScrbHandler:
                 expanded = self.expandParam(gp, tour, None)
                 spos = sp[1]
             logger.debug("expand3 <%s>", str(expanded))
-            if expanded != None: # special case for beschreibung, handled as markdown
+            if expanded is not None: # special case for beschreibung, handled as markdown
                 if isinstance(expanded, list): # list is n runs + 1 string
                     for run in expanded:
                         if isinstance(run, ScrbRun):
@@ -733,7 +707,7 @@ class ScrbHandler:
             return param
 
     def expHeute(self, _, format):
-        if format == None:
+        if format is None:
             return str(datetime.date.today())
         else:
             #return datetime.date.today().strftime(format)
@@ -741,14 +715,14 @@ class ScrbHandler:
 
     def expStart(self, tour, format):
         dt = convertToMEZOrMSZ(tour.getDatumRaw())
-        if format == None:
+        if format is None:
             return str(dt)
         else:
             return dt.strftime(format)
 
     def expEnd(self, tour, format):
         dt = convertToMEZOrMSZ(tour.getEndDatumRaw())
-        if format == None:
+        if format is None:
             return str(dt)
         else:
             return dt.strftime(format)
@@ -795,7 +769,7 @@ class ScrbHandler:
         return schwierigkeitMap[tour.getSchwierigkeit()]
 
     def expSchwierigkeitM(self, tour, _):
-        self.run.fontname = "Wingdings 2 Regular"
+        self.run.charstyle = "WD2_Y_"
         return schwierigkeitMMap[tour.getSchwierigkeit()]
 
     def expTourLength(self, tour, _):
@@ -847,7 +821,6 @@ class ScrbHandler:
             x = z.find(':') + 1
             run = copy.deepcopy(self.run)
             run.charstyle = "ArialBold"
-            run.fontname = "Arial Bold"
             run.text = z[0:x] + " "
             runs.append(run)
             run = copy.deepcopy(self.run)
