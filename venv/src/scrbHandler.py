@@ -72,6 +72,8 @@ adfc_blue = 0x004b7c  # CMYK=90 60 10 30
 adfc_yellow = 0xee7c00 # CMYK=0 60 100 0
 noPStyle = 'Default Paragraph Style'
 noCStyle = 'Default Character Style'
+lastPStyle = ""
+lastCStyle = ""
 
 logger.debug("3scrb")
 
@@ -398,13 +400,41 @@ class ScrbHandler:
         pos = self.insertPos
         scribus.insertText(text, pos, self.textbox)
         tlen = len(unicode(text))
-        logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s" ,
-                     pos, tlen, pos+tlen, text, run.style, run.charstyle)
-        scribus.selectText(pos, tlen, self.textbox)
-        scribus.setStyle(noPStyle if run.style is None else run.style, self.textbox)
-        scribus.selectText(pos, tlen, self.textbox)
-        scribus.setCharacterStyle(noCStyle if run.charstyle is None else run.charstyle, self.textbox)
+        # logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s" ,
+        #             pos, tlen, pos+tlen, text, run.style, run.charstyle)
+        global lastPStyle, lastCStyle
+        if run.style != lastPStyle:
+            scribus.selectText(pos, tlen, self.textbox)
+            scribus.setStyle(noPStyle if run.style is None else run.style, self.textbox)
+            lastPStyle = run.style
+        if run.charstyle != lastCStyle:
+            scribus.selectText(pos, tlen, self.textbox)
+            scribus.setCharacterStyle(noCStyle if run.charstyle is None else run.charstyle, self.textbox)
+            lastCStyle = run.charstyle
         self.insertPos += tlen
+        # if scribus.textOverflows(self.textbox):
+        #    self.createNewPage()
+
+    def createNewPage(self):
+        curPage = scribus.currentPage()
+        if  curPage < scribus.pageCount() - 1:
+            where = curPage + 1
+        else:
+            where = -1
+        logger.debug("cur=%d pc=%d wh=%d", curPage, scribus.pageCount(), where)
+        cols = scribus.getColumns(self.textbox)
+        colgap = scribus.getColumnGap(self.textbox)
+        x,y = scribus.getPosition(self.textbox)
+        w,h = scribus.getSize(self.textbox)
+        mp = scribus.getMasterPage(curPage)
+        scribus.newPage(where, mp) # return val?
+        scribus.gotoPage(curPage + 1)
+        newFrame = scribus.createText(x,y,w,h)
+        scribus.setColumns(cols, newFrame)
+        scribus.setColumnGap(colgap, newFrame)
+        scribus.linkTextFrames(self.textbox, newFrame)
+        self.textbox = newFrame
+        self.insertPos = 0 # scribus.getTextLength(newFrame)
 
     def parseParams(self, lines):
         self.includeSub = True
@@ -584,6 +614,17 @@ class ScrbHandler:
                 alltext = unicode(scribus.getAllText(self.textbox))
                 self.evalTemplate(alltext)
 
+        pagenum = scribus.pageCount()
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                self.textbox = item[0]
+                if item[1] != 4:
+                    continue
+                while scribus.textOverflows(self.textbox):
+                    self.createNewPage()
+
         self.doc = None
         self.touren = []
         self.termine = []
@@ -628,6 +669,7 @@ class ScrbHandler:
         self.insertPos = pos1
         self.evalTouren(sel, touren, runs)
 
+
     def evalTouren(self, sel, touren, runs):
         selectedTouren = []
         logger.debug("touren: %d", len(touren))
@@ -637,7 +679,7 @@ class ScrbHandler:
         logger.debug("seltouren: %d", len(selectedTouren))
         if len(selectedTouren) == 0:
             return
-        selectedTouren = selectedTouren[0:5]  # TODO weg
+        selectedTouren = selectedTouren[0:15]  # TODO weg
         for tour in selectedTouren:
             self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
             logger.debug("tourMsg: %s", self.tourMsg)
@@ -843,13 +885,21 @@ class ScrbHandler:
             s = s + "\n " + str(afx+2) + ". Startpunkt: " + afs[afx][1] + " Uhr;" + afs[afx][2]
         return s
 
-logger.debug("4scrb")
-import tourServer
-tourServerVar = tourServer.TourServer(True, False, False)
-touren = tourServerVar.getTouren("152085", "2019-07-01", "2019-07-31", "Radtour")
-sh = ScrbHandler(None)
-for tour1 in touren:
-    tour2 = tourServerVar.getTour(tour1)
-    sh.handleTour(tour2)
-sh.handleEnd()
-logger.debug("6scrb")
+def main():
+    logger.debug("4scrb")
+    import tourServer
+    tourServerVar = tourServer.TourServer(True, False, False)
+    touren = tourServerVar.getTouren("152085", "2019-07-01", "2019-07-31", "Radtour")
+    sh = ScrbHandler(None)
+    for tour1 in touren:
+        tour2 = tourServerVar.getTour(tour1)
+        sh.handleTour(tour2)
+    sh.handleEnd()
+    logger.debug("6scrb")
+
+import cProfile
+cProfile.run("main()", "cprof.prf")
+import pstats
+with open("cprof.txt", "w") as cprf:
+    p = pstats.Stats("cprof.prf", stream=cprf)
+    p.strip_dirs().sort_stats("cumulative").print_stats(20)
