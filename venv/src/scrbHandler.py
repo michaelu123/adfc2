@@ -8,24 +8,26 @@ import re
 import datetime
 import time
 import copy
-#import markdown
+import markdown
+#import codecs
+import styles
 from myLogger import logger
 
 try:
     import scribus
 except ImportError:
-    print "Unable to import the 'scribus' module. This script will only run within"
-    print "the Python interpreter embedded in Scribus. Try Script->Execute Script."
+    print("Unable to import the 'scribus' module. This script will only run within")
+    print("the Python interpreter embedded in Scribus. Try Script->Execute Script.")
     sys.exit(1)
 
 logger.debug("1scrb")
 params = """
 Linktyp: Frontend
 Selektion:
-	Gliederungen: 152085
+	Gliederungen: 152059
 	MitUntergliederungen: nein
-	Beginn: 01.07.2019
-	Ende: 31.07.2019
+	Beginn: 06.07.2017
+	Ende: 07.07.2017
 Terminselektion:
 	Name: Stammtische
 	Merkmalenthält: Stammtisch,Aktiventreff
@@ -74,9 +76,12 @@ noPStyle = 'Default Paragraph Style'
 noCStyle = 'Default Character Style'
 lastPStyle = ""
 lastCStyle = ""
+headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 
 logger.debug("3scrb")
 
+def unicode(x): # because of Python2 compatibility
+    return x
 
 def str2hex(s):
     return ":".join("{:04x}".format(ord(c)) for c in s)
@@ -112,12 +117,11 @@ def add_hyperlink(pos, url):
 def insertHR():
     pass
 
-"""
-class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
+class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def __init__(self, md):
         super().__init__(md)
-        self.ancestors = []
-        self.states = []
+        self.scrbHandler = None
+        self.fontStyles = ""
         self.nodeHandler = {
             "h1": self.h1,
             "h2": self.h2,
@@ -138,46 +142,55 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
             "img": self.img,
             "hr": self.hr }
 
+    def run(self, root):
+        logger.debug("run1 %s", root)
+        self.tpRun = ScrbRun("", "MD_P_REGULAR", "MD_C_REGULAR")
+        self.fontStyles = ""
+        self.lvl = 4
+        for child in root: # skip <div> root
+            logger.debug("run2 %s", child)
+            self.walkOuter(child)
+        logger.debug("run3")
+        root.clear()
+
     def setDeps(self, scrbHandler):
         self.scrbHandler = scrbHandler
 
     def unescape(self, m):
         return chr(int(m.group(1)))
 
+    def checkStylesExi(self, r):
+        if not styles.checkCStyleExi(r.cstyle):
+            r.cstyle = noCStyle
+        if not styles.checkPStyleExi(r.pstyle):
+            r.pstyle = noPStyle
+
     def printLines(self, s):
         s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
-        r = self.curPara.add_run(s) # style?
-        r.bold = r.italic = r.font.strike = r.font.underline = False
-        for fst in self.fontStyles:
-            if fst == 'B':
-                r.bold = True
-            elif fst == 'I':
-                r.italic = True
-            elif fst == 'X':
-                r.font.strike = True
-            elif fst == 'U':
-                r.font.underline = True
-        self.curRun = r
+        logger.debug("printLines %s", s)
+        sav = self.tpRun.cstyle
+        self.tpRun.cstyle = styles.modifyFont(self.tpRun.cstyle, self.fontStyles)
+        self.scrbHandler.insertText(s, self.tpRun)
+        self.tpRun.cstyle = sav
 
     def walkOuter(self, node):
         global nlctr
         if debug:
             if node.text is not None:
                 ltext = node.text.replace("\n", "<" + str(nlctr) + "nl>")
-                # node.text = node.text.replace("\n", str(nlctr) + "\n")
+                #node.text = node.text.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltext = "None"
             if node.tail is not None:
                 ltail = node.tail.replace("\n", "<" + str(nlctr) + "nl>")
-                # node.tail = node.tail.replace("\n", str(nlctr) + "\n")
+                #node.tail = node.tail.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltail = "None"
             self.lvl += 4
-            print(" " * self.lvl,"<<<<")
-            print(" " * self.lvl, "node=", node.tag, ",text=", ltext,
-                  "tail=", ltail)
+            logger.debug("MD:%s<<<<", " " * self.lvl)
+            logger.debug("MD:%snode=%s,text=%s,tail=%s", " " * self.lvl, node.tag, ltext, ltail)
         try:
             self.nodeHandler[node.tag](node)
             if node.tail is not None:
@@ -186,9 +199,8 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
             msg = "Fehler während der Behandlung der Beschreibung des Events " +\
                   self.scrbHandler.tourMsg
             logger.exception(msg)
-            print(msg)
         if debug:
-            print(" " * self.lvl,">>>>")
+            logger.debug("MD:%s>>>>", " " * self.lvl)
             self.lvl -= 4
 
     def walkInner(self, node):
@@ -197,43 +209,72 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
         for dnode in node:
             self.walkOuter(dnode)
 
+
+    def h(self, pstyle, cstyle, node):
+        #node.tail = None
+        savP = self.tpRun.pstyle
+        savC = self.tpRun.cstyle
+        self.tpRun.pstyle = pstyle
+        self.tpRun.cstyle = cstyle
+        self.checkStylesExi(self.tpRun)
+        self.walkInner(node)
+        self.tpRun.pstyle = savP
+        self.tpRun.cstyle = savC
+
     def h1(self, node):
-        node.tail = None
+        self.h("MD_P_H1", "MD_C_H1", node)
 
     def h2(self, node):
-        node.tail = None
+        self.h("MD_P_H2", "MD_C_H2", node)
 
     def h3(self, node):
-        node.tail = None
+        self.h("MD_P_H3", "MD_C_H3", node)
 
     def h4(self, node):
-        node.tail = None
+        self.h("MD_P_H4", "MD_C_H4", node)
 
     def h5(self, node):
-        node.tail = None
+        self.h("MD_P_H5", "MD_C_H5", node)
 
     def h6(self, node):
-        node.tail = None
+        self.h("MD_P_H6", "MD_C_H6", node)
 
     def p(self, node):
-        node.tail = None
+        #node.tail = None
+        sav = self.tpRun.pstyle
+        self.tpRun.pstyle = "MD_P_REGULAR"
+        self.tpRun.cstyle = "MD_C_REGULAR"
+        self.checkStylesExi(self.tpRun)
+        self.walkInner(node)
+        self.tpRun.pstyle = sav
 
     def strong(self, node):
-        pass
+        sav = self.fontStyles
+        self.fontStyles += "B"
+        self.walkInner(node)
+        self.fontStyles = sav
 
     def stroke(self, node):
-        pass
+        sav = self.fontStyles
+        self.fontStyles += "X"
+        self.walkInner(node)
+        self.fontStyles = sav
 
     def underline(self, node):
-        pass
+        sav = self.fontStyles
+        self.fontStyles += "U"
+        self.walkInner(node)
+        self.fontStyles = sav
 
     def em(self, node):
-        pass
+        sav = self.fontStyles
+        self.fontStyles += "I"
+        self.walkInner(node)
+        self.fontStyles = sav
 
     def ul(self, node):
         node.text = node.tail = None
         self.walkInner(node)
-
 
     def ol(self, node):
         node.text = node.tail = None
@@ -245,11 +286,11 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
 
     def a(self, node):
         url = node.attrib["href"]
-        pos = self.insertPos
+        #pos = self.insertPos
         self.walkInner(node)
-        add_hyperlink(pos, url)
-        scribus.selectText(pos, self.insertPos - pos, self.textbox)
-        scribus.setTextColor("ADFC_Yellow", self.textbox)
+        #add_hyperlink(pos, url)
+        #scribus.selectText(pos, self.insertPos - pos, self.textbox)
+        #scribus.setTextColor("ADFC_Yellow", self.textbox)
 
     def blockQuote(self, node):
         node.text = node.tail = None
@@ -264,26 +305,30 @@ class ScrbTreeHandler(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
 
 class ScrbExtension(markdown.Extension):
-    def extendMarkdown(self, md):
-        self.scrbTreeHandler = ScrbTreeHandler(md)
-        md.treeprocessors.register(self.scrbTreeHandler, "scrbtreehandler", 5)
+    def __init__(self):
+        super(ScrbExtension,self).__init__()
+        self.scrbTreeProcessor = None
+
+    def extendMarkdown(self, md, globals):
+        self.scrbTreeProcessor = ScrbTreeProcessor(md)
+        md.treeprocessors.register(self.scrbTreeProcessor, "scrbTreeProcessor", 5)
         md.inlinePatterns.register(
             markdown.inlinepatterns.SimpleTagInlineProcessor(
                 strokeRE, 'stroke'), 'stroke', 40)
         md.inlinePatterns.register(
             markdown.inlinepatterns.SimpleTagInlineProcessor(
                 ulRE, 'underline'), 'underline', 41)
-"""
+
 
 class ScrbRun:
-    def __init__(self, text, style, charstyle):
+    def __init__(self, text, pstyle, cstyle):
         self.text = text
-        self.style = style
-        self.charstyle = charstyle
+        self.pstyle = pstyle
+        self.cstyle = cstyle
     def __str__(self):
-        return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.style) + ",cstyle:" + str(self.charstyle) + "}"
+        return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.pstyle) + ",cstyle:" + str(self.cstyle) + "}"
     def __repr__(self):
-        return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.style) + ",cstyle:" + str(self.charstyle) + "}"
+        return "\n{ text:" + self.text + ",type:" + str(type(self.text)) + ",pstyle:" + str(self.pstyle) + ",cstyle:" + str(self.cstyle) + "}"
 
 class ScrbHandler:
     def __init__(self, gui):
@@ -306,16 +351,17 @@ class ScrbHandler:
         self.includeSub = False
         self.start = None
         self.end = None
+        self.pos = None
 
         global debug
         try:
             _ = os.environ["DEBUG"]
             debug = True
         except:
-            debug = False
-        # self.scrbExtension = ScrbExtension()
-        # self.md = markdown.Markdown(extensions=[self.scrbExtension])
-        # self.scrbExtension.scrbTreeHandler.setDeps(self)
+            debug = True #False
+        self.scrbExtension = ScrbExtension()
+        self.md = markdown.Markdown(extensions=[self.scrbExtension], enable_attributes=True, logger=logger)
+        self.scrbExtension.scrbTreeProcessor.setDeps(self)
         self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = { # keys in lower case
             u"heute": self.expHeute,
@@ -366,8 +412,8 @@ class ScrbHandler:
     def makeRuns(self, pos1, pos2):
         runs = []
         scribus.selectText(pos1, 1, self.textbox)
-        last_style = scribus.getStyle(self.textbox)
-        last_charstyle = scribus.getCharacterStyle(self.textbox)
+        last_pstyle = scribus.getStyle(self.textbox)
+        last_cstyle = scribus.getCharacterStyle(self.textbox)
 
         text = u""
         changed = False
@@ -375,23 +421,23 @@ class ScrbHandler:
             scribus.selectText(c, 1, self.textbox)
             char = scribus.getText(self.textbox)
 
-            style = scribus.getStyle(self.textbox)
-            if style != last_style:
+            pstyle = scribus.getStyle(self.textbox)
+            if pstyle != last_pstyle:
                 changed = True
 
-            charstyle = scribus.getCharacterStyle(self.textbox)
-            if charstyle != last_charstyle:
+            cstyle = scribus.getCharacterStyle(self.textbox)
+            if cstyle != last_cstyle:
                 changed = True
 
             if changed:
-                runs.append(ScrbRun(text, last_style, last_charstyle))
-                last_style = style
-                last_charstyle = charstyle
+                runs.append(ScrbRun(text, last_pstyle, last_cstyle))
+                last_pstyle = pstyle
+                last_cstyle = cstyle
                 text = u""
                 changed = False
             text = text + char
         if text != "":
-            runs.append(ScrbRun(text, last_style, last_charstyle))
+            runs.append(ScrbRun(text, last_pstyle, last_cstyle))
         return runs
 
     def insertText(self, text, run):
@@ -400,17 +446,23 @@ class ScrbHandler:
         pos = self.insertPos
         scribus.insertText(text, pos, self.textbox)
         tlen = len(unicode(text))
-        # logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s" ,
-        #             pos, tlen, pos+tlen, text, run.style, run.charstyle)
+        logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s",
+                     pos, tlen, pos+tlen, text, run.pstyle, run.cstyle)
         global lastPStyle, lastCStyle
-        if run.style != lastPStyle:
+        if run.pstyle != lastPStyle:
             scribus.selectText(pos, tlen, self.textbox)
-            scribus.setStyle(noPStyle if run.style is None else run.style, self.textbox)
-            lastPStyle = run.style
-        if run.charstyle != lastCStyle:
+            scribus.setStyle(noPStyle if run.pstyle is None else run.pstyle, self.textbox)
+            lastPStyle = run.pstyle
+        if run.cstyle != lastCStyle:
             scribus.selectText(pos, tlen, self.textbox)
-            scribus.setCharacterStyle(noCStyle if run.charstyle is None else run.charstyle, self.textbox)
-            lastCStyle = run.charstyle
+            scribus.setCharacterStyle(noCStyle if run.cstyle is None else run.cstyle, self.textbox)
+            lastCStyle = run.cstyle
+        if False and self.url is not None: # TODO
+            logger.debug("URL: %s", self.url)
+            scribus.selectText(pos, tlen, self.textbox)
+            frame = None # see http://forums.scribus.net/index.php/topic,3487.0.html
+            scribus.setURIAnnotation(self.url, frame)
+            self.url = None
         self.insertPos += tlen
         # if scribus.textOverflows(self.textbox):
         #    self.createNewPage()
@@ -592,7 +644,7 @@ class ScrbHandler:
         self.start = self.gui.getStart()
         self.end = self.gui.getEnd()
         """
-        self.linkType = "frontend"
+        self.linkType = "Frontend"
         self.gliederung = "125085"
         self.includeSub = False
         self.start = "2019-07-01"
@@ -603,9 +655,9 @@ class ScrbHandler:
             scribus.gotoPage(page)
             pageitems = scribus.getPageItems()
             for item in pageitems:
-                self.textbox = item[0]
                 if item[1] != 4:
                     continue
+                self.textbox = item[0]
                 textlen = scribus.getTextLength(self.textbox)
                 scribus.selectText(0, textlen, self.textbox)
                 logger.debug("textlen: " + str(textlen))
@@ -619,9 +671,9 @@ class ScrbHandler:
             scribus.gotoPage(page)
             pageitems = scribus.getPageItems()
             for item in pageitems:
-                self.textbox = item[0]
                 if item[1] != 4:
                     continue
+                self.textbox = item[0]
                 while scribus.textOverflows(self.textbox):
                     self.createNewPage()
 
@@ -679,7 +731,7 @@ class ScrbHandler:
         logger.debug("seltouren: %d", len(selectedTouren))
         if len(selectedTouren) == 0:
             return
-        selectedTouren = selectedTouren[0:15]  # TODO weg
+        selectedTouren = selectedTouren[0:5]  # TODO weg
         for tour in selectedTouren:
             self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
             logger.debug("tourMsg: %s", self.tourMsg)
@@ -690,8 +742,6 @@ class ScrbHandler:
                 rtext = run.text.strip()
                 self.evalRun(tour)
                 pos = self.insertPos
-                if rtext == "${titel}" and self.url is not None:
-                    add_hyperlink(pos, self.url)
 
     def evalRun(self, tour):
         # logger.debug("evalRun1 %s", self.run.text)
@@ -727,15 +777,16 @@ class ScrbHandler:
                 expanded = self.expandParam(gp, tour, None)
                 spos = sp[1]
             logger.debug("expand3 <%s>", str(expanded))
-            if expanded is not None: # special case for beschreibung, handled as markdown
-                if isinstance(expanded, list): # list is n runs + 1 string
-                    for run in expanded:
-                        if isinstance(run, ScrbRun):
-                            self.insertText(run.text, run)
-                        else:
-                            self.insertText(run, self.run)
-                else:
-                    self.insertText(expanded, self.run)
+            if expanded is None: # special case for beschreibung, handled as markdown
+                return
+            if isinstance(expanded, list): # list is n runs + 1 string
+                for run in expanded:
+                    if isinstance(run, ScrbRun):
+                        self.insertText(run.text, run)
+                    else:
+                        self.insertText(run, self.run)
+            else:
+                self.insertText(expanded, self.run)
 
     def expandParam(self, param, tour, format):
         try:
@@ -744,7 +795,6 @@ class ScrbHandler:
         except Exception as e:
             err = 'Fehler mit dem Parameter "' + param + \
                   '" des Events ' + self.tourMsg
-            print(err)
             logger.exception(err)
             return param
 
@@ -782,18 +832,21 @@ class ScrbHandler:
             self.url = tour.getBackendLink()
         else:
             self.url = None
-        logger.info("Titel: " + tour.getTitel())
+        titel = tour.getTitel()
+        logger.info("Titel: %s URL: %s", titel, self.url)
         return tour.getTitel()
 
     def expBeschreibung(self, tour, _):
         desc = tour.eventItem.get("description")
         desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
-        #desc = codecs.decode(desc, encoding = "unicode_escape")
-        # self.md.convert(desc)
-        # self.md.reset()
-        # return None
-        return desc
+        # did I ever need this?
+        #py3: desc = codecs.decode(desc, encoding = "unicode_escape")
+        #py2:desc = codecs.decode(desc, "unicode_escape")
+        logger.debug("desc type:%s <<<%s>>>", type(desc), desc)
+        self.md.convert(desc)
+        self.md.reset()
+        return None
 
     def expName(self, tour, _):
         return tour.getName()
@@ -811,7 +864,7 @@ class ScrbHandler:
         return schwierigkeitMap[tour.getSchwierigkeit()]
 
     def expSchwierigkeitM(self, tour, _):
-        self.run.charstyle = "WD2_Y_"
+        self.run.cstyle = "WD2_Y_"
         return schwierigkeitMMap[tour.getSchwierigkeit()]
 
     def expTourLength(self, tour, _):
@@ -822,7 +875,7 @@ class ScrbHandler:
         if len(tl) == 0:
             return ""
         run = copy.copy(self.run)
-        run.charstyle = "ArialBold"
+        run.cstyle = "ArialBold"
         run.text = bezeichnung + ": "
         return [ run, ", ".join(tl)]
 
@@ -850,7 +903,7 @@ class ScrbHandler:
                 afl.append(af[0] + " " + af[1] + " " + af[2])
 
         run = copy.copy(self.run)
-        run.charstyle = "ArialBold"
+        run.cstyle = "ArialBold"
         run.text = "Ort" + ("" if len(afs) == 1 else "e") + ": "
         return [ run, ", ".join(afl)]
 
@@ -862,7 +915,7 @@ class ScrbHandler:
         for z in zi:
             x = z.find(':') + 1
             run = copy.deepcopy(self.run)
-            run.charstyle = "ArialBold"
+            run.cstyle = "ArialBold"
             run.text = z[0:x] + " "
             runs.append(run)
             run = copy.deepcopy(self.run)
@@ -888,8 +941,8 @@ class ScrbHandler:
 def main():
     logger.debug("4scrb")
     import tourServer
-    tourServerVar = tourServer.TourServer(True, False, False)
-    touren = tourServerVar.getTouren("152085", "2019-07-01", "2019-07-31", "Radtour")
+    tourServerVar = tourServer.TourServer(False, False, False)
+    touren = tourServerVar.getTouren("152059", "2017-07-06", "2017-07-07", "Radtour")
     sh = ScrbHandler(None)
     for tour1 in touren:
         tour2 = tourServerVar.getTour(tour1)

@@ -9,7 +9,9 @@
         <CheckProfile Name="PDF/X-4" ignoreErrors="0" autoCheck="1" checkGlyphs="1" checkOrphans="1" checkOverflow="1" checkPictures="1" checkPartFilledImageFrames="0" checkResolution="1" checkTransparency="0" minResolution="144" maxResolution="2400" checkAnnotations="1" checkRasterPDF="1" checkForGIF="1" ignoreOffLayers="0" checkNotCMYKOrSpot="0" checkDeviceColorsAndOutputIntent="1" checkFontNotEmbedded="1" checkFontIsOpenType="0" checkAppliedMasterDifferentSide="1" checkEmptyTextFrames="1"/>
         <CheckProfile Name="PostScript" ignoreErrors="0" autoCheck="1" checkGlyphs="1" checkOrphans="1" checkOverflow="1" checkPictures="1" checkPartFilledImageFrames="0" checkResolution="1" checkTransparency="1" minResolution="144" maxResolution="2400" checkAnnotations="0" checkRasterPDF="1" checkForGIF="1" ignoreOffLayers="0" checkNotCMYKOrSpot="0" checkDeviceColorsAndOutputIntent="0" checkFontNotEmbedded="0" checkFontIsOpenType="0" checkAppliedMasterDifferentSide="1" checkEmptyTextFrames="1"/>
         <COLOR NAME="#800000" SPACE="RGB" R="150" G="100" B="50"/>
+        <COLOR NAME="ADFC_Blue_" SPACE="CMYK" C="90.1960784313726" M="60" Y="10.1960784313725" K="30.1960784313725"/>
         <COLOR NAME="ADFC_Yellow" SPACE="CMYK" C="0" M="60" Y="100" K="0"/>
+        <COLOR NAME="ADFC_Yellow_" SPACE="CMYK" C="0" M="60" Y="100" K="0"/>
         <COLOR NAME="Black" SPACE="CMYK" C="0" M="0" Y="0" K="100"/>
         <COLOR NAME="Blue" SPACE="CMYK" C="98.4313725490196" M="74.5098039215686" Y="0" K="0"/>
         <COLOR NAME="Cool Black" SPACE="CMYK" C="60" M="0" Y="0" K="100"/>
@@ -25,19 +27,25 @@
         <HYPHEN/>
         <STYLE NAME="Default Paragraph Style" DefaultStyle="1" ALIGN="0" LINESPMode="0" LINESP="15" INDENT="0" RMARGIN="0" FIRST="0" VOR="0" NACH="0" ParagraphEffectOffset="0" DROP="0" DROPLIN="2" Bullet="0" Numeration="0" BCOLOR="None" BSHADE="100"/>
         <STYLE NAME="leftrightaligned" LINESPMode="1" FONTSIZE="6" LANGUAGE="en_GB">
-            <Tabs Type="1" Pos="188" Fill=""/>
+            <Tabs Type="1" Pos="182" Fill=""/>
         </STYLE>
         <STYLE NAME="Body" ALIGN="3" LINESPMode="1" LINESP="15" INDENT="0" RMARGIN="0" FIRST="0" VOR="0" NACH="0" ParagraphEffectOffset="0" DROP="0" DROPLIN="2" Bullet="0" Numeration="0" BCOLOR="None" BSHADE="100" FONTSIZE="6"/>
         <STYLE NAME="LastLine" PARENT="Body" NACH="6"/>
         <STYLE NAME="2Tabs" LINESP="6" FONTSIZE="6" LANGUAGE="de">
             <Tabs Type="0" Pos="82.2047244094488" Fill=""/>
-            <Tabs Type="0" Pos="133.228346456693" Fill=""/>
+            <Tabs Type="0" Pos="134.228346456693" Fill=""/>
         </STYLE>
-        <CHARSTYLE CNAME="Default Character Style" DefaultStyle="1" FONT="Arial Regular" FONTSIZE="12" FEATURES="inherit" FCOLOR="Black" FSHADE="100" SCOLOR="Black" BGCOLOR="None" BGSHADE="100" SSHADE="100" TXTSHX="5" TXTSHY="-5" TXTOUT="1" TXTULP="-0.1" TXTULW="-0.1" TXTSTP="-0.1" TXTSTW="-0.1" SCALEH="100" SCALEV="100" BASEO="0" KERN="0" LANGUAGE="en_GB"/>
-        <CHARSTYLE CNAME="Test1" FONT="Broadway Regular" FONTFEATURES="-clig,-liga" LANGUAGE="de"/>
+        <STYLE NAME="MD_P_REGULAR" ALIGN="0" LINESPMode="0" LINESP="15" INDENT="0" RMARGIN="0" FIRST="0" VOR="0" NACH="0" ParagraphEffectOffset="0" DROP="0" Bullet="0" CPARENT="MD_C_REGULAR"/>
+        <CHARSTYLE CNAME="Default Character Style" DefaultStyle="1" FONT="Arial Regular" FONTSIZE="6" FEATURES="inherit" FCOLOR="Black" FSHADE="100" SCOLOR="Black" BGCOLOR="None" BGSHADE="100" SSHADE="100" TXTSHX="5" TXTSHY="-5" TXTOUT="1" TXTULP="-0.1" TXTULW="-0.1" TXTSTP="-0.1" TXTSTW="-0.1" SCALEH="100" SCALEV="100" BASEO="0" KERN="0" LANGUAGE="en_GB"/>
+        <CHARSTYLE CNAME="Test1" FONT="Broadway Regular" FONTSIZE="10" FONTFEATURES="-clig,-liga" SCALEH="100" LANGUAGE="de"/>
         <CHARSTYLE CNAME="Underline" CPARENT="Default Character Style" FONTSIZE="6" FEATURES="underline" TXTSHX="5" TXTSHY="-5" TXTOUT="1" TXTULP="-0.1" TXTULW="-0.1" TXTSTP="-0.1" TXTSTW="-0.1"/>
         <CHARSTYLE CNAME="ArialBold" FONT="Arial Bold" FONTSIZE="6" FONTFEATURES="-clig" LANGUAGE="de"/>
         <CHARSTYLE CNAME="ArialItalic" FONT="Arial Italic" FONTSIZE="6" FONTFEATURES="-clig,-liga" LANGUAGE="de"/>
+        <CHARSTYLE CNAME="Yellow" FCOLOR="ADFC_Yellow" LANGUAGE="de"/>
+        <CHARSTYLE CNAME="WD3" FONT="Wingdings 3 Regular" FONTFEATURES="-clig,-liga" FCOLOR="ADFC_Yellow" LANGUAGE="de"/>
+        <CHARSTYLE CNAME="WD2" FONT="Wingdings 2 Regular" FONTFEATURES="-clig,-liga" FCOLOR="ADFC_Yellow" LANGUAGE="de"/>
+        <CHARSTYLE CNAME="WD2_Y_" FONT="Wingdings 2 Regular" FCOLOR="ADFC_Yellow_" SCOLOR="Black"/>
+        <CHARSTYLE CNAME="MD_C_REGULAR" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" SCOLOR="Black" LANGUAGE="de_DE"/>
         <TableStyle NAME="Default Table Style" DefaultStyle="1" FillColor="None" FillShade="100">
             <TableBorderLeft>
                 <TableBorderLine Width="1" PenStyle="1" Color="Black" Shade="100"/>
@@ -106,13 +114,13 @@
         <MASTERPAGE PAGEXPOS="100.00062992126" PAGEYPOS="20.0012598425197" PAGEWIDTH="419.527559055118" PAGEHEIGHT="595.275590551181" BORDERLEFT="15" BORDERRIGHT="15" BORDERTOP="20" BORDERBOTTOM="20" NUM="1" NAM="RechtsA5" MNAM="" Size="A5" Orientation="0" LEFT="0" PRESET="0" VerticalGuides="" HorizontalGuides="" AGhorizontalAutoGap="0" AGverticalAutoGap="0" AGhorizontalAutoCount="0" AGverticalAutoCount="0" AGhorizontalAutoRefer="0" AGverticalAutoRefer="0" AGSelection="0 0 0 0" pageEffectDuration="1" pageViewDuration="1" effectType="0" Dm="0" M="0" Di="0"/>
         <MASTERPAGE PAGEXPOS="100.00062992126" PAGEYPOS="20.0012598425197" PAGEWIDTH="419.527559055118" PAGEHEIGHT="595.275590551181" BORDERLEFT="15" BORDERRIGHT="15" BORDERTOP="20" BORDERBOTTOM="20" NUM="2" NAM="LinksA5" MNAM="" Size="A5" Orientation="0" LEFT="1" PRESET="0" VerticalGuides="" HorizontalGuides="" AGhorizontalAutoGap="0" AGverticalAutoGap="0" AGhorizontalAutoCount="0" AGverticalAutoCount="0" AGhorizontalAutoRefer="0" AGverticalAutoRefer="0" AGSelection="0 0 0 0" pageEffectDuration="1" pageViewDuration="1" effectType="0" Dm="0" M="0" Di="0"/>
         <PAGE PAGEXPOS="519.528188976378" PAGEYPOS="20.0012598425197" PAGEWIDTH="419.527559055118" PAGEHEIGHT="595.275590551181" BORDERLEFT="15" BORDERRIGHT="15" BORDERTOP="20" BORDERBOTTOM="20" NUM="0" NAM="" MNAM="RechtsA5" Size="A5" Orientation="0" LEFT="0" PRESET="0" VerticalGuides="" HorizontalGuides="" AGhorizontalAutoGap="0" AGverticalAutoGap="0" AGhorizontalAutoCount="0" AGverticalAutoCount="0" AGhorizontalAutoRefer="0" AGverticalAutoRefer="0" AGSelection="0 0 0 0" pageEffectDuration="1" pageViewDuration="1" effectType="0" Dm="0" M="0" Di="0"/>
-        <MASTEROBJECT XPOS="115.00062992126" YPOS="40.0012598425197" OwnPage="1" ItemID="285600944" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" OnMasterPage="RechtsA5" gXpos="4661066.18173142" gYpos="4579739.46299202" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
+        <MASTEROBJECT XPOS="115.00062992126" YPOS="40.0012598425197" OwnPage="1" ItemID="201988256" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" OnMasterPage="RechtsA5" gXpos="4805803.1896054" gYpos="4579739.46299202" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
             <StoryText>
                 <DefaultStyle/>
                 <trail/>
             </StoryText>
         </MASTEROBJECT>
-        <MASTEROBJECT XPOS="273.5" YPOS="595.276850393701" OwnPage="1" ItemID="285615104" PTYPE="4" WIDTH="73.5" HEIGHT="20" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="1" COLGAP="0" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L73.5 0 L73.5 20 L0 20 L0 0 Z" copath="M0 0 L73.5 0 L73.5 20 L0 20 L0 0 Z" OnMasterPage="RechtsA5" gXpos="3641353.18503876" gYpos="2705597.40031499" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
+        <MASTEROBJECT XPOS="273.5" YPOS="595.276850393701" OwnPage="1" ItemID="200380736" PTYPE="4" WIDTH="73.5" HEIGHT="20" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="1" COLGAP="0" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L73.5 0 L73.5 20 L0 20 L0 0 Z" copath="M0 0 L73.5 0 L73.5 20 L0 20 L0 0 Z" OnMasterPage="RechtsA5" gXpos="3786090.19291275" gYpos="2705597.40031499" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
             <StoryText>
                 <DefaultStyle/>
                 <var name="pgno"/>
@@ -122,7 +130,7 @@
                 <trail ALIGN="1"/>
             </StoryText>
         </MASTEROBJECT>
-        <MASTEROBJECT XPOS="278" YPOS="595.276850393701" OwnPage="2" ItemID="285598112" PTYPE="4" WIDTH="65.25" HEIGHT="20" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="1" COLGAP="0" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L65.25 0 L65.25 20 L0 20 L0 0 Z" copath="M0 0 L65.25 0 L65.25 20 L0 20 L0 0 Z" OnMasterPage="LinksA5" gXpos="94671.7007874014" gYpos="3022599.76283464" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
+        <MASTEROBJECT XPOS="278" YPOS="595.276850393701" OwnPage="2" ItemID="204356896" PTYPE="4" WIDTH="65.25" HEIGHT="20" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="1" COLGAP="0" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L65.25 0 L65.25 20 L0 20 L0 0 Z" copath="M0 0 L65.25 0 L65.25 20 L0 20 L0 0 Z" OnMasterPage="LinksA5" gXpos="94671.7007874014" gYpos="3022599.76283464" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
             <StoryText>
                 <DefaultStyle/>
                 <ITEXT CH="L "/>
@@ -132,57 +140,82 @@
                 <trail ALIGN="1"/>
             </StoryText>
         </MASTEROBJECT>
-        <MASTEROBJECT XPOS="115.00062992126" YPOS="40.0012598425197" OwnPage="2" ItemID="285589616" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" OnMasterPage="LinksA5" gXpos="94508.7014173227" gYpos="2955975.85858268" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
+        <MASTEROBJECT XPOS="115.00062992126" YPOS="40.0012598425197" OwnPage="2" ItemID="204359728" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" OnMasterPage="LinksA5" gXpos="94508.7014173227" gYpos="2955975.85858268" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
             <StoryText>
                 <DefaultStyle/>
                 <trail/>
             </StoryText>
         </MASTEROBJECT>
-        <PAGEOBJECT XPOS="534.528188976378" YPOS="40.0012598425197" OwnPage="0" ItemID="285617936" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" ANNAME="Template" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" gXpos="534.528188976378" gYpos="40.0012598425197" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
+        <PAGEOBJECT XPOS="534.528188976378" YPOS="40.0012598425197" OwnPage="0" ItemID="203980848" PTYPE="4" WIDTH="389.527559055118" HEIGHT="555.275590551181" FRTYPE="0" CLIPEDIT="0" PWIDTH="1" PLINEART="1" ANNAME="Template" LOCALSCX="1" LOCALSCY="1" LOCALX="0" LOCALY="0" LOCALROT="0" PICART="1" SCALETYPE="1" RATIO="1" COLUMNS="2" COLGAP="8.50393700787402" AUTOTEXT="0" EXTRA="0" TEXTRA="0" BEXTRA="0" REXTRA="0" VAlign="0" FLOP="0" PLTSHOW="0" BASEOF="0" textPathType="0" textPathFlipped="0" path="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" copath="M0 0 L389.528 0 L389.528 555.276 L0 555.276 L0 0 Z" gXpos="534.528188976378" gYpos="40.0012598425197" gWidth="0" gHeight="0" LAYER="0" NEXTITEM="-1" BACKITEM="-1">
             <StoryText>
                 <DefaultStyle LINESPMode="0" LINESP="6" FONTSIZE="6"/>
                 <para PARENT="Body"/>
                 <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" FSHADE="100" CH="some "/>
-                <ITEXT CPARENT="Test1" FONT="Broadway Regular" FONTSIZE="12" FCOLOR="Black" FSHADE="100" CH="tex"/>
-                <ITEXT CPARENT="Test1" CH="t"/>
-                <para PARENT="Body"/>
-                <ITEXT CH="/template /tour /selektion=Touren"/>
+                <ITEXT CPARENT="Test1" CH="text"/>
                 <para PARENT="Body"/>
                 <ITEXT CPARENT="ArialBold" CH="bold"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH=" "/>
+                <ITEXT CPARENT="Default Character Style" CH=" "/>
                 <ITEXT CPARENT="ArialItalic" CH="italic"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH=" "/>
-                <ITEXT CPARENT="Underline" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="underline"/>
+                <ITEXT CPARENT="Default Character Style" CH=" "/>
+                <ITEXT CPARENT="Underline" CH="underline"/>
                 <para PARENT="Body"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="ADFC_Yellow" CH="${titel}"/>
-                <tab CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black"/>
-                <ITEXT CH="${nummer}"/>
+                <ITEXT CPARENT="Yellow" CH="Zum Germeringer See"/>
+                <tab CPARENT="Default Character Style"/>
+                <ITEXT CPARENT="Default Character Style" CH="T 999 F"/>
                 <para PARENT="leftrightaligned"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="${start}.fmt(%a%d.%m.%Y)"/>
-                <tab CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Wingdings 3 Regular" FONTSIZE="6" FCOLOR="ADFC_Yellow" CH=""/>
-                <ITEXT CH="${tourlänge}"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Wingdings 3 Regular" FONTSIZE="6" FCOLOR="ADFC_Yellow" CH=""/>
-                <tab CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black"/>
-                <ITEXT FCOLOR="ADFC_Yellow" CH="${schwierigkeitM}"/>
+                <ITEXT CPARENT="Default Character Style" CH="Thu06.07.2017"/>
+                <tab/>
+                <ITEXT CPARENT="WD3" CH=""/>
+                <ITEXT CPARENT="Default Character Style" CH="30 km"/>
+                <ITEXT CPARENT="WD3" CH=""/>
+                <tab CPARENT="Default Character Style"/>
+                <ITEXT CPARENT="WD2_Y_" CH="¢¢£££"/>
                 <para PARENT="2Tabs"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Wingdings 3 Regular" FONTSIZE="6" FCOLOR="ADFC_Yellow" CH=""/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="${höhenmeter} m; ${character}"/>
+                <ITEXT CPARENT="WD3" CH=""/>
+                <ITEXT CPARENT="Default Character Style" CH="200"/>
+                <ITEXT CH=" m; unbefestigte Wege"/>
                 <para PARENT="Body"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Wingdings 2 Regular" FONTSIZE="6" FCOLOR="ADFC_Yellow" CH=""/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="${abfahrtenM}"/>
+                <ITEXT CPARENT="WD2" CH=""/>
+                <ITEXT CPARENT="Default Character Style" CH="16:00 Uhr; München Pasing Bf (S,DB), Nordseite"/>
                 <para PARENT="Body"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="${beschreibung}"/>
+                <ITEXT CPARENT="MD_C_REGULAR" CH="Wir fahren durch die Aubinger Lohe zum Germeringer See (Bademöglichkeit). Zurück über Germering und den Kreuzlinger Forst und zum Biergarten"/>
+                <nbspace CPARENT="MD_C_REGULAR"/>
+                <ITEXT CPARENT="MD_C_REGULAR" CH="nach Pasing, wo wir um 21 Uhr ankommen."/>
+                <ITEXT CH="eins undzwei unddrei eingerücktvierdanneinsa undzweia unddreia eingerücktviera eingerücktfünfaText"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="Fetter Text"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="Kursiver Text"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="Fett und kursiv"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="durchgestrichener,fetter,kursiver Text"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="normaler durchgestrichener Text"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="bbbsss"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="sssbbb"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="eine Zeile mit"/>
+                <nbspace/>
+                <ITEXT CH="fettem und"/>
+                <nbspace/>
+                <ITEXT CH=" kursivem Text"/>
+                <para PARENT="MD_P_REGULAR"/>
+                <ITEXT CH="eine Trennlinie???Ein Blocktext :"/>
+                <nbspace/>
+                <ITEXT CH="Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.und ein link zu"/>
+                <nbspace/>
+                <ITEXT CH="Tabelle sparen wir uns erstmal"/>
                 <para PARENT="Body"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="${zusatzinfo}"/>
                 <para PARENT="Body"/>
-                <ITEXT CPARENT="Default Character Style" FONT="Arial Regular" FONTSIZE="6" FCOLOR="Black" CH="Leitung: ${tourleiterM}"/>
+                <ITEXT CPARENT="Default Character Style" CH="Leitung: "/>
                 <para PARENT="LastLine"/>
-                <ITEXT CH="/endtemplate"/>
-                <para PARENT="Body"/>
+                <ITEXT CH="Drei Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus estZwei Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus estEins Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est"/>
+                <para PARENT="LastLine"/>
                 <ITEXT CPARENT="Test1" CH="more"/>
                 <ITEXT CH=" text"/>
-                <para PARENT="Body"/>
                 <para PARENT="Body"/>
             </StoryText>
         </PAGEOBJECT>
