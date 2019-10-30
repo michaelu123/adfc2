@@ -1,16 +1,17 @@
 # encoding: utf-8
 
-import tourRest
-import selektion
-import os
-import sys
-import re
-import datetime
-import time
 import copy
+import datetime
+import os
+import re
+import sys
+import time
+
 import markdown
-#import codecs
+import selektion
+# import codecs
 import styles
+import tourRest
 from myLogger import logger
 
 try:
@@ -148,7 +149,6 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self.fontStyles = ""
         self.lvl = 4
         for child in root: # skip <div> root
-            logger.debug("run2 %s", child)
             self.walkOuter(child)
         logger.debug("run3")
         root.clear()
@@ -167,9 +167,9 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
     def printLines(self, s):
         s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
-        logger.debug("printLines %s", s)
         sav = self.tpRun.cstyle
         self.tpRun.cstyle = styles.modifyFont(self.tpRun.cstyle, self.fontStyles)
+        logger.debug("printLines %s %s %s", self.tpRun.pstyle, self.tpRun.cstyle, s)
         self.scrbHandler.insertText(s, self.tpRun)
         self.tpRun.cstyle = sav
 
@@ -207,7 +207,7 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         if node.text is not None:
             self.printLines(node.text)
         for dnode in node:
-            self.walkOuter(dnode)
+                self.walkOuter(dnode)
 
 
     def h(self, pstyle, cstyle, node):
@@ -241,12 +241,9 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
     def p(self, node):
         #node.tail = None
-        sav = self.tpRun.pstyle
-        self.tpRun.pstyle = "MD_P_REGULAR"
         self.tpRun.cstyle = "MD_C_REGULAR"
         self.checkStylesExi(self.tpRun)
         self.walkInner(node)
-        self.tpRun.pstyle = sav
 
     def strong(self, node):
         sav = self.fontStyles
@@ -281,7 +278,7 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
 
     def li(self, node):
-        node.tail = None
+        #node.tail = None
         self.walkInner(node)
 
     def a(self, node):
@@ -294,7 +291,11 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
 
     def blockQuote(self, node):
         node.text = node.tail = None
+        savP = self.tpRun.pstyle
+        self.tpRun.pstyle = "MD_P_BLOCK"
+        self.checkStylesExi(self.tpRun)
         self.walkInner(node)
+        self.tpRun.pstyle = savP
 
     def hr(self, node):
         node.tail = None
@@ -429,6 +430,9 @@ class ScrbHandler:
             if cstyle != last_cstyle:
                 changed = True
 
+            # ff = scribus.getFontFeatures()
+            # ff mostly "", for Wingdins chars ="-clig,-liga" !?!?
+            # logger.debug("c=%s p=%s c=%s ff=%s", char, pstyle, cstyle, str(ff))
             if changed:
                 runs.append(ScrbRun(text, last_pstyle, last_cstyle))
                 last_pstyle = pstyle
@@ -956,3 +960,4 @@ import pstats
 with open("cprof.txt", "w") as cprf:
     p = pstats.Stats("cprof.prf", stream=cprf)
     p.strip_dirs().sort_stats("cumulative").print_stats(20)
+

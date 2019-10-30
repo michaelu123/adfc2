@@ -14,6 +14,7 @@ BASE_COLOR = "Black"
 LANG_CODE = "de_DE"
 
 MD_P_REGULAR = { "name": "MD_P_REGULAR", "linespacingmode":1, "alignment": 0, "charstyle": "MD_C_REGULAR" }
+MD_P_BLOCK = { "name": "MD_P_BLOCK", "linespacingmode":1, "alignment": 3, "charstyle": "MD_C_REGULAR" }
 MD_C_REGULAR = { "name": "MD_C_REGULAR", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 MD_C_BOLD = { "name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["bold"], "language": LANG_CODE}
 MD_C_ITALIC = { "name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["italic"], "language": LANG_CODE}
@@ -34,7 +35,7 @@ MD_C_H5 = { "name": "MD_C_H5", "font": BASE_FONT, "fontsize": 10, "fillcolor": B
 MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":1, "charstyle": "MD_C_H6" }
 MD_C_H6 = { "name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
-pstyleList = [MD_P_REGULAR, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
+pstyleList = [MD_P_REGULAR, MD_P_BLOCK, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
 cstyleList = [MD_C_REGULAR, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
 pstyles = {}
 cstyles = {}
@@ -160,7 +161,34 @@ strikethruoffset [optional], strikethruwidth [optional] -> strikethru options if
 scaleh [optional], scalev [optional] -> scale of the chars
 tracking [optional] -> tracking of the text
 "language" [optional] -> language code
+"""
 
+"""
+Scribus script commands may be produced with this code. Paste it into Scribus Console and enter F9
+
+def printScribusCommands():
+    d = dir(scribus)
+    for j in d:
+        try:
+            res = eval(j+'.__doc__')
+            if res[0:5] == 'float':
+                print('\nCONSTANT:\n',j,'\nVALUE: float')
+                exec('print('+j+')')
+            elif res[0:5] == 'int([':
+                print('\nCONSTANT:\n',j,'\nVALUE: integer')
+                exec('print('+j+')')
+            elif res[0:5] == 'Built':
+                print('\nTUPLE:\n',j,'\nVALUE:')
+                exec('print(repr('+j+'))')
+            elif res[0:4] == 'str(':
+                print('\nSTRING:\n',j,'\nVALUE:')
+                exec('print(repr('+j+'))')
+            else:
+                print('\nFUNCTION:\n'+j+'\n\nSYNTAX:')
+                print( res)
+        except: pass
+
+printScribusCommands()
 """
 
 if __name__ == '__main__':
