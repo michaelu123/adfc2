@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import copy
+import enum
 from myLogger import logger
 
 try:
@@ -8,18 +9,26 @@ try:
 except ImportError:
     import scribusTest
 
+# change here
 BASE_FONT= "Arial Regular"
 BASE_FONTSIZE = 6.0
 BASE_COLOR = "Black"
 LANG_CODE = "de_DE"
+INDENT = 12 # indentation of (bulleted, numbered) list, in Points (!?)
+BULLET_FONT = "Symbol Regular"
+BULLET_CHAR = "\xB7"
+HYPHEN_FONT = "Symbol"
+HYPhEN_CHAR = "\x2D"
 
 MD_P_REGULAR = { "name": "MD_P_REGULAR", "linespacingmode":1, "alignment": 0, "charstyle": "MD_C_REGULAR" }
 MD_P_BLOCK = { "name": "MD_P_BLOCK", "linespacingmode":1, "alignment": 3, "charstyle": "MD_C_REGULAR" }
+
 MD_C_REGULAR = { "name": "MD_C_REGULAR", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 MD_C_BOLD = { "name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["bold"], "language": LANG_CODE}
 MD_C_ITALIC = { "name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["italic"], "language": LANG_CODE}
 MD_C_UNDERLINE = { "name": "MD_C_UNDERLINE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["underline"], "language": LANG_CODE}
 MD_C_STRIKE = { "name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["strike"], "language": LANG_CODE}
+MD_C_BULLET = { "name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 # 0, 24, 18, 14, 12, 10, 8
 MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":1, "charstyle": "MD_C_H1" }
@@ -36,7 +45,7 @@ MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":1, "charstyle": "MD_C_H6" }
 MD_C_H6 = { "name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 pstyleList = [MD_P_REGULAR, MD_P_BLOCK, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
-cstyleList = [MD_C_REGULAR, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
+cstyleList = [MD_C_REGULAR, MD_C_BULLET, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
 pstyles = {}
 cstyles = {}
 pstylesConfigured = {}
@@ -110,6 +119,26 @@ def modifyFont(cStyle, fontStyles):
     cstylesConfigured[nStyle] = style
     cstyles[nStyle] = style
     return nStyle
+
+# see https://wiki.scribus.net/canvas/Bullets_and_numbered_lists
+def listStyle(pstyle, numbered, ctr, pIndent): # pstyle could be MD_P_REGULAR or MD_P_BLOCK
+    nStyle = pstyle + "_" + str(pIndent)
+    if nStyle in pstylesConfigured:
+        return nStyle
+    style = copy.deepcopy(pstyles[pstyle])
+    style["name"] = nStyle
+    style["tabs"] = [(pIndent * INDENT,0,"")]
+    style["leftmargin"] = pIndent * INDENT
+    style["firstindent"] = INDENT * -1
+    logger.debug("createParagraphStyle %s", str(style))
+    scribus.createParagraphStyle(**style)
+    pstylesConfigured[nStyle] = style
+    pstyles[nStyle] = style
+    return nStyle
+
+def bulletStyle():
+    checkCStyleExi("MD_C_BULLET")
+    return "MD_C_BULLET"
 
 """
 FUNCTION:
@@ -195,3 +224,4 @@ if __name__ == '__main__':
     import scribusTest as scribus
     checkCStyleExi("MD_C_REGULAR")
     checkPStyleExi("MD_P_REGULAR")
+

@@ -68,7 +68,6 @@ ulRE = r'(\^{2})(.+?)\1'
 STX = '\u0002'  # Use STX ("Start of text") for start-of-placeholder
 ETX = '\u0003'  # Use ETX ("End of text") for end-of-placeholder
 stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
-headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 nlctr = 0
 debug = False
 adfc_blue = 0x004b7c  # CMYK=90 60 10 30
@@ -77,7 +76,6 @@ noPStyle = 'Default Paragraph Style'
 noCStyle = 'Default Character Style'
 lastPStyle = ""
 lastCStyle = ""
-headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
 
 logger.debug("3scrb")
 
@@ -123,6 +121,9 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         super().__init__(md)
         self.scrbHandler = None
         self.fontStyles = ""
+        self.ctr = 0
+        self.pIndent = 0
+        self.numbered = False
         self.nodeHandler = {
             "h1": self.h1,
             "h2": self.h2,
@@ -204,14 +205,15 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
             self.lvl -= 4
 
     def walkInner(self, node):
+        if node.tag == "li":
+            node.text += node.tail
+            node.tail = None
         if node.text is not None:
             self.printLines(node.text)
         for dnode in node:
                 self.walkOuter(dnode)
 
-
     def h(self, pstyle, cstyle, node):
-        #node.tail = None
         savP = self.tpRun.pstyle
         savC = self.tpRun.cstyle
         self.tpRun.pstyle = pstyle
@@ -240,7 +242,6 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self.h("MD_P_H6", "MD_C_H6", node)
 
     def p(self, node):
-        #node.tail = None
         self.tpRun.cstyle = "MD_C_REGULAR"
         self.checkStylesExi(self.tpRun)
         self.walkInner(node)
@@ -269,16 +270,36 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         self.walkInner(node)
         self.fontStyles = sav
 
-    def ul(self, node):
+    def plist(self, node, numbered):
         node.text = node.tail = None
+        savCtr = self.ctr
+        savP = self.tpRun.pstyle
+        savN = self.numbered
+        self.ctr = 1
+        self.pIndent += 1
+        self.numbered = numbered
+        self.tpRun.pstyle = styles.listStyle(savP, numbered, self.ctr, self.pIndent)
         self.walkInner(node)
+        self.pIndent -= 1
+        self.ctr = savCtr
+        self.tpRun.pstyle = savP
+        self.numbered = savN
 
-    def ol(self, node):
-        node.text = node.tail = None
-        self.walkInner(node)
+    def ul(self, node): # bullet
+        self.plist(node, False)
+
+    def ol(self, node): # numbered
+        self.plist(node, True)
 
     def li(self, node):
-        #node.tail = None
+        if self.numbered:
+            self.scrbHandler.insertText(str(self.ctr)  + ".\t", self.tpRun)
+        else:
+            savC = self.tpRun.cstyle
+            self.tpRun.cstyle = styles.bulletStyle()
+            self.scrbHandler.insertText(styles.BULLET_CHAR + "\t", self.tpRun)
+            self.tpRun.cstyle = savC
+        self.ctr += 1
         self.walkInner(node)
 
     def a(self, node):
