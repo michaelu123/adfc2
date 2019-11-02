@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import locale
 
 import markdown
 import selektion
@@ -110,6 +111,10 @@ def pyinst(path):
             return pypath
     return path
 
+# add_hyperlink and insertHR can not be done in Scribus, as they are not related to the text, but to page
+# coordinates. I.e. if the text changes, lines and boxes stay where they are. I cannot even draw a line after a line
+# of text or draw a box around a word for a hyperlink, because I can't find out what the coordinates of the text are.
+# see http://forums.scribus.net/index.php/topic,3487.0.html
 def add_hyperlink(pos, url):
     pass
 
@@ -699,6 +704,16 @@ class ScrbHandler:
                 if item[1] != 4:
                     continue
                 self.textbox = item[0]
+                b = scribus.hyphenateText(self.textbox) # seems to have no effect!
+
+        pagenum = scribus.pageCount()
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                if item[1] != 4:
+                    continue
+                self.textbox = item[0]
                 while scribus.textOverflows(self.textbox):
                     self.createNewPage()
 
@@ -964,6 +979,7 @@ class ScrbHandler:
         return s
 
 def main():
+    locale.setlocale(locale.LC_TIME, "German")
     logger.debug("4scrb")
     import tourServer
     tourServerVar = tourServer.TourServer(False, False, False)

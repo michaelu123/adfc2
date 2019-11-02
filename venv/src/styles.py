@@ -10,8 +10,8 @@ except ImportError:
     import scribusTest
 
 # change here
-BASE_FONT= "Arial Regular"
-BASE_FONTSIZE = 6.0
+BASE_FONT= "Cambria Regular"
+BASE_FONTSIZE = 8.0
 BASE_COLOR = "Black"
 LANG_CODE = "de_DE"
 INDENT = 12 # indentation of (bulleted, numbered) list, in Points (!?)
@@ -31,17 +31,17 @@ MD_C_STRIKE = { "name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTS
 MD_C_BULLET = { "name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 # 0, 24, 18, 14, 12, 10, 8
-MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":1, "charstyle": "MD_C_H1" }
+MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":0, "linespacing": 24, "charstyle": "MD_C_H1" }
 MD_C_H1 = { "name": "MD_C_H1", "font": BASE_FONT, "fontsize": 24, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H2 = { "name": "MD_P_H2", "linespacingmode":1, "charstyle": "MD_C_H2" }
+MD_P_H2 = { "name": "MD_P_H2", "linespacingmode":0, "linespacing": 18, "charstyle": "MD_C_H2" }
 MD_C_H2 = { "name": "MD_C_H2", "font": BASE_FONT, "fontsize": 18, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H3 = { "name": "MD_P_H3", "linespacingmode":1, "charstyle": "MD_C_H3" }
+MD_P_H3 = { "name": "MD_P_H3", "linespacingmode":0, "linespacing": 14, "charstyle": "MD_C_H3" }
 MD_C_H3 = { "name": "MD_C_H3", "font": BASE_FONT, "fontsize": 14, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H4 = { "name": "MD_P_H4", "linespacingmode":1, "charstyle": "MD_C_H4" }
+MD_P_H4 = { "name": "MD_P_H4", "linespacingmode":0, "linespacing": 12, "charstyle": "MD_C_H4" }
 MD_C_H4 = { "name": "MD_C_H4", "font": BASE_FONT, "fontsize": 12, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H5 = { "name": "MD_P_H5", "linespacingmode":1, "charstyle": "MD_C_H5" }
+MD_P_H5 = { "name": "MD_P_H5", "linespacingmode":0, "linespacing": 10, "charstyle": "MD_C_H5" }
 MD_C_H5 = { "name": "MD_C_H5", "font": BASE_FONT, "fontsize": 10, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":1, "charstyle": "MD_C_H6" }
+MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":0, "linespacing": 8, "charstyle": "MD_C_H6" }
 MD_C_H6 = { "name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 pstyleList = [MD_P_REGULAR, MD_P_BLOCK, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
