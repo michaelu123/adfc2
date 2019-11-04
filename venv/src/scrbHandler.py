@@ -6,11 +6,10 @@ import os
 import re
 import sys
 import time
-import locale
 
+import adfc_gui
 import markdown
 import selektion
-# import codecs
 import styles
 import tourRest
 from myLogger import logger
@@ -21,33 +20,6 @@ except ImportError:
     print("Unable to import the 'scribus' module. This script will only run within")
     print("the Python interpreter embedded in Scribus. Try Script->Execute Script.")
     sys.exit(1)
-
-logger.debug("1scrb")
-params = """
-Linktyp: Frontend
-Selektion:
-	Gliederungen: 152059
-	MitUntergliederungen: nein
-	Beginn: 06.07.2017
-	Ende: 07.07.2017
-Terminselektion:
-	Name: Stammtische
-	Merkmalenthält: Stammtisch,Aktiventreff
-	Name: Rest
-	Merkmalenthältnicht: Stammtisch,Aktiventreff
-Tourselektion:
-	Name: Touren
-	Radtyp: Tourenrad
-	Name: MTB
-	Radtyp: Mountainbike
-	Name: RR
-	Radtyp: Rennrad
-	Name: MTT
-	Kategorie: Mehrtagestour
-""".split("\n")
-logger.debug("2scrb %s", str(params))
-
-
 
 schwierigkeitMap = { 0: "sehr einfach",
                      1: "sehr einfach",
@@ -77,8 +49,6 @@ noPStyle = 'Default Paragraph Style'
 noCStyle = 'Default Character Style'
 lastPStyle = ""
 lastCStyle = ""
-
-logger.debug("3scrb")
 
 def unicode(x): # because of Python2 compatibility
     return x
@@ -150,13 +120,11 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
             "hr": self.hr }
 
     def run(self, root):
-        logger.debug("run1 %s", root)
-        self.tpRun = ScrbRun("", "MD_P_REGULAR", "MD_C_REGULAR")
+        self.tpRun = ScrbRun("", "MD_P_BLOCK", "MD_C_REGULAR")
         self.fontStyles = ""
         self.lvl = 4
         for child in root: # skip <div> root
             self.walkOuter(child)
-        logger.debug("run3")
         root.clear()
 
     def setDeps(self, scrbHandler):
@@ -175,7 +143,6 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
         s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
         sav = self.tpRun.cstyle
         self.tpRun.cstyle = styles.modifyFont(self.tpRun.cstyle, self.fontStyles)
-        logger.debug("printLines %s %s %s", self.tpRun.pstyle, self.tpRun.cstyle, s)
         self.scrbHandler.insertText(s, self.tpRun)
         self.tpRun.cstyle = sav
 
@@ -359,12 +326,10 @@ class ScrbRun:
 
 class ScrbHandler:
     def __init__(self, gui):
-        logger.debug("1init")
         if not scribus.haveDoc():
             scribus.messageBox('Scribus - Script Error', "No document open", scribus.ICON_WARNING, scribus.BUTTON_OK)
             sys.exit(1)
 
-        self.doc = None
         self.gui = gui
         self.terminselections = {}
         self.tourselections = {}
@@ -379,6 +344,7 @@ class ScrbHandler:
         self.start = None
         self.end = None
         self.pos = None
+        self.ausgabedatei = None
 
         global debug
         try:
@@ -386,6 +352,8 @@ class ScrbHandler:
             debug = True
         except:
             debug = True #False
+
+        self.openScrb()
         self.scrbExtension = ScrbExtension()
         self.md = markdown.Markdown(extensions=[self.scrbExtension], enable_attributes=True, logger=logger)
         self.scrbExtension.scrbTreeProcessor.setDeps(self)
@@ -414,23 +382,15 @@ class ScrbHandler:
             u"abfahrtenm": self.expAbfahrtenM,
             u"tourleiterm": self.expTourLeiterM
         }
-        logger.debug("2init")
 
-    def openScrb(self, pp):
-        logger.debug("1openScrb")
-        self.parseParams(params)
-        logger.debug("2openScrb")
-        if pp:
-            self.setGuiParams()
-        logger.debug("3openScrb")
+    def openScrb(self):
         paraStyles = scribus.getParagraphStyles()
         charStyles = scribus.getCharStyles()
         logger.debug("paraStyles: %s\ncharStyles:%s", str(paraStyles), str(charStyles))
-
+        self.parseParams()
         scribus.defineColor("ADFC_Yellow_", 0, 153, 255, 0)
         scribus.defineColor("ADFC_Blue_", 230, 153, 26, 77)
         scribus.createCharStyle(name="WD2_Y_", font="Wingdings 2 Regular", fillcolor = "ADFC_Yellow_")
-        logger.debug("4openScrb")
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
@@ -438,6 +398,10 @@ class ScrbHandler:
 
     def makeRuns(self, pos1, pos2):
         runs = []
+
+        scribus.selectText(pos1, pos2 - pos1, self.textbox)
+        txtAll = scribus.getAllText(self.textbox)
+
         scribus.selectText(pos1, 1, self.textbox)
         last_pstyle = scribus.getStyle(self.textbox)
         last_cstyle = scribus.getCharacterStyle(self.textbox)
@@ -446,7 +410,9 @@ class ScrbHandler:
         changed = False
         for c in range(pos1, pos2):
             scribus.selectText(c, 1, self.textbox)
-            char = scribus.getText(self.textbox)
+            # does not work reliably, see https://bugs.scribus.net/view.php?id=15911
+            # char = scribus.getText(self.textbox)
+            char = txtAll[c-pos1]
 
             pstyle = scribus.getStyle(self.textbox)
             if pstyle != last_pstyle:
@@ -518,7 +484,37 @@ class ScrbHandler:
         self.textbox = newFrame
         self.insertPos = 0 # scribus.getTextLength(newFrame)
 
-    def parseParams(self, lines):
+    def parseParams(self):
+        pagenum = scribus.pageCount()
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            lines = []
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                if item[1] != 4:
+                    continue
+                self.textbox = item[0]
+                textlen = scribus.getTextLength(self.textbox)
+                if textlen == 0:
+                    continue
+                scribus.selectText(0, textlen, self.textbox)
+                alltext = unicode(scribus.getAllText(self.textbox))
+                pos1 = alltext.find("/parameter")
+                if pos1 < 0:
+                    continue
+                pos2 = alltext.find("/endparameter")
+                if pos2 < 0:
+                    raise ValueError("kein /endparameter nach /parameter")
+                pos2 += 13 # len("/endparameter")
+                lines = alltext[pos1:pos2].split('\r')[1:-1]
+                logger.debug("parsePar lines:%s %s", type(lines), str(lines))
+                scribus.selectText(pos1, pos2 - pos1, self.textbox)
+                scribus.deleteText(self.textbox)
+                break
+
+        if len(lines) == 0:
+            raise ValueError("No /parameter - /endparameter section in document")
+        logger.debug("9parsePar")
         self.includeSub = True
         lx = 0
         selections = {}
@@ -533,10 +529,13 @@ class ScrbHandler:
                 if word0 == "linktyp":
                     self.linkType = words[1].lower().capitalize()
                     lx += 1
+                elif word0 == "ausgabedatei":
+                    self.ausgabedatei = words[1]
+                    lx += 1
                 else:
                     raise ValueError(
                         "Unbekannter Parameter " + word0 +
-                        ", erwarte linktyp")
+                        ", erwarte linktyp oder ausgabedatei")
             elif word0 not in ["selektion", "terminselektion", "tourselektion" ]:
                 raise ValueError(
                     "Unbekannter Parameter " + word0 +
@@ -665,20 +664,11 @@ class ScrbHandler:
         self.termine.append(tour)
 
     def handleEnd(self):
-        if self.doc is None:
-            self.openScrb(False)
-        """
         self.linkType = self.gui.getLinkType()
         self.gliederung = self.gui.getGliederung()
         self.includeSub = self.gui.getIncludeSub()
         self.start = self.gui.getStart()
         self.end = self.gui.getEnd()
-        """
-        self.linkType = "Frontend"
-        self.gliederung = "125085"
-        self.includeSub = False
-        self.start = "2019-07-01"
-        self.end = "2019-07-31"
 
         pagenum = scribus.pageCount()
         for page in range(1, pagenum + 1):
@@ -688,23 +678,18 @@ class ScrbHandler:
                 if item[1] != 4:
                     continue
                 self.textbox = item[0]
-                textlen = scribus.getTextLength(self.textbox)
-                scribus.selectText(0, textlen, self.textbox)
-                logger.debug("textlen: " + str(textlen))
-                if textlen == 0:
-                    continue
-                alltext = unicode(scribus.getAllText(self.textbox))
-                self.evalTemplate(alltext)
+                self.evalTemplate()
 
-        pagenum = scribus.pageCount()
-        for page in range(1, pagenum + 1):
-            scribus.gotoPage(page)
-            pageitems = scribus.getPageItems()
-            for item in pageitems:
-                if item[1] != 4:
-                    continue
-                self.textbox = item[0]
-                b = scribus.hyphenateText(self.textbox) # seems to have no effect!
+        # hyphenate does not work
+        # pagenum = scribus.pageCount()
+        # for page in range(1, pagenum + 1):
+        #     scribus.gotoPage(page)
+        #     pageitems = scribus.getPageItems()
+        #     for item in pageitems:
+        #         if item[1] != 4:
+        #             continue
+        #         self.textbox = item[0]
+        #         b = scribus.hyphenateText(self.textbox) # seems to have no effect!
 
         pagenum = scribus.pageCount()
         for page in range(1, pagenum + 1):
@@ -717,50 +702,69 @@ class ScrbHandler:
                 while scribus.textOverflows(self.textbox):
                     self.createNewPage()
 
-        self.doc = None
-        self.touren = []
-        self.termine = []
+        ausgabedatei = self.ausgabedatei
+        if ausgabedatei == None or ausgabedatei == "":
+            ausgabedatei = "ADFC_" + self.gliederung + (
+                "_I_" if self.includeSub else "_") + self.start + "-" + self.end + "_" + self.linkType[0] + ".sla"
+        try:
+            scribus.saveDocAs(ausgabedatei)
+        except Exception as e:
+            print("Ausgabedatei", ausgabedatei, "konnte nicht geschrieben werden")
+            raise e
+        finally:
+            self.touren = []
+            self.termine = []
+            self.gui.destroy()
+            self.gui.quit()
 
-    def evalTemplate(self, alltext):
-        logger.debug("alltext: %s %s", type(alltext), alltext)
+    def evalTemplate(self):
+        pos1 = 0
+        while True:
+            textlen = scribus.getTextLength(self.textbox)
+            if textlen == 0:
+                return
+            scribus.selectText(0, textlen, self.textbox)
+            alltext = unicode(scribus.getAllText(self.textbox))
+            #logger.debug("alltext: %s %s", type(alltext), alltext)
 
-        pos1 = alltext.find("/template")
-        if pos1 < 0:
-            return
-        pos2 = alltext.find("/endtemplate")
-        if pos2 < 0:
-            raise Exception("kein /endtemplate nach /template")
-        pos2 += 12   # len("/endtemplate")
-        lines = alltext[pos1:pos2].split('\r')
-        #logger.debug("lines:%s %s", type(lines), str(lines))
-        line0 = lines[0]
-        lineN = lines[-1]
-        #logger.debug("lineN: %s %s", type(lineN), lineN)
-        if lineN != "/endtemplate":
-            raise ValueError("Die letzte Zeile des templates darf nur /endtemplate enthalten")
-        words = line0.split()
-        typ = words[1]
-        if typ != "/tour" and typ != "/termin":
-            raise ValueError("Zweites Wort nach /template muß /tour oder /termin sein")
-        typ = typ[1:]
-        sel = words[2]
-        if not sel.startswith("/selektion="):
-            raise ValueError("Drittes Wort nach /template muß mit /selektion= beginnen")
-        sel = sel[11:].lower()
-        sels = self.tourselections if typ == "tour" else self.terminselections
-        if not sel in sels:
-            raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
-        sel = sels[sel]
-        touren = self.touren if typ == "tour" else self.termine
-        self.insertPos = pos1
-        runs = self.makeRuns(pos1, pos2)
-        logger.debug("runs:%s", str(runs))
-        # can now remove template
-        scribus.selectText(pos1, pos2-pos1, self.textbox)
-        scribus.deleteText(self.textbox)
-        self.insertPos = pos1
-        self.evalTouren(sel, touren, runs)
-
+            pos1 = alltext.find("/template", pos1)
+            logger.debug("pos /template=%d", pos1)
+            if pos1 < 0:
+                return
+            pos2 = alltext.find("/endtemplate")
+            if pos2 < 0:
+                raise Exception("kein /endtemplate nach /template")
+            pos2 += 12   # len("/endtemplate")
+            lines = alltext[pos1:pos2].split('\r')
+            logger.debug("lines:%s %s", type(lines), str(lines))
+            line0 = lines[0]
+            lineN = lines[-1]
+            #logger.debug("lineN: %s %s", type(lineN), lineN)
+            if lineN != "/endtemplate":
+                raise ValueError("Die letzte Zeile des templates darf nur /endtemplate enthalten")
+            logger.debug("5et")
+            words = line0.split()
+            typ = words[1]
+            if typ != "/tour" and typ != "/termin":
+                raise ValueError("Zweites Wort nach /template muß /tour oder /termin sein")
+            typ = typ[1:]
+            sel = words[2]
+            if not sel.startswith("/selektion="):
+                raise ValueError("Drittes Wort nach /template muß mit /selektion= beginnen")
+            sel = sel[11:].lower()
+            sels = self.tourselections if typ == "tour" else self.terminselections
+            if not sel in sels:
+                raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
+            sel = sels[sel]
+            touren = self.touren if typ == "tour" else self.termine
+            self.insertPos = pos1
+            runs = self.makeRuns(pos1, pos2)
+            logger.debug("runs:%s", str(runs))
+            # can now remove template
+            scribus.selectText(pos1, pos2-pos1, self.textbox)
+            scribus.deleteText(self.textbox)
+            self.insertPos = pos1
+            self.evalTouren(sel, touren, runs)
 
     def evalTouren(self, sel, touren, runs):
         selectedTouren = []
@@ -771,7 +775,6 @@ class ScrbHandler:
         logger.debug("seltouren: %d", len(selectedTouren))
         if len(selectedTouren) == 0:
             return
-        selectedTouren = selectedTouren[0:5]  # TODO weg
         for tour in selectedTouren:
             self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
             logger.debug("tourMsg: %s", self.tourMsg)
@@ -795,16 +798,16 @@ class ScrbHandler:
                 nl = "\n"
 
     def expandLine(self, s, tour):
-        logger.debug("expand1 <%s>", s)
+        #logger.debug("expand1 <%s>", s)
         spos = 0
         while True:
             mp = paramRE.search(s, spos)
             if mp is None:
-                logger.debug("noexp %s", s[spos:])
+                #logger.debug("noexp %s", s[spos:])
                 self.insertText(s[spos:], self.run)
                 return
             gp = mp.group(1).lower()
-            logger.debug("expand2 %s", gp)
+            #logger.debug("expand2 %s", gp)
             sp = mp.span()
             self.insertText(s[spos:sp[0]], self.run)
             mf = fmtRE.search(s, pos=spos)
@@ -816,7 +819,7 @@ class ScrbHandler:
             else:
                 expanded = self.expandParam(gp, tour, None)
                 spos = sp[1]
-            logger.debug("expand3 <%s>", str(expanded))
+            #logger.debug("expand3 <%s>", str(expanded))
             if expanded is None: # special case for beschreibung, handled as markdown
                 return
             if isinstance(expanded, list): # list is n runs + 1 string
@@ -881,9 +884,8 @@ class ScrbHandler:
         desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
         # did I ever need this?
-        #py3: desc = codecs.decode(desc, encoding = "unicode_escape")
-        #py2:desc = codecs.decode(desc, "unicode_escape")
-        logger.debug("desc type:%s <<<%s>>>", type(desc), desc)
+        #desc = codecs.decode(desc, encoding = "unicode_escape")
+        #logger.debug("desc type:%s <<<%s>>>", type(desc), desc)
         self.md.convert(desc)
         self.md.reset()
         return None
@@ -979,22 +981,21 @@ class ScrbHandler:
         return s
 
 def main():
-    locale.setlocale(locale.LC_TIME, "German")
-    logger.debug("4scrb")
-    import tourServer
-    tourServerVar = tourServer.TourServer(False, False, False)
-    touren = tourServerVar.getTouren("152059", "2017-07-06", "2017-07-07", "Radtour")
-    sh = ScrbHandler(None)
-    for tour1 in touren:
-        tour2 = tourServerVar.getTour(tour1)
-        sh.handleTour(tour2)
-    sh.handleEnd()
-    logger.debug("6scrb")
+    try:
+        scribus.statusMessage('Running script...')
+        #scribus.progressReset()
+        adfc_gui.main("-scribus")
+    finally:
+        if scribus.haveDoc() > 0:
+            scribus.redrawAll()
+        scribus.statusMessage('Done.')
+        #scribus.progressReset()
 
-import cProfile
-cProfile.run("main()", "cprof.prf")
-import pstats
-with open("cprof.txt", "w") as cprf:
-    p = pstats.Stats("cprof.prf", stream=cprf)
-    p.strip_dirs().sort_stats("cumulative").print_stats(20)
+if __name__ == "__main__":
+    import cProfile
+    cProfile.run("main()", "cprof.prf")
+    import pstats
+    with open("cprof.txt", "w") as cprf:
+        p = pstats.Stats("cprof.prf", stream=cprf)
+        p.strip_dirs().sort_stats("cumulative").print_stats(20)
 

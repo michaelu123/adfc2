@@ -153,16 +153,16 @@ def normalizeText(t):
     return t
 
 
-class Tour:
-    def __init__(self, tourJS, tourJSSearch, tourServer):
-        self.tourJS = tourJS
-        self.tourJSSearch = tourJSSearch
-        self.tourServer = tourServer
-        self.tourLocations = tourJS.get("tourLocations")
-        self.itemTags = tourJS.get("itemTags")
-        self.eventItem = tourJS.get("eventItem")
+class Event:
+    def __init__(self, eventJS, eventJSSearch, eventServer):
+        self.eventJS = eventJS
+        self.eventJSSearch = eventJSSearch
+        self.eventServer = eventServer
+        self.tourLocations = eventJS.get("tourLocations")
+        self.itemTags = eventJS.get("itemTags")
+        self.eventItem = eventJS.get("eventItem")
         self.titel = self.eventItem.get("title").strip()
-        logger.info("eventItemId %s", self.eventItem.get("eventItemId"))
+        logger.info("eventItemId %s %s", self.titel, self.eventItem.get("eventItemId"))
 
     def getTitel(self):
         return self.titel
@@ -174,7 +174,7 @@ class Tour:
         return "https://intern-touren-termine.adfc.de/modules/events/" + self.eventItem.get("eventItemId")
 
     def getNummer(self):
-        num = self.tourJSSearch.get("tourNummer")
+        num = self.eventJSSearch.get("eventNummer")
         if num is None:
             num = "999"
         return num
@@ -361,18 +361,18 @@ class Tour:
         personen = []
         organizer = self.eventItem.get("cOrganizingUserId")
         if organizer is not None and len(organizer) > 0:
-            org = self.tourServer.getUser(organizer)
+            org = self.eventServer.getUser(organizer)
             if org is not None:
                 personen.append(str(org))
         organizer2 = self.eventItem.get("cSecondOrganizingUserId")
         if organizer2 is not None and len(organizer2) > 0 and organizer2 != organizer:
-            org = self.tourServer.getUser(organizer2)
+            org = self.eventServer.getUser(organizer2)
             if org is not None:
                 personen.append(str(org))
         return personen
 
     def getImagePreview(self):
-        return self.tourJS.get("imagePreview")
+        return self.eventJS.get("imagePreview")
 
     def getName(self):
         tourLoc = self.tourLocations[0]

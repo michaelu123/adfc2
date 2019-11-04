@@ -6,11 +6,12 @@ import functools
 from myLogger import logger
 import adfc_gliederungen
 
-class TourServer:
+class EventServer:
     def __init__(self, py2, useResta, includeSuba):
         self.useRest = useResta
         self.includeSub = includeSuba
         self.tpConn = None
+        self.events = {}
         self.alleTouren = []
         self.alleTermine = []
         self.py2 = False
@@ -30,7 +31,7 @@ class TourServer:
             self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
-    def getTouren(self, unitKey, start, end, type):
+    def getEvents(self, unitKey, start, end, type):
         unit = "Alles" if unitKey is None or unitKey == "" else unitKey
         startYear = start[0:4]
         jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + startYear + ".json"
@@ -53,9 +54,9 @@ class TourServer:
             with open(jsonPath, "r") as jsonFile:
                 jsRoot = json.load(jsonFile)
         items = jsRoot.get("items")
-        touren = []
+        events = []
         if len(items) == 0:
-            return touren
+            return events
         if not resp is None:  # a REST call result always overwrites jsonPath
             with open(jsonPath, "w") as jsonFile:
                 json.dump(jsRoot, jsonFile, indent=4)
@@ -63,16 +64,16 @@ class TourServer:
             #item["imagePreview"] = ""  # save space
             titel = item.get("title")
             if titel is None:
-                logger.error("Kein Titel für die Tour %s", str(item))
+                logger.error("Kein Titel für den Event %s", str(item))
                 continue
             if item.get("cStatus") == "Cancelled" or item.get("isCancelled"):
-                logger.info("Tour %s ist gecancelt", titel)
+                logger.info("Event %s ist gecancelt", titel)
                 continue
             if type != "Alles" and item.get("eventType") != type:
                 continue
             beginning = item.get("beginning")
             if beginning is None:
-                logger.error("Kein Beginn für die Tour %s", titel)
+                logger.error("Kein Beginn für den Event %s", titel)
                 continue
             begDate = beginning[0:4]
             if begDate < start[0:4] or begDate > end[0:4]:
@@ -83,34 +84,39 @@ class TourServer:
                 self.alleTermine.append(item)
             begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
-                logger.info("tour " + titel + " not in timerange")
+                logger.info("event " + titel + " not in timerange")
                 continue
             # add other filter conditions here
-            touren.append(item)
-        return touren
+            logger.info("event " + titel + " OK")
+            events.append(item)
+        return events
 
-    def getTour(self, tourJsSearch):
+    def getEvent(self, eventJsSearch):
         global tpConn
-        eventItemId = tourJsSearch.get("eventItemId")
-        imagePreview = tourJsSearch.get("imagePreview")
-        escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in tourJsSearch.get("title")])
+        eventItemId = eventJsSearch.get("eventItemId")
+        event = self.events.get(eventItemId)
+        if event is not None:
+            return event
+        imagePreview = eventJsSearch.get("imagePreview")
+        escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in eventJsSearch.get("title")])
         jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             resp = self.httpget("/api/eventItems/" + eventItemId)
             if resp is None:
                 return None
-            tourJS = json.load(resp)
-            tourJS["eventItemFiles"] = None  # save space
-            tourJS["images"] = []  # save space
-            tourJS["imagePreview"] = imagePreview
+            eventJS = json.load(resp)
+            eventJS["eventItemFiles"] = None  # save space
+            eventJS["images"] = []  # save space
+            eventJS["imagePreview"] = imagePreview
             # if not os.path.exists(jsonPath):
             with open(jsonPath, "w") as jsonFile:
-                json.dump(tourJS, jsonFile, indent=4)
+                json.dump(eventJS, jsonFile, indent=4)
         else:
             with open(jsonPath, "r") as jsonFile:
-                tourJS = json.load(jsonFile)
-        tour = tourRest.Tour(tourJS, tourJsSearch, self)
-        return tour
+                eventJS = json.load(jsonFile)
+        event = tourRest.Event(eventJS, eventJsSearch, self)
+        self.events[eventItemId] = event
+        return event
 
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
@@ -158,6 +164,7 @@ class TourServer:
     def calcNummern(self):
         self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
+        logger.info("Begin calcNummern")
         for tourJS in self.alleTouren:
             datum = tourJS.get("beginning")
             if datum[0:4] != yyyy:
@@ -166,7 +173,7 @@ class TourServer:
                 rnum = 300
                 mnum = 400
                 mtnum = 600
-            tour = self.getTour(tourJS)
+            tour = self.getEvent(tourJS)
             radTyp = tour.getRadTyp()
             kategorie = tour.getKategorie()
             if kategorie == "Mehrtagestour":
@@ -181,7 +188,7 @@ class TourServer:
             else:
                 num = tnum
                 tnum += 1
-            tourJS["tourNummer"] = str(num)
+            tourJS["eventNummer"] = str(num)
         self.alleTermine.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         for tourJS in self.alleTermine:
@@ -191,7 +198,8 @@ class TourServer:
                 tnum = 700
             num = tnum
             tnum += 1
-            tourJS["tourNummer"] = str(num)
+            tourJS["eventNummer"] = str(num)
+        logger.info("End calcNummern")
 
     def httpget(self, req):
         for retries in range(2):

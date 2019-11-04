@@ -10,11 +10,15 @@ import rawHandler
 import printHandler
 import csvHandler
 # import pdfHandler
-import docxHandler
+try:
+    import docxHandler  # not in Scribus context
+except:
+    pass
 import contextlib
 import base64
 import locale
 import json
+from myLogger import logger
 
 import adfc_gliederungen
 from PIL import ImageTk
@@ -200,46 +204,56 @@ class ListBoxSB(Frame):
 
 
 class MyApp(Frame):
-    def __init__(self, master):
+    def __init__(self, master, *args):
         super().__init__(master)
+        logger.debug("main %s", str(args))
+
+        self.scribus = len(args) == 1 and args[0] == "-scribus"
         self.savFile = None
         self.pos = None
         self.searchVal = ""
         self.images = []
         # self.pdfTemplateName = ""
         self.docxTemplateName = ""
-        self.handler = None
-        menuBar = Menu(master)
-        master.config(menu=menuBar)
-        menuFile = Menu(menuBar)
-        menuFile.add_command(label="Speichern", command=self.store,
-                             accelerator="Ctrl+s")
-        master.bind_all("<Control-s>", self.store)
-        menuFile.add_command(label="Speichern unter", command=self.storeas)
-        # menuFile.add_command(label="PDF Template", command=self.pdfTemplate)
-        menuFile.add_command(label="Word Template", command=self.docxTemplate)
-        menuBar.add_cascade(label="Datei", menu=menuFile)
+        self.docxHandler = None
+        self.scrbHandler = None
+        if self.scribus:
+            import scrbHandler
+            self.scrbHandler = scrbHandler.ScrbHandler(self)
+        else:
+            menuBar = Menu(master)
+            master.config(menu=menuBar)
+            menuFile = Menu(menuBar)
+            menuFile.add_command(label="Speichern", command=self.store,
+                                 accelerator="Ctrl+s")
+            master.bind_all("<Control-s>", self.store)
+            menuFile.add_command(label="Speichern unter", command=self.storeas)
+            # menuFile.add_command(label="PDF Template", command=self.pdfTemplate)
+            menuFile.add_command(label="Word Template", command=self.docxTemplate)
+            menuBar.add_cascade(label="Datei", menu=menuFile)
 
-        menuEdit = Menu(menuBar)
-        menuEdit.add_command(label="Ausschneiden", command=self.cut,
-                             accelerator="Ctrl+x")
-        master.bind_all("<Control-x>", self.cut)
-        menuEdit.add_command(label="Kopieren", command=self.copy,
-                             accelerator="Ctrl+c")
-        master.bind_all("<Control-c>", self.copy)
-        menuEdit.add_command(label="Einfügen", command=self.paste,
-                             accelerator="Ctrl+v")
-        master.bind_all("<Control-v>", self.paste)
-        menuEdit.add_command(label="Suchen", command=self.search,
-                             accelerator="Ctrl+f")
-        master.bind_all("<Control-f>", self.search)
-        menuEdit.add_command(label="Erneut suchen", command=self.searchAgain,
-                             accelerator="F3")
-        master.bind_all("<F3>", self.searchAgain)
-        menuBar.add_cascade(label="Bearbeiten", menu=menuEdit)
+            menuEdit = Menu(menuBar)
+            menuEdit.add_command(label="Ausschneiden", command=self.cut,
+                                 accelerator="Ctrl+x")
+            master.bind_all("<Control-x>", self.cut)
+            menuEdit.add_command(label="Kopieren", command=self.copy,
+                                 accelerator="Ctrl+c")
+            master.bind_all("<Control-c>", self.copy)
+            menuEdit.add_command(label="Einfügen", command=self.paste,
+                                 accelerator="Ctrl+v")
+            master.bind_all("<Control-v>", self.paste)
+            menuEdit.add_command(label="Suchen", command=self.search,
+                                 accelerator="Ctrl+f")
+            master.bind_all("<Control-f>", self.search)
+            menuEdit.add_command(label="Erneut suchen", command=self.searchAgain,
+                                 accelerator="F3")
+            master.bind_all("<F3>", self.searchAgain)
+            menuBar.add_cascade(label="Bearbeiten", menu=menuEdit)
         self.prefs = Prefs()
         self.prefs.load()
         self.createWidgets(master)
+        if self.scribus:
+            self.scrbHandler.setGuiParams()
 
     def createPhoto(self, b64):
         binary = base64.decodebytes(b64.encode())
@@ -278,9 +292,9 @@ class MyApp(Frame):
                 defaultextension=".docx", filetypes=[("DOCX", ".docx")])
         if self.docxTemplateName is None or self.docxTemplateName == "":
             raise ValueError("Dateipfad des .docx Templates fehlt!")
-        self.handler = docxHandler.DocxHandler(self)
+        self.docxHandler = docxHandler.DocxHandler(self)
         self.startBtn.config(state=DISABLED)
-        self.handler.openDocx(self.prefsDefault) # set GUI from doc params unless obtained from prefs
+        self.docxHandler.openDocx(self.prefsDefault) # set GUI from doc params unless obtained from prefs
         self.startBtn.config(state=NORMAL)
 
     def setGliederung(self, gl):
@@ -378,9 +392,15 @@ class MyApp(Frame):
                     text="Untergliederungen einbeziehen",
                     variable=self.includeSubVar)
 
-        self.formatOM = LabelOM(master, "Ausgabeformat:",
+        if self.scribus:
+            self.formatOM = LabelOM(master, "Ausgabeformat:",
+                        ["Scribus"], "Scribus", command=self.formatSelektor)
+            self.formatOM.optionMenu.config(state=DISABLED)
+        else:
+            self.formatOM = LabelOM(master, "Ausgabeformat:",
                         ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
                         self.prefs.getFormat(), command=self.formatSelektor)
+
         self.linkTypeOM = LabelOM(master, "Links ins:",
                         ["Frontend", "Backend", ""],
                         self.prefs.getLinkType())
@@ -418,8 +438,8 @@ class MyApp(Frame):
 
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
-        # need a tourServer here early for list of LVs
-        _ = tourServer.TourServer(False, True, False)
+        # need an eventServer here early for list of LVs
+        _ = tourServer.EventServer(False, True, False)
         lvMap = adfc_gliederungen.getLVs()
         self.lvList = [key + " " + lvMap[key] for key in lvMap.keys()]
         self.lvList = sorted(self.lvList)
@@ -480,8 +500,8 @@ class MyApp(Frame):
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
 
-    def insertImage(self, tour):
-        img = tour.getImagePreview()
+    def insertImage(self, event):
+        img = event.getImagePreview()
         if img is not None:
             print()
             photo = self.createPhoto(img)
@@ -540,10 +560,11 @@ class MyApp(Frame):
         elif formatS == "Text":
             handler = rawHandler.RawHandler()
         elif formatS == "Word":
-            if self.handler is None:
+            if self.docxHandler is None:
                 self.docxTemplate("NO")
-            handler = self.handler
-
+            handler = self.docxHandler
+        elif formatS == "Scribus":
+            handler = self.scrbHandler
         # elif formatS == "PDF":
         #     handler = pdfHandler.PDFHandler(self)
         #     # conditions obtained from PDF template!
@@ -559,45 +580,59 @@ class MyApp(Frame):
         self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
         self.prefs.save()
 
-        tourServerVar = tourServer.TourServer(False, useRest, includeSub)
-        touren = []
-        for unitKey in unitKeys:
-            if unitKey == "Alles":
-                unitKey = ""
-            touren.extend(tourServerVar.getTouren(
-                unitKey.strip(), start, end, typ))
+        try:
+            eventServerVar = tourServer.EventServer(False, useRest, includeSub)
+            events = []
+            for unitKey in unitKeys:
+                if unitKey == "Alles":
+                    unitKey = ""
+                events.extend(eventServerVar.getEvents(
+                    unitKey.strip(), start, end, typ))
 
-        tourServerVar.calcNummern()
+                eventServerVar.calcNummern()
+                logger.exception("calcn")
 
-        touren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
+            events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 
-        with contextlib.redirect_stdout(txtWriter):
-            if len(touren) == 0:
-                handler.nothingFound()
-            for tour in touren:
-                tour = tourServerVar.getTour(tour)
-                if tour is None or tour.isExternalEvent():   # add a GUI switch?
-                    continue
-                if tour.isTermin():
-                    if isinstance(handler, rawHandler.RawHandler):
-                        self.insertImage(tour)
-                    handler.handleTermin(tour)
-                else:
-                    if radTyp != "Alles" and tour.getRadTyp() != radTyp:
+            with contextlib.redirect_stdout(txtWriter):
+                if len(events) == 0:
+                    handler.nothingFound()
+                for event in events:
+                    event = eventServerVar.getEvent(event)
+                    if event is None or event.isExternalEvent():   # add a GUI switch?
                         continue
-                    if isinstance(handler, rawHandler.RawHandler):
-                        self.insertImage(tour)
-                    handler.handleTour(tour)
-            if hasattr(handler, "handleEnd"):
-                handler.handleEnd()
+                    if event.isTermin():
+                        if isinstance(handler, rawHandler.RawHandler):
+                            self.insertImage(event)
+                        handler.handleTermin(event)
+                    else:
+                        # docx and scrb have own radtyp selections
+                        if radTyp != "Alles" and self.docxHandler is None and self.scrbHandler is None and event.getRadTyp() != radTyp:
+                            logger.debug("tour %s hat radtyp %s, nicht radtyp %s", event.getTitel(), event.getRadTyp(), radTyp)
+                            continue
+                        if isinstance(handler, rawHandler.RawHandler):
+                            self.insertImage(event)
+                        handler.handleTour(event)
+                if hasattr(handler, "handleEnd"):
+                    handler.handleEnd()
+        except:
+            logger.exception("starten")
+
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
         self.text.focus_set()
 
+def main(args):
+    locale.setlocale(locale.LC_TIME, "German")
+    root = Tk()
+    app = MyApp(root, args)
+    app.master.title("ADFC Touren/Termine")
+    app.mainloop()
+    try:
+        root.destroy()  # already destroyed
+    except:
+        pass
 
-# locale.setlocale(locale.LC_ALL, "de_DE")
-locale.setlocale(locale.LC_TIME, "German")
-root = Tk()
-app = MyApp(root)
-app.master.title("ADFC Touren/Termine")
-app.mainloop()
+if __name__ == '__main__':
+    main(None)
+
