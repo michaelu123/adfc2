@@ -9,6 +9,7 @@ import time
 
 import adfc_gui
 import markdown
+import markdown.extensions.tables
 import selektion
 import styles
 import tourRest
@@ -117,7 +118,14 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
             "li": self.li,
             "a": self.a,
             "img": self.img,
-            "hr": self.hr }
+            "hr": self.hr,
+            "table": self.table,
+            "thead": self.thead,
+            "tbody": self.tbody,
+            "tr": self.tr,
+            "th": self.th,
+            "td": self.td,
+        }
 
     def run(self, root):
         self.tpRun = ScrbRun("", "MD_P_BLOCK", "MD_C_REGULAR")
@@ -298,6 +306,37 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
     def img(self, node):
         self.walkInner(node)
 
+    def table(self, node):
+        node.text = node.tail = None
+        savP = self.tpRun.pstyle
+        self.tpRun.pstyle = "MD_P_REGULAR"
+        self.checkStylesExi(self.tpRun)
+        self.walkInner(node)
+        self.tpRun.pstyle = savP
+
+    def thead(self, node):
+        pass
+
+    def tbody(self, node):
+        node.text = node.tail = ""
+        self.walkInner(node)
+
+    def tr(self, node):
+        node.text = ""
+        l = len(node) - 1
+        # separate td's by \t, that's all I can do at the moment
+        for i,dnode in enumerate(node):
+            if i != l:
+                dnode.text += "\t"
+        self.walkInner(node)
+
+    def th(self, node):
+        pass
+
+    def td(self, node):
+        node.tail = ""
+        self.walkInner(node)
+
 class ScrbExtension(markdown.Extension):
     def __init__(self):
         super(ScrbExtension,self).__init__()
@@ -355,7 +394,7 @@ class ScrbHandler:
 
         self.openScrb()
         self.scrbExtension = ScrbExtension()
-        self.md = markdown.Markdown(extensions=[self.scrbExtension], enable_attributes=True, logger=logger)
+        self.md = markdown.Markdown(extensions=[self.scrbExtension, markdown.extensions.tables.makeExtension()], enable_attributes=True, logger=logger)
         self.scrbExtension.scrbTreeProcessor.setDeps(self)
         self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = { # keys in lower case
@@ -998,4 +1037,3 @@ if __name__ == "__main__":
     with open("cprof.txt", "w") as cprf:
         p = pstats.Stats("cprof.prf", stream=cprf)
         p.strip_dirs().sort_stats("cumulative").print_stats(20)
-
