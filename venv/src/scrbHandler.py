@@ -29,12 +29,12 @@ schwierigkeitMap = { 0: "sehr einfach",
                      4: "schwer",
                      5: "sehr schwer"}
 # schwarzes Quadrat = Wingdings 2 0xA2, weißes Quadrat = 0xA3
-schwierigkeitMMap = { 0: u"\u00a3\u00a3\u00a3\u00a3\u00a3",
-                      1: u"\u00a2\u00a3\u00a3\u00a3\u00a3",
-                      2: u"\u00a2\u00a2\u00a3\u00a3\u00a3",
-                      3: u"\u00a2\u00a2\u00a2\u00a3\u00a3",
-                      4: u"\u00a2\u00a2\u00a2\u00a2\u00a3",
-                      5: u"\u00a2\u00a2\u00a2\u00a2\u00a2"}
+schwierigkeitMMap = { 0: "\u00a3\u00a3\u00a3\u00a3\u00a3",
+                      1: "\u00a2\u00a3\u00a3\u00a3\u00a3",
+                      2: "\u00a2\u00a2\u00a3\u00a3\u00a3",
+                      3: "\u00a2\u00a2\u00a2\u00a3\u00a3",
+                      4: "\u00a2\u00a2\u00a2\u00a2\u00a3",
+                      5: "\u00a2\u00a2\u00a2\u00a2\u00a2"}
 paramRE = re.compile(r"(?u)\${(\w*?)}")
 fmtRE = re.compile(r"(?u)\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
@@ -398,28 +398,28 @@ class ScrbHandler:
         self.scrbExtension.scrbTreeProcessor.setDeps(self)
         self.selFunctions = selektion.getSelFunctions()
         self.expFunctions = { # keys in lower case
-            u"heute": self.expHeute,
-            u"start": self.expStart,
-            u"end": self.expEnd,
-            u"nummer": self.expNummer,
-            u"titel": self.expTitel,
-            u"beschreibung": self.expBeschreibung,
-            u"kurz": self.expKurzBeschreibung,
-            u"tourleiter": self.expTourLeiter,
-            u"betreuer": self.expBetreuer,
-            u"name": self.expName,
-            u"city": self.expCity,
-            u"street": self.expStreet,
-            u"kategorie": self.expKategorie,
-            u"schwierigkeit": self.expSchwierigkeit,
-            u"tourlänge": self.expTourLength,
-            u"abfahrten": self.expAbfahrten,
-            u"zusatzinfo": self.expZusatzInfo,
-            u"höhenmeter": self.expHoehenMeter,
-            u"character": self.expCharacter,
-            u"schwierigkeitm": self.expSchwierigkeitM,
-            u"abfahrtenm": self.expAbfahrtenM,
-            u"tourleiterm": self.expTourLeiterM
+            "heute": self.expHeute,
+            "start": self.expStart,
+            "end": self.expEnd,
+            "nummer": self.expNummer,
+            "titel": self.expTitel,
+            "beschreibung": self.expBeschreibung,
+            "kurz": self.expKurzBeschreibung,
+            "tourleiter": self.expTourLeiter,
+            "betreuer": self.expBetreuer,
+            "name": self.expName,
+            "city": self.expCity,
+            "street": self.expStreet,
+            "kategorie": self.expKategorie,
+            "schwierigkeit": self.expSchwierigkeit,
+            "tourlänge": self.expTourLength,
+            "abfahrten": self.expAbfahrten,
+            "zusatzinfo": self.expZusatzInfo,
+            "höhenmeter": self.expHoehenMeter,
+            "character": self.expCharacter,
+            "schwierigkeitm": self.expSchwierigkeitM,
+            "abfahrtenm": self.expAbfahrtenM,
+            "tourleiterm": self.expTourLeiterM
         }
 
     def openScrb(self):
@@ -445,7 +445,7 @@ class ScrbHandler:
         last_pstyle = scribus.getStyle(self.textbox)
         last_cstyle = scribus.getCharacterStyle(self.textbox)
 
-        text = u""
+        text = ""
         changed = False
         for c in range(pos1, pos2):
             scribus.selectText(c, 1, self.textbox)
@@ -461,14 +461,17 @@ class ScrbHandler:
             if cstyle != last_cstyle:
                 changed = True
 
-            # ff = scribus.getFontFeatures()
-            # ff mostly "", for Wingdins chars ="-clig,-liga" !?!?
-            # logger.debug("c=%s p=%s c=%s ff=%s", char, pstyle, cstyle, str(ff))
+            # ff = scribus.getFontFeatures(self.textbox)
+            # if ff != last_ff:
+            #     # ff mostly "", for Wingdins chars ="-clig,-liga" !?!?
+            #     logger.debug("fontfeature %s", ff)
+            #     last_ff = ff
+
             if changed:
                 runs.append(ScrbRun(text, last_pstyle, last_cstyle))
                 last_pstyle = pstyle
                 last_cstyle = cstyle
-                text = u""
+                text = ""
                 changed = False
             text = text + char
         if text != "":

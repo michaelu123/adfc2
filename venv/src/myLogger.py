@@ -13,7 +13,9 @@ try:
 except:
     lvl = logging.ERROR
 logger.setLevel(lvl) # or whatever
-handler = logging.FileHandler('adfc.log', 'w', 'utf-8') # need utf encoding
+logFileName = "adfc.log"
+logFilePath = os.path.abspath(logFileName)
+handler = logging.FileHandler(logFileName, 'w', 'utf-8') # need utf encoding
 #formatter = logging.Formatter(style="$", datefmt="%d.%m %H:%M:%S", fmt="${asctime} ${levelname} ${filename}:${funcName}:${lineno} ${message}")
 formatter = logging.Formatter(datefmt="%d.%m %H:%M:%S", fmt="%(asctime)s %(levelname)s %(filename)s:%(funcName)s:%(lineno)d %(message)s")
 handler.setFormatter(formatter) # Pass handler as a parameter, not assign

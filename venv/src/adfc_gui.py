@@ -18,7 +18,7 @@ import contextlib
 import base64
 import locale
 import json
-from myLogger import logger
+from myLogger import logger,logFilePath
 
 import adfc_gliederungen
 from PIL import ImageTk
@@ -580,21 +580,21 @@ class MyApp(Frame):
         self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
         self.prefs.save()
 
-        try:
-            eventServerVar = tourServer.EventServer(False, useRest, includeSub)
-            events = []
-            for unitKey in unitKeys:
-                if unitKey == "Alles":
-                    unitKey = ""
-                events.extend(eventServerVar.getEvents(
-                    unitKey.strip(), start, end, typ))
+        with contextlib.redirect_stdout(txtWriter):
+            try:
+                eventServerVar = tourServer.EventServer(False, useRest, includeSub)
+                events = []
+                for unitKey in unitKeys:
+                    if unitKey == "Alles":
+                        unitKey = ""
+                    events.extend(eventServerVar.getEvents(
+                        unitKey.strip(), start, end, typ))
 
-                eventServerVar.calcNummern()
-                logger.exception("calcn")
+                    eventServerVar.calcNummern()
+                    logger.exception("calcn")
 
-            events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
+                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 
-            with contextlib.redirect_stdout(txtWriter):
                 if len(events) == 0:
                     handler.nothingFound()
                 for event in events:
@@ -615,12 +615,12 @@ class MyApp(Frame):
                         handler.handleTour(event)
                 if hasattr(handler, "handleEnd"):
                     handler.handleEnd()
-        except:
-            logger.exception("starten")
-
-        self.pos = "1.0"
-        self.text.mark_set(INSERT, self.pos)
-        self.text.focus_set()
+                self.pos = "1.0"
+                self.text.mark_set(INSERT, self.pos)
+                self.text.focus_set()
+            except Exception as e:
+                logger.exception("Error during script evaluation")
+                print("Error ", e, ", see ", logFilePath)
 
 def main(args):
     locale.setlocale(locale.LC_TIME, "German")
