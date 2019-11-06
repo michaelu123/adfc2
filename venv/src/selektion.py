@@ -1,19 +1,19 @@
 # encoding: utf-8
 from myLogger import logger
 
-def selTitelEnthaelt(tour, lst):
-    titel = tour.getTitel()
+def selTitelEnthaelt(event, lst):
+    titel = event.getTitel()
     for  elem in lst:
         if titel.find(elem) >= 0:
             return True
-    logger.debug("tour %s nicht enthält %s", tour.getTitel(), lst)
+    logger.debug("event %s nicht enthält %s", event.getTitel(), lst)
     return False
 
-def selTitelEnthaeltNicht(tour, lst):
-    titel = tour.getTitel()
+def selTitelEnthaeltNicht(event, lst):
+    titel = event.getTitel()
     for  elem in lst:
         if titel.find(elem) >= 0:
-            logger.debug("tour %s nicht enthältnicht %s", tour.getTitel(), elem)
+            logger.debug("event %s nicht enthältnicht %s", event.getTitel(), elem)
             return False
     return True
 
@@ -41,44 +41,44 @@ def selNotTourNr(tour, lst):
     else:
         return True
 
-def selKategorie(tour, lst):
-    kat = tour.getKategorie()
+def selKategorie(event, lst):
+    kat = event.getKategorie()
     if kat in lst:
         return True
-    logger.debug("tour %s nicht kategorie %s", tour.getTitel(), lst)
+    logger.debug("event %s nicht kategorie %s", event.getTitel(), lst)
     return False
 
-def selMerkmalEnthaelt(tour, lst):
-    merkmale = tour.getMerkmale()
+def selMerkmalEnthaelt(event, lst):
+    merkmale = event.getMerkmale()
     for merkmal in merkmale:
         for val in lst:
             if merkmal.find(val) >= 0:
                 return True
-    logger.debug("tour %s nicht merkmale %s in %s", tour.getTitel(), merkmale, lst)
+    logger.debug("event %s nicht merkmale %s in %s", event.getTitel(), merkmale, lst)
     return False
 
-def selMerkmalEnthaeltNicht(tour, lst):
-    merkmale = tour.getMerkmale()
+def selMerkmalEnthaeltNicht(event, lst):
+    merkmale = event.getMerkmale()
     for merkmal in merkmale:
         for val in lst:
             if merkmal.find(val) >= 0:
-                logger.debug("tour %s nicht nichtmerkmale %s in %s", tour.getTitel(), merkmale, lst)
+                logger.debug("event %s nicht nichtmerkmale %s in %s", event.getTitel(), merkmale, lst)
                 return False
     return True
 
-def selected(tour, sel):
+def selected(event, sel):
     for key in sel.keys():
         if key == "name" or key.startswith("comment"):
             continue
         try:
             f = selFunctions[key]
             lst = sel[key]
-            if not f(tour, lst):
+            if not f(event, lst):
                 return False
         except Exception:
             logger.exception("Keine Funktion für den Ausdruck " + key + " in der Selektion " + sel.get("name") + " gefunden")
     else:
-        logger.debug("tour %s selected", tour.getTitel())
+        logger.debug("event %s selected", event.getTitel())
         return True
 
 selFunctions = {

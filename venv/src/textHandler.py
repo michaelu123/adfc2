@@ -78,22 +78,22 @@ class TextHandler:
         print("Leitung: {}".format(", ".join(personen)))
         print()
 
-    def handleTermin(self, tour):
+    def handleTermin(self, termin):
         try:
-            titel = tour.getTitel()
+            titel = termin.getTitel()
             logger.info("Title %s", titel)
-            kategorie = tour.getKategorie()
-            datum = tour.getDatum()[0]
+            kategorie = termin.getKategorie()
+            datum = termin.getDatum()[0]
             logger.info("terminTyp %s datum %s", kategorie, datum)
 
-            zeiten = tour.getAbfahrten()
+            zeiten = termin.getAbfahrten()
             if len(zeiten) == 0:
                 raise ValueError("keine Anfangszeit für Termin %s", titel)
             logger.info("zeiten %s ", str(zeiten))
 
-            beschreibung = tour.getBeschreibung(False)
+            beschreibung = termin.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
-            zusatzinfo = tour.getZusatzInfo()
+            zusatzinfo = termin.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))
 
         except Exception as e:

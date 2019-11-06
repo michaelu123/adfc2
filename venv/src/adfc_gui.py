@@ -18,6 +18,7 @@ import contextlib
 import base64
 import locale
 import json
+import os
 from myLogger import logger,logFilePath
 
 import adfc_gliederungen
@@ -104,6 +105,10 @@ class Prefs:
         prefJS["start"] = self.start
         prefJS["end"] = self.end
         prefJS["docxtemplatename"] = self.docxTemplateName
+        try:
+            os.makedirs("c:/temp/tpjson")
+        except:
+            pass
         with open("c:/temp/tpjson/prefs.json", "w") as jsonFile:
             json.dump(prefJS, jsonFile, indent=4)
 
@@ -254,6 +259,9 @@ class MyApp(Frame):
         self.createWidgets(master)
         if self.scribus:
             self.scrbHandler.setGuiParams()
+        else:
+            if self.prefs.format == "Scribus":
+                self.prefs.format = "Text"
 
     def createPhoto(self, b64):
         binary = base64.decodebytes(b64.encode())
@@ -439,7 +447,7 @@ class MyApp(Frame):
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
         # need an eventServer here early for list of LVs
-        _ = tourServer.EventServer(False, True, False)
+        _ = tourServer.EventServer(True, False)
         lvMap = adfc_gliederungen.getLVs()
         self.lvList = [key + " " + lvMap[key] for key in lvMap.keys()]
         self.lvList = sorted(self.lvList)
@@ -582,7 +590,7 @@ class MyApp(Frame):
 
         with contextlib.redirect_stdout(txtWriter):
             try:
-                eventServerVar = tourServer.EventServer(False, useRest, includeSub)
+                eventServerVar = tourServer.EventServer(useRest, includeSub)
                 events = []
                 for unitKey in unitKeys:
                     if unitKey == "Alles":

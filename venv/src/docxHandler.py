@@ -399,7 +399,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 self.printLines(node.tail)
         except Exception:
             msg = "Fehler während der Behandlung der Beschreibung des Events " +\
-                  self.docxHandler.tourMsg
+                  self.docxHandler.eventMsg
             logger.exception(msg)
             print(msg)
         if debug:
@@ -774,8 +774,8 @@ class DocxHandler:
     def handleTour(self, tour):
         self.touren.append(tour)
 
-    def handleTermin(self, tour):
-        self.termine.append(tour)
+    def handleTermin(self, termin):
+        self.termine.append(termin)
 
     def handleEnd(self):
         print("Template", self.gui.docxTemplateName, "wird abgearbeitet")
@@ -867,18 +867,18 @@ class DocxHandler:
         if not sel in sels:
             raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
         sel = sels[sel]
-        touren = self.touren if typ == "tour" else self.termine
-        self.evalTouren(sel, touren, paras)
+        events = self.touren if typ == "tour" else self.termine
+        self.evalEvents(sel, events, paras)
 
-    def evalTouren(self, sel, touren, paras):
-        selectedTouren = []
-        for tour in touren:
-            if selektion.selected(tour, sel):
-                selectedTouren.append(tour)
-        if len(selectedTouren) == 0:
+    def evalEvents(self, sel, events, paras):
+        selectedEvents = []
+        for event in events:
+            if selektion.selected(event, sel):
+                selectedEvents.append(event)
+        if len(selectedEvents) == 0:
             return
-        for tour in selectedTouren:
-            self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
+        for event in selectedEvents:
+            self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
             for para in paras:
                 newp = insert_paragraph_copy_before(
                     self.doc, self.paraBefore, para)
@@ -888,13 +888,13 @@ class DocxHandler:
                     if run.text.lower().startswith("/kommentar"):
                         continue
                     rtext = run.text.strip()
-                    self.evalRun(run, tour)
+                    self.evalRun(run, event)
                     if rtext == "${titel}" and self.url != None:
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
                 if newp.text == "":
                     delete_paragraph(newp)
 
-    def evalRun(self, run, tour):
+    def evalRun(self, run, event):
         if debug:
             print("run", run.text)
         linesOut = []
@@ -902,7 +902,7 @@ class DocxHandler:
         for line in linesIn:
             if not line.startswith("/template") and\
                     not line.startswith("/endtemplate"):
-                exp = self.expand(line, tour)
+                exp = self.expand(line, event)
                 if exp != None:
                     linesOut.append(exp)
         newtext = '\n'.join(linesOut)
@@ -914,7 +914,7 @@ class DocxHandler:
             else:
                 run.text = newtext  # assignment to run.text lets images disappear!?!?
 
-    def expand(self, s, tour):
+    def expand(self, s, event):
         while True:
             mp = paramRE.search(s)
             if mp == None:
@@ -926,9 +926,9 @@ class DocxHandler:
                 gf = mf.group(1)
                 sf = mf.span()
                 s = s[0:sf[0]] + s[sf[1]:]
-                expanded = self.expandParam(gp, tour, gf)
+                expanded = self.expandParam(gp, event, gf)
             else:
-                expanded = self.expandParam(gp, tour, None)
+                expanded = self.expandParam(gp, event, None)
             if expanded == None: # special case for beschreibung, handled as markdown
                 return None
             try:
@@ -936,13 +936,13 @@ class DocxHandler:
             except Exception:
                 logger.error("expanded = " + expanded)
 
-    def expandParam(self, param, tour, format):
+    def expandParam(self, param, event, format):
         try:
             f = self.expFunctions[param]
-            return f(tour, format)
+            return f(event, format)
         except Exception as e:
             err = 'Fehler mit dem Parameter "' + param + \
-                  '" des Events ' + self.tourMsg
+                  '" des Events ' + self.eventMsg
             print(err)
             logger.exception(err)
             return param
@@ -954,15 +954,15 @@ class DocxHandler:
             #return datetime.date.today().strftime(format)
             return datetime.datetime.now().strftime(format)
 
-    def expStart(self, tour, format):
-        dt = convertToMEZOrMSZ(tour.getDatumRaw())
+    def expStart(self, event, format):
+        dt = convertToMEZOrMSZ(event.getDatumRaw())
         if format == None:
             return str(dt)
         else:
             return dt.strftime(format)
 
-    def expEnd(self, tour, format):
-        dt = convertToMEZOrMSZ(tour.getEndDatumRaw())
+    def expEnd(self, event, format):
+        dt = convertToMEZOrMSZ(event.getEndDatumRaw())
         if format == None:
             return str(dt)
         else:
@@ -974,20 +974,20 @@ class DocxHandler:
             k = "G" # Tagestour -> Ganztagestour
         return tour.getRadTyp()[0].upper() + " " + tour.getNummer() + " " + k
 
-    def expTitel(self, tour, _):
+    def expTitel(self, event, _):
         if self.linkType == "Frontend":
-            self.url = tour.getFrontendLink()
+            self.url = event.getFrontendLink()
         elif self.linkType == "Backend":
-            self.url = tour.getBackendLink()
+            self.url = event.getBackendLink()
         else:
             self.url = None
-        logger.info("Titel: " + tour.getTitel())
-        return tour.getTitel()
+        logger.info("Titel: " + event.getTitel())
+        return event.getTitel()
 
-    def expBeschreibung(self, tour, _):
+    def expBeschreibung(self, event, _):
         if len(self.para.runs) != 1:
             raise ValueError("${beschreibung} muß in einem Paragraphen einzeln stehen")
-        desc = tour.eventItem.get("description")
+        desc = event.eventItem.get("description")
         desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
         #desc = codecs.decode(desc, encoding = "unicode_escape")
@@ -995,17 +995,17 @@ class DocxHandler:
         self.md.reset()
         return None
 
-    def expName(self, tour, _):
-        return tour.getName()
-    def expKurzBeschreibung(self, tour, _):
-        return tour.getShortDesc()
-    def expCity(self, tour, _):
-        return tour.getCity()
-    def expStreet(self, tour, _):
-        return tour.getStreet()
+    def expName(self, event, _):
+        return event.getName()
+    def expKurzBeschreibung(self, event, _):
+        return event.getShortDesc()
+    def expCity(self, event, _):
+        return event.getCity()
+    def expStreet(self, event, _):
+        return event.getStreet()
 
-    def expKategorie(self, tour, _):
-        return tour.getKategorie()
+    def expKategorie(self, event, _):
+        return event.getKategorie()
 
     def expSchwierigkeit(self, tour, _):
         return schwierigkeitMap[tour.getSchwierigkeit()]
@@ -1016,8 +1016,8 @@ class DocxHandler:
     def expTourLength(self, tour, _):
         return tour.getStrecke()
 
-    def expPersonen(self, bezeichnung, tour):
-        tl = tour.getPersonen()
+    def expPersonen(self, bezeichnung, event):
+        tl = event.getPersonen()
         if len(tl) == 0:
             return ""
 
@@ -1036,8 +1036,8 @@ class DocxHandler:
     def expTourLeiter(self, tour, _):
         return self.expPersonen("Tourleiter", tour)
 
-    def expBetreuer(self, tour, _):
-        return self.expPersonen("Betreuer", tour)
+    def expBetreuer(self, termin, _):
+        return self.expPersonen("Betreuer", termin)
 
     def expTourLeiterM(self, tour, _):
         tl = tour.getPersonen()

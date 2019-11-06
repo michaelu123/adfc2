@@ -51,9 +51,6 @@ noCStyle = 'Default Character Style'
 lastPStyle = ""
 lastCStyle = ""
 
-def unicode(x): # because of Python2 compatibility
-    return x
-
 def str2hex(s):
     return ":".join("{:04x}".format(ord(c)) for c in s)
 
@@ -178,7 +175,7 @@ class ScrbTreeProcessor(markdown.treeprocessors.Treeprocessor):
                 self.printLines(node.tail)
         except Exception:
             msg = "Fehler während der Behandlung der Beschreibung des Events " +\
-                  self.scrbHandler.tourMsg
+                  self.scrbHandler.eventMsg
             logger.exception(msg)
         if debug:
             logger.debug("MD:%s>>>>", " " * self.lvl)
@@ -449,7 +446,7 @@ class ScrbHandler:
         changed = False
         for c in range(pos1, pos2):
             scribus.selectText(c, 1, self.textbox)
-            # does not work reliably, see https://bugs.scribus.net/view.php?id=15911
+            # does not work for text in overflown area, see https://bugs.scribus.net/view.php?id=15911
             # char = scribus.getText(self.textbox)
             char = txtAll[c-pos1]
 
@@ -483,7 +480,7 @@ class ScrbHandler:
             return
         pos = self.insertPos
         scribus.insertText(text, pos, self.textbox)
-        tlen = len(unicode(text))
+        tlen = len(text)
         logger.debug("insert pos=%d len=%d npos=%d text='%s' style=%s cstyle=%s",
                      pos, tlen, pos+tlen, text, run.pstyle, run.cstyle)
         global lastPStyle, lastCStyle
@@ -502,29 +499,26 @@ class ScrbHandler:
             scribus.setURIAnnotation(self.url, frame)
             self.url = None
         self.insertPos += tlen
-        # if scribus.textOverflows(self.textbox):
-        #    self.createNewPage()
 
-    def createNewPage(self):
+    def createNewPage(self, tbox):
         curPage = scribus.currentPage()
         if  curPage < scribus.pageCount() - 1:
             where = curPage + 1
         else:
             where = -1
-        logger.debug("cur=%d pc=%d wh=%d", curPage, scribus.pageCount(), where)
-        cols = scribus.getColumns(self.textbox)
-        colgap = scribus.getColumnGap(self.textbox)
-        x,y = scribus.getPosition(self.textbox)
-        w,h = scribus.getSize(self.textbox)
+        logger.debug("cur=%d name=%s pc=%d wh=%d", curPage, tbox, scribus.pageCount(), where)
+        cols = scribus.getColumns(tbox)
+        colgap = scribus.getColumnGap(tbox)
+        x,y = scribus.getPosition(tbox)
+        w,h = scribus.getSize(tbox)
         mp = scribus.getMasterPage(curPage)
         scribus.newPage(where, mp) # return val?
         scribus.gotoPage(curPage + 1)
-        newFrame = scribus.createText(x,y,w,h)
-        scribus.setColumns(cols, newFrame)
-        scribus.setColumnGap(colgap, newFrame)
-        scribus.linkTextFrames(self.textbox, newFrame)
-        self.textbox = newFrame
-        self.insertPos = 0 # scribus.getTextLength(newFrame)
+        newBox = scribus.createText(x,y,w,h)
+        scribus.setColumns(cols, newBox)
+        scribus.setColumnGap(colgap, newBox)
+        scribus.linkTextFrames(tbox, newBox)
+        return newBox
 
     def parseParams(self):
         pagenum = scribus.pageCount()
@@ -540,7 +534,7 @@ class ScrbHandler:
                 if textlen == 0:
                     continue
                 scribus.selectText(0, textlen, self.textbox)
-                alltext = unicode(scribus.getAllText(self.textbox))
+                alltext = scribus.getAllText(self.textbox)
                 pos1 = alltext.find("/parameter")
                 if pos1 < 0:
                     continue
@@ -702,8 +696,8 @@ class ScrbHandler:
     def handleTour(self, tour):
         self.touren.append(tour)
 
-    def handleTermin(self, tour):
-        self.termine.append(tour)
+    def handleTermin(self, termin):
+        self.termine.append(termin)
 
     def handleEnd(self):
         self.linkType = self.gui.getLinkType()
@@ -740,9 +734,9 @@ class ScrbHandler:
             for item in pageitems:
                 if item[1] != 4:
                     continue
-                self.textbox = item[0]
-                while scribus.textOverflows(self.textbox):
-                    self.createNewPage()
+                tbox = item[0]
+                while scribus.textOverflows(tbox):
+                    tbox = self.createNewPage(tbox)
 
         ausgabedatei = self.ausgabedatei
         if ausgabedatei == None or ausgabedatei == "":
@@ -766,8 +760,8 @@ class ScrbHandler:
             if textlen == 0:
                 return
             scribus.selectText(0, textlen, self.textbox)
-            alltext = unicode(scribus.getAllText(self.textbox))
-            #logger.debug("alltext: %s %s", type(alltext), alltext)
+            alltext = scribus.getAllText(self.textbox)
+            logger.debug("alltext: %s %s", type(alltext), alltext)
 
             pos1 = alltext.find("/template", pos1)
             logger.debug("pos /template=%d", pos1)
@@ -798,7 +792,7 @@ class ScrbHandler:
             if not sel in sels:
                 raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
             sel = sels[sel]
-            touren = self.touren if typ == "tour" else self.termine
+            events = self.touren if typ == "tour" else self.termine
             self.insertPos = pos1
             runs = self.makeRuns(pos1, pos2)
             logger.debug("runs:%s", str(runs))
@@ -806,29 +800,29 @@ class ScrbHandler:
             scribus.selectText(pos1, pos2-pos1, self.textbox)
             scribus.deleteText(self.textbox)
             self.insertPos = pos1
-            self.evalTouren(sel, touren, runs)
+            self.evalEvents(sel, events, runs)
 
-    def evalTouren(self, sel, touren, runs):
-        selectedTouren = []
-        logger.debug("touren: %d", len(touren))
-        for tour in touren:
-            if selektion.selected(tour, sel):
-                selectedTouren.append(tour)
-        logger.debug("seltouren: %d", len(selectedTouren))
-        if len(selectedTouren) == 0:
+    def evalEvents(self, sel, events, runs):
+        selectedEvents = []
+        logger.debug("events: %d", len(events))
+        for event in events:
+            if selektion.selected(event, sel):
+                selectedEvents.append(event)
+        logger.debug("selEvents: %d", len(selectedEvents))
+        if len(selectedEvents) == 0:
             return
-        for tour in selectedTouren:
-            self.tourMsg = tour.getTitel() + " vom " + tour.getDatum()[0]
-            logger.debug("tourMsg: %s", self.tourMsg)
+        for event in selectedEvents:
+            self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
+            logger.debug("eventMsg: %s", self.eventMsg)
             for run in runs:
                 if run.text.lower().startswith("/kommentar"):
                     continue
                 self.run = run
                 rtext = run.text.strip()
-                self.evalRun(tour)
+                self.evalRun(event)
                 pos = self.insertPos
 
-    def evalRun(self, tour):
+    def evalRun(self, event):
         # logger.debug("evalRun1 %s", self.run.text)
         lines = self.run.text.split('\r')
         nl = ""
@@ -836,10 +830,10 @@ class ScrbHandler:
             if not line.startswith("/template") and\
                     not line.startswith("/endtemplate"):
                 self.insertText(nl, self.run)
-                self.expandLine(line, tour)
+                self.expandLine(line, event)
                 nl = "\n"
 
-    def expandLine(self, s, tour):
+    def expandLine(self, s, event):
         #logger.debug("expand1 <%s>", s)
         spos = 0
         while True:
@@ -857,9 +851,9 @@ class ScrbHandler:
                 gf = mf.group(1)
                 sf = mf.span()
                 spos = sf[1]
-                expanded = self.expandParam(gp, tour, gf)
+                expanded = self.expandParam(gp, event, gf)
             else:
-                expanded = self.expandParam(gp, tour, None)
+                expanded = self.expandParam(gp, event, None)
                 spos = sp[1]
             #logger.debug("expand3 <%s>", str(expanded))
             if expanded is None: # special case for beschreibung, handled as markdown
@@ -873,13 +867,13 @@ class ScrbHandler:
             else:
                 self.insertText(expanded, self.run)
 
-    def expandParam(self, param, tour, format):
+    def expandParam(self, param, event, format):
         try:
             f = self.expFunctions[param]
-            return f(tour, format)
+            return f(event, format)
         except Exception as e:
             err = 'Fehler mit dem Parameter "' + param + \
-                  '" des Events ' + self.tourMsg
+                  '" des Events ' + self.eventMsg
             logger.exception(err)
             return param
 
@@ -890,15 +884,15 @@ class ScrbHandler:
             #return datetime.date.today().strftime(format)
             return datetime.datetime.now().strftime(format)
 
-    def expStart(self, tour, format):
-        dt = convertToMEZOrMSZ(tour.getDatumRaw())
+    def expStart(self, event, format):
+        dt = convertToMEZOrMSZ(event.getDatumRaw())
         if format is None:
             return str(dt)
         else:
             return dt.strftime(format)
 
-    def expEnd(self, tour, format):
-        dt = convertToMEZOrMSZ(tour.getEndDatumRaw())
+    def expEnd(self, event, format):
+        dt = convertToMEZOrMSZ(event.getEndDatumRaw())
         if format is None:
             return str(dt)
         else:
@@ -910,19 +904,19 @@ class ScrbHandler:
             k = "G" # Tagestour -> Ganztagestour
         return tour.getRadTyp()[0].upper() + " " + tour.getNummer() + " " + k
 
-    def expTitel(self, tour, _):
+    def expTitel(self, event, _):
         if self.linkType == "Frontend":
-            self.url = tour.getFrontendLink()
+            self.url = event.getFrontendLink()
         elif self.linkType == "Backend":
-            self.url = tour.getBackendLink()
+            self.url = event.getBackendLink()
         else:
             self.url = None
-        titel = tour.getTitel()
+        titel = event.getTitel()
         logger.info("Titel: %s URL: %s", titel, self.url)
-        return tour.getTitel()
+        return event.getTitel()
 
-    def expBeschreibung(self, tour, _):
-        desc = tour.eventItem.get("description")
+    def expBeschreibung(self, event, _):
+        desc = event.eventItem.get("description")
         desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
         # did I ever need this?
@@ -932,17 +926,17 @@ class ScrbHandler:
         self.md.reset()
         return None
 
-    def expName(self, tour, _):
-        return tour.getName()
-    def expKurzBeschreibung(self, tour, _):
-        return tour.getShortDesc()
-    def expCity(self, tour, _):
-        return tour.getCity()
-    def expStreet(self, tour, _):
-        return tour.getStreet()
+    def expName(self, event, _):
+        return event.getName()
+    def expKurzBeschreibung(self, event, _):
+        return event.getShortDesc()
+    def expCity(self, event, _):
+        return event.getCity()
+    def expStreet(self, event, _):
+        return event.getStreet()
 
-    def expKategorie(self, tour, _):
-        return tour.getKategorie()
+    def expKategorie(self, event, _):
+        return event.getKategorie()
 
     def expSchwierigkeit(self, tour, _):
         return schwierigkeitMap[tour.getSchwierigkeit()]
@@ -954,8 +948,8 @@ class ScrbHandler:
     def expTourLength(self, tour, _):
         return tour.getStrecke()
 
-    def expPersonen(self, bezeichnung, tour):
-        tl = tour.getPersonen()
+    def expPersonen(self, bezeichnung, event):
+        tl = event.getPersonen()
         if len(tl) == 0:
             return ""
         run = copy.copy(self.run)
@@ -966,8 +960,8 @@ class ScrbHandler:
     def expTourLeiter(self, tour, _):
         return self.expPersonen("Tourleiter", tour)
 
-    def expBetreuer(self, tour, _):
-        return self.expPersonen("Betreuer", tour)
+    def expBetreuer(self, termin, _):
+        return self.expPersonen("Betreuer", termin)
 
     def expTourLeiterM(self, tour, _):
         tl = tour.getPersonen()

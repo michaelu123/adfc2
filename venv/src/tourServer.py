@@ -5,9 +5,11 @@ import tourRest
 import functools
 from myLogger import logger
 import adfc_gliederungen
+import http.client
+
 
 class EventServer:
-    def __init__(self, py2, useResta, includeSuba):
+    def __init__(self, useResta, includeSuba):
         self.useRest = useResta
         self.includeSub = includeSuba
         self.tpConn = None
@@ -19,16 +21,8 @@ class EventServer:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
             pass
-        if py2:
-            import httplib  # scribus seems to use Python 2
-            self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
-            self.cacheMem = {}  # for Python2
-            self.py2 = True
-        else:
-            import http.client as httplib
-            self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
-            self.cacheMem = None  # for Python3
-            self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
+        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+        self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
     def getEvents(self, unitKey, start, end, type):
@@ -120,10 +114,6 @@ class EventServer:
 
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
-        if self.cacheMem != None:
-            val = self.cacheMem.get(userId)
-            if val != None:
-                return val
         global tpConn
         jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
@@ -140,8 +130,6 @@ class EventServer:
             with open(jsonPath, "r") as jsonFile:
                 userJS = json.load(jsonFile)
         user = tourRest.User(userJS)
-        if self.cacheMem != None:
-            self.cacheMem[userId] = user
         return user
 
     def loadUnits(self):
@@ -207,17 +195,17 @@ class EventServer:
                 self.tpConn.request("GET", req)
             except Exception as e:
                 logger.exception("error in request " + req)
-                if isinstance(e, httplib.CannotSendRequest):
+                if isinstance(e, http.client.CannotSendRequest):
                     self.tpConn.close()
-                    self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+                    self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
                     continue
             try:
                 resp = self.tpConn.getresponse()
             except Exception as e:
                 logger.exception("cannot get response for " + req)
-                if isinstance(e, httplib.ResponseNotReady):
+                if isinstance(e, http.client.ResponseNotReady):
                     self.tpConn.close()
-                    self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+                    self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
                     continue
             break
 

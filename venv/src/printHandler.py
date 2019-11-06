@@ -138,5 +138,5 @@ class PrintHandler:
         self.handleTextfeldList(zusatzinfo)
 
     def handleTermin(self, _):
-        print("Scribus für Termine nicht implementiert")
+        # print("Scribus für Termine nicht implementiert") #TODO
         pass
