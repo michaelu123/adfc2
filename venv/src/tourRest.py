@@ -167,6 +167,9 @@ class Event:
     def getTitel(self):
         return self.titel
 
+    def getEventItemId(self):
+        return self.eventItem.get("eventItemId")
+
     def getFrontendLink(self):
         return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
 

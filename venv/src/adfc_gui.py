@@ -222,6 +222,7 @@ class MyApp(Frame):
         self.docxTemplateName = ""
         self.docxHandler = None
         self.scrbHandler = None
+        self.eventServer = None
         if self.scribus:
             import scrbHandler
             self.scrbHandler = scrbHandler.ScrbHandler(self)
@@ -469,8 +470,6 @@ class MyApp(Frame):
 
         self.startDateLE = LabelEntry(master,  "Start Datum:", self.prefs.getStart())
         self.endDateLE = LabelEntry(master, "Ende Datum:", self.prefs.getEnd())
-        self.startBtn = Button(master, text="Start", bg="red",
-                               command=self.starten)
 
         textContainer = Frame(master, borderwidth=2, relief="sunken")
         self.text = Text(textContainer, wrap="none", borderwidth=0,
@@ -502,11 +501,29 @@ class MyApp(Frame):
         self.startDateLE.grid(row=4, column=0, padx=5, pady=2, sticky="w")
         self.endDateLE.grid(row=4, column=1, padx=5, pady=2, sticky="w")
 
-        self.startBtn.grid(row=5, padx=5, pady=2, sticky="w")
+        if self.scribus:
+            frm = Frame(master)
+            frm.grid_rowconfigure(0, weight=1)
+            frm.grid_columnconfigure(0, weight=1)
+            frm.grid_columnconfigure(1, weight=1)
+            frm.grid_columnconfigure(2, weight=1)
+            self.startBtn = Button(frm, text="Start", bg="red", command=self.starten)
+            self.tocBtn = Button(frm, text="InhVerzAktu", bg="red", command=self.makeToc)
+            self.startPgNr = LabelEntry(frm, "1.Seitennr:", "1")
+            self.startBtn.grid(row=0, column=0, padx=5, pady=2, sticky="w")
+            self.tocBtn.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+            self.startPgNr.grid(row=0, column=2, padx=5, pady=2, sticky="w")
+            frm.grid(row=5, padx=5, pady=2, sticky="w")
+        else:
+            self.startBtn.grid(row=5, padx=5, pady=2, sticky="w")
+
         textContainer.grid(row=6, columnspan=2, padx=5, pady=2, sticky="nsew")
 
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
+
+    def disableStart(self):
+        self.startBtn.config(state=DISABLED)
 
     def insertImage(self, event):
         img = event.getImagePreview()
@@ -590,15 +607,15 @@ class MyApp(Frame):
 
         with contextlib.redirect_stdout(txtWriter):
             try:
-                eventServerVar = tourServer.EventServer(useRest, includeSub)
+                self.eventServer = tourServer.EventServer(useRest, includeSub)
                 events = []
                 for unitKey in unitKeys:
                     if unitKey == "Alles":
                         unitKey = ""
-                    events.extend(eventServerVar.getEvents(
+                    events.extend(self.eventServer.getEvents(
                         unitKey.strip(), start, end, typ))
 
-                    eventServerVar.calcNummern()
+                    self.eventServer.calcNummern()
                     logger.exception("calcn")
 
                 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
@@ -606,7 +623,7 @@ class MyApp(Frame):
                 if len(events) == 0:
                     handler.nothingFound()
                 for event in events:
-                    event = eventServerVar.getEvent(event)
+                    event = self.eventServer.getEvent(event)
                     if event is None or event.isExternalEvent():   # add a GUI switch?
                         continue
                     if event.isTermin():
@@ -629,6 +646,26 @@ class MyApp(Frame):
             except Exception as e:
                 logger.exception("Error during script evaluation")
                 print("Error ", e, ", see ", logFilePath)
+
+
+    def makeToc(self):
+        firstPageNr = self.startPgNr.get()
+        self.text.delete("1.0", END)
+        txtWriter = TxtWriter(self.text)
+
+        with contextlib.redirect_stdout(txtWriter):
+            self.eventServer = tourServer.EventServer(False, False)
+            if self.scrbHandler is None:
+                print("Sie müssen erst den Start-Knopf anklicken")
+                return
+            try:
+                self.tocBtn.config(state=DISABLED)
+                self.scrbHandler.makeToc(int(firstPageNr))
+            except Exception as e:
+                logger.exception("Error during script evaluation")
+                print("Error ", e, ", see ", logFilePath)
+            finally:
+                self.tocBtn.config(state=NORMAL)
 
 def main(args):
     locale.setlocale(locale.LC_TIME, "German")

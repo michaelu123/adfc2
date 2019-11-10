@@ -13,6 +13,7 @@ import markdown.extensions.tables
 import selektion
 import styles
 import tourRest
+import tourServer
 from myLogger import logger
 
 try:
@@ -381,6 +382,8 @@ class ScrbHandler:
         self.end = None
         self.pos = None
         self.ausgabedatei = None
+        self.toBeDelPosParam = None
+        self.toBeDelPosToc = None
 
         global debug
         try:
@@ -425,8 +428,15 @@ class ScrbHandler:
         logger.debug("paraStyles: %s\ncharStyles:%s", str(paraStyles), str(charStyles))
         self.parseParams()
         scribus.defineColor("ADFC_Yellow_", 0, 153, 255, 0)
-        scribus.defineColor("ADFC_Blue_", 230, 153, 26, 77)
-        scribus.createCharStyle(name="WD2_Y_", font="Wingdings 2 Regular", fillcolor = "ADFC_Yellow_")
+        #scribus.defineColor("ADFC_Blue_", 230, 153, 26, 77)
+        WD2_Y_ = {"name": "WD2_Y_", "font": "Wingdings 2 Regular", "fillcolor": "ADFC_Yellow_"}
+        styles.cstyles["WD2_Y_"] = WD2_Y_
+        styles.checkPStyleExi("MD_P_REGULAR")
+        styles.checkPStyleExi("MD_P_BLOCK")
+        styles.checkCStyleExi("MD_C_REGULAR")
+        styles.checkCStyleExi("MD_C_BOLD")
+        styles.checkCStyleExi("WD2_Y_")
+        styles.checkCStyleExi("MD_C_TOC")
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
@@ -544,13 +554,13 @@ class ScrbHandler:
                 pos2 += 13 # len("/endparameter")
                 lines = alltext[pos1:pos2].split('\r')[1:-1]
                 logger.debug("parsePar lines:%s %s", type(lines), str(lines))
-                scribus.selectText(pos1, pos2 - pos1, self.textbox)
-                scribus.deleteText(self.textbox)
+                #scribus.selectText(pos1, pos2 - pos1, self.textbox)
+                #scribus.deleteText(self.textbox)
+                self.toBeDelPosParam = (pos1, pos2, self.textbox)
                 break
 
         if len(lines) == 0:
-            raise ValueError("No /parameter - /endparameter section in document")
-        logger.debug("9parsePar")
+            return
         self.includeSub = True
         lx = 0
         selections = {}
@@ -614,6 +624,9 @@ class ScrbHandler:
              self.gui.setEnd(self.end)
         self.setEventType()
         self.setRadTyp()
+        if self.toBeDelPosParam is None:
+            self.gui.disableStart()
+            print("No /parameter - /endparameter section in document, Start Button disabled")
 
     def setEventType(self):
         typ = ""
@@ -706,6 +719,10 @@ class ScrbHandler:
         self.start = self.gui.getStart()
         self.end = self.gui.getEnd()
 
+        pos1,pos2,tbox = self.toBeDelPosParam
+        scribus.selectText(pos1, pos2 - pos1, tbox)
+        scribus.deleteText(tbox)
+
         pagenum = scribus.pageCount()
         for page in range(1, pagenum + 1):
             scribus.gotoPage(page)
@@ -750,24 +767,25 @@ class ScrbHandler:
         finally:
             self.touren = []
             self.termine = []
-            self.gui.destroy()
-            self.gui.quit()
+            #self.gui.destroy()
+            #self.gui.quit()
+            self.gui.disableStart()
 
     def evalTemplate(self):
-        pos1 = 0
+        pos2 = 0
         while True:
             textlen = scribus.getTextLength(self.textbox)
             if textlen == 0:
                 return
             scribus.selectText(0, textlen, self.textbox)
             alltext = scribus.getAllText(self.textbox)
-            logger.debug("alltext: %s %s", type(alltext), alltext)
+            #logger.debug("alltext: %s %s", type(alltext), alltext)
 
-            pos1 = alltext.find("/template", pos1)
+            pos1 = alltext.find("/template", pos2)
             logger.debug("pos /template=%d", pos1)
             if pos1 < 0:
                 return
-            pos2 = alltext.find("/endtemplate")
+            pos2 = alltext.find("/endtemplate", pos1)
             if pos2 < 0:
                 raise Exception("kein /endtemplate nach /template")
             pos2 += 12   # len("/endtemplate")
@@ -778,12 +796,14 @@ class ScrbHandler:
             #logger.debug("lineN: %s %s", type(lineN), lineN)
             if lineN != "/endtemplate":
                 raise ValueError("Die letzte Zeile des templates darf nur /endtemplate enthalten")
-            logger.debug("5et")
             words = line0.split()
             typ = words[1]
-            if typ != "/tour" and typ != "/termin":
-                raise ValueError("Zweites Wort nach /template muß /tour oder /termin sein")
+            if typ != "/tour" and typ != "/termin" and typ != "/toc":
+                raise ValueError("Zweites Wort nach /template muß /tour, /termin  oder /toc sein")
             typ = typ[1:]
+            if typ == "toc":
+                continue
+
             sel = words[2]
             if not sel.startswith("/selektion="):
                 raise ValueError("Drittes Wort nach /template muß mit /selektion= beginnen")
@@ -799,6 +819,7 @@ class ScrbHandler:
             # can now remove template
             scribus.selectText(pos1, pos2-pos1, self.textbox)
             scribus.deleteText(self.textbox)
+            pos2 = pos1
             self.insertPos = pos1
             self.evalEvents(sel, events, runs)
 
@@ -913,7 +934,11 @@ class ScrbHandler:
             self.url = None
         titel = event.getTitel()
         logger.info("Titel: %s URL: %s", titel, self.url)
-        return event.getTitel()
+        run = copy.copy(self.run)
+        run.pstyle = "MD_P_REGULAR"
+        run.cstyle = "MD_C_TOC" # put the eventId in an invisble font before the titel, for the toc
+        run.text = "_evtid_:" + event.getEventItemId() + STX + titel + ETX
+        return [ run, titel ]
 
     def expBeschreibung(self, event, _):
         desc = event.eventItem.get("description")
@@ -953,7 +978,7 @@ class ScrbHandler:
         if len(tl) == 0:
             return ""
         run = copy.copy(self.run)
-        run.cstyle = "ArialBold"
+        run.cstyle = "MD_C_BOLD"
         run.text = bezeichnung + ": "
         return [ run, ", ".join(tl)]
 
@@ -981,7 +1006,7 @@ class ScrbHandler:
                 afl.append(af[0] + " " + af[1] + " " + af[2])
 
         run = copy.copy(self.run)
-        run.cstyle = "ArialBold"
+        run.cstyle = "MD_C_BOLD"
         run.text = "Ort" + ("" if len(afs) == 1 else "e") + ": "
         return [ run, ", ".join(afl)]
 
@@ -993,7 +1018,7 @@ class ScrbHandler:
         for z in zi:
             x = z.find(':') + 1
             run = copy.deepcopy(self.run)
-            run.cstyle = "ArialBold"
+            run.cstyle = "MD_C_BOLD"
             run.text = z[0:x] + " "
             runs.append(run)
             run = copy.deepcopy(self.run)
@@ -1015,6 +1040,101 @@ class ScrbHandler:
         for afx, af in enumerate(afs[1:]):
             s = s + "\n " + str(afx+2) + ". Startpunkt: " + afs[afx][1] + " Uhr;" + afs[afx][2]
         return s
+
+    def makeToc(self, firstPageNr):
+        pagenum = scribus.pageCount()
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                if item[1] != 4:
+                    continue
+                self.textbox = item[0]
+                self.evalTocTemplate(firstPageNr)
+
+    def evalTocTemplate(self, firstPageNr):
+        textlen = scribus.getTextLength(self.textbox)
+        if textlen == 0:
+            return
+        scribus.selectText(0, textlen, self.textbox)
+        alltext = scribus.getAllText(self.textbox)
+        #logger.debug("alltext: %s %s", type(alltext), alltext)
+        pos2 = 0
+        while True:
+            pos1 = alltext.find("/template", pos2)
+            logger.debug("pos /template=%d", pos1)
+            if pos1 < 0:
+                return
+            pos2 = alltext.find("/endtemplate", pos1)
+            if pos2 < 0:
+                raise Exception("kein /endtemplate nach /template")
+            pos2 += 12  # len("/endtemplate")
+            lines = alltext[pos1:pos2].split('\r')
+            logger.debug("lines:%s %s", type(lines), str(lines))
+            line0 = lines[0]
+            lineN = lines[-1]
+            # logger.debug("lineN: %s %s", type(lineN), lineN)
+            if lineN != "/endtemplate":
+                raise ValueError("Die letzte Zeile des templates darf nur /endtemplate enthalten")
+            words = line0.split()
+            typ = words[1]
+            if typ != "/tour" and typ != "/termin" and typ != "/toc":
+                raise ValueError("Zweites Wort nach /template muß /tour, /termin  oder /toc sein")
+            typ = typ[1:]
+            if typ != "toc":
+                continue
+            self.insertPos = pos1
+            runs = self.makeRuns(pos1, pos2)
+            logger.debug("runs:%s", str(runs))
+            # remember template
+            self.toBeDelPosToc = (pos1, pos2, self.textbox)
+            self.insertPos = pos2
+            self.evalTocEvents(runs, firstPageNr)
+
+    def evalTocEvents(self, runs, firstPageNr):
+        pagenum = scribus.pageCount()
+        foundEvents = 0
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            pageNr = firstPageNr + page - 1
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                if item[1] != 4:
+                    continue
+                tbox = item[0]
+                tlen = scribus.getTextLength(tbox)
+                logger.debug("tbox %s length %d", tbox, tlen)
+                if tlen == 0:
+                    continue
+                scribus.selectText(0, tlen, tbox)
+                allText = scribus.getText(tbox)  # getAllText returns text of complete link chain!
+                y = 0
+                while True:
+                    x = allText.find("_evtid_:", y)
+                    if x < 0:
+                        break
+                    y = allText.find(STX, x)
+                    evtId = allText[x+8:y]
+                    x = allText.find(ETX, y)
+                    titel = allText[y+1:x]
+                    logger.debug("eventid %s, titel %s on page %d", evtId, titel, pageNr)
+                    event = self.gui.eventServer.getEventById(evtId, titel)
+                    self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
+                    logger.debug("event %s on page %d", self.eventMsg, pageNr)
+                    self.run = ScrbRun("", "MD_P_REGULAR", "MD_C_REGULAR")
+                    self.insertText("Seite " + str(pageNr) + ":\t" + self.eventMsg, self.run)
+                    foundEvents += 1
+        if foundEvents == 0:
+            print("Noch keine Events gefunden")
+        else:
+            # remove template
+            pos1,pos2,tbox = self.toBeDelPosToc
+            scribus.selectText(pos1, pos2 - pos1, tbox)
+            scribus.deleteText(tbox)
+
+
+
+
 
 def main():
     try:

@@ -24,13 +24,14 @@ MD_P_REGULAR = { "name": "MD_P_REGULAR", "linespacingmode":1, "alignment": 0, "c
 MD_P_BLOCK = { "name": "MD_P_BLOCK", "linespacingmode":1, "alignment": 3, "charstyle": "MD_C_REGULAR" }
 
 MD_C_REGULAR = { "name": "MD_C_REGULAR", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_C_BOLD = { "name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["bold"], "language": LANG_CODE}
+MD_C_BOLD = { "name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": "bold", "language": LANG_CODE}
 MD_C_ITALIC = { "name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["italic"], "language": LANG_CODE}
 MD_C_UNDERLINE = { "name": "MD_C_UNDERLINE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["underline"], "language": LANG_CODE}
 MD_C_STRIKE = { "name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["strike"], "language": LANG_CODE}
 MD_C_BULLET = { "name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_C_TOC = {"name": "MD_C_TOC", "font": "Arial Regular", "fontsize": 1, "fillcolor": "None", "scaleh": 0.1, "tracking": -70}
+#MD_C_TOC should display Fontsize 1, Tracking -7%, Horizontal Scaling 10%, units seem to be confused
 
-# 0, 24, 18, 14, 12, 10, 8
 MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":0, "linespacing": 24, "charstyle": "MD_C_H1" }
 MD_C_H1 = { "name": "MD_C_H1", "font": BASE_FONT, "fontsize": 24, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 MD_P_H2 = { "name": "MD_P_H2", "linespacingmode":0, "linespacing": 18, "charstyle": "MD_C_H2" }
@@ -45,7 +46,7 @@ MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":0, "linespacing": 8, "charstyle
 MD_C_H6 = { "name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 pstyleList = [MD_P_REGULAR, MD_P_BLOCK, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
-cstyleList = [MD_C_REGULAR, MD_C_BULLET, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
+cstyleList = [MD_C_REGULAR, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_BULLET, MD_C_TOC, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
 pstyles = {}
 cstyles = {}
 pstylesConfigured = {}
@@ -64,7 +65,7 @@ def checkPStyleExi(style):
             scribus.createParagraphStyle(**pstyles[style])
             pstylesConfigured[style] = style
         return True
-    return False
+    raise ValueError("Paragraph Style " + style + " not defined")
 
 def checkCStyleExi(style):
     logger.debug("checkCExi %s", style)
@@ -74,7 +75,7 @@ def checkCStyleExi(style):
             scribus.createCharStyle(**cstyles[style])
             cstylesConfigured[style] = style
         return True
-    return False
+    raise ValueError("Character Style " + style + " not defined")
 
 def modifyFont(cStyle, fontStyles):
     if fontStyles is None or fontStyles == "":
@@ -162,6 +163,7 @@ hasdropcap [optional] -> specifies if there are caps (1 = yes, 0 = no)
 dropcaplines [optional] -> height (in lines) of the caps if used
 dropcapoffset [optional] -> offset of the caps if used
 "charstyle" [optional] -> char style to use
+
 
 createCharStyle(...)
 "name" [required] -> name of the char style to create

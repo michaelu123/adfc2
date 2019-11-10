@@ -112,6 +112,10 @@ class EventServer:
         self.events[eventItemId] = event
         return event
 
+    def getEventById(self, eventItemId, titel):
+        ejs = { "eventItemId":eventItemId, "imagePreview": "", "title": titel}
+        return self.getEvent(ejs)
+
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
         global tpConn
