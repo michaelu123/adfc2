@@ -384,6 +384,8 @@ class ScrbHandler:
         self.ausgabedatei = None
         self.toBeDelPosParam = None
         self.toBeDelPosToc = None
+        self.pageNr = None
+        self.frameLinks = {}
 
         global debug
         try:
@@ -417,6 +419,8 @@ class ScrbHandler:
             "zusatzinfo": self.expZusatzInfo,
             "höhenmeter": self.expHoehenMeter,
             "character": self.expCharacter,
+            "seite": lambda e,f: "{:>2}".format(self.pageNr), # 01-99
+            "tourstufe": self.expTourStufe,
             "schwierigkeitm": self.expSchwierigkeitM,
             "abfahrtenm": self.expAbfahrtenM,
             "tourleiterm": self.expTourLeiterM
@@ -528,6 +532,7 @@ class ScrbHandler:
         scribus.setColumns(cols, newBox)
         scribus.setColumnGap(colgap, newBox)
         scribus.linkTextFrames(tbox, newBox)
+        logger.debug("link from %s to %s", tbox, newBox)
         return newBox
 
     def parseParams(self):
@@ -554,9 +559,9 @@ class ScrbHandler:
                 pos2 += 13 # len("/endparameter")
                 lines = alltext[pos1:pos2].split('\r')[1:-1]
                 logger.debug("parsePar lines:%s %s", type(lines), str(lines))
-                #scribus.selectText(pos1, pos2 - pos1, self.textbox)
-                #scribus.deleteText(self.textbox)
                 self.toBeDelPosParam = (pos1, pos2, self.textbox)
+                break
+            if len(lines) != 0:
                 break
 
         if len(lines) == 0:
@@ -752,9 +757,12 @@ class ScrbHandler:
                 if item[1] != 4:
                     continue
                 tbox = item[0]
-                while scribus.textOverflows(tbox):
-                    tbox = self.createNewPage(tbox)
+                tbox2 = tbox
+                while scribus.textOverflows(tbox2):
+                    tbox2 = self.createNewPage(tbox2)
+                    self.frameLinks[tbox2] = tbox # frame tbox2 has tbox as root
 
+        scribus.redrawAll()
         ausgabedatei = self.ausgabedatei
         if ausgabedatei == None or ausgabedatei == "":
             ausgabedatei = "ADFC_" + self.gliederung + (
@@ -836,12 +844,8 @@ class ScrbHandler:
             self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
             logger.debug("eventMsg: %s", self.eventMsg)
             for run in runs:
-                if run.text.lower().startswith("/kommentar"):
-                    continue
                 self.run = run
-                rtext = run.text.strip()
                 self.evalRun(event)
-                pos = self.insertPos
 
     def evalRun(self, event):
         # logger.debug("evalRun1 %s", self.run.text)
@@ -855,12 +859,12 @@ class ScrbHandler:
                 nl = "\n"
 
     def expandLine(self, s, event):
-        #logger.debug("expand1 <%s>", s)
+        logger.debug("expand1 <%s>", s)
         spos = 0
         while True:
             mp = paramRE.search(s, spos)
             if mp is None:
-                #logger.debug("noexp %s", s[spos:])
+                logger.debug("noexp %s", s[spos:])
                 self.insertText(s[spos:], self.run)
                 return
             gp = mp.group(1).lower()
@@ -933,6 +937,8 @@ class ScrbHandler:
         else:
             self.url = None
         titel = event.getTitel()
+        if self.pageNr is not None:
+            return titel # called from evalToc
         logger.info("Titel: %s URL: %s", titel, self.url)
         run = copy.copy(self.run)
         run.pstyle = "MD_P_REGULAR"
@@ -1032,6 +1038,9 @@ class ScrbHandler:
     def expCharacter(self, tour, _):
         return tour.getCharacter()
 
+    def expTourStufe(self,tour, _):
+        return tour.getRadTyp()[0].upper() + " " + str(tour.getSchwierigkeit())
+
     def expAbfahrtenM(self, tour, _):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
@@ -1051,6 +1060,7 @@ class ScrbHandler:
                     continue
                 self.textbox = item[0]
                 self.evalTocTemplate(firstPageNr)
+        scribus.redrawAll()
 
     def evalTocTemplate(self, firstPageNr):
         textlen = scribus.getTextLength(self.textbox)
@@ -1092,11 +1102,12 @@ class ScrbHandler:
             self.evalTocEvents(runs, firstPageNr)
 
     def evalTocEvents(self, runs, firstPageNr):
+        toc = []
         pagenum = scribus.pageCount()
         foundEvents = 0
         for page in range(1, pagenum + 1):
             scribus.gotoPage(page)
-            pageNr = firstPageNr + page - 1
+            self.pageNr = firstPageNr + page - 1
             pageitems = scribus.getPageItems()
             for item in pageitems:
                 if item[1] != 4:
@@ -1108,22 +1119,30 @@ class ScrbHandler:
                     continue
                 scribus.selectText(0, tlen, tbox)
                 allText = scribus.getText(tbox)  # getAllText returns text of complete link chain!
-                y = 0
+                z = 0
                 while True:
-                    x = allText.find("_evtid_:", y)
+                    x = allText.find("_evtid_:", z)
                     if x < 0:
                         break
                     y = allText.find(STX, x)
                     evtId = allText[x+8:y]
-                    x = allText.find(ETX, y)
-                    titel = allText[y+1:x]
-                    logger.debug("eventid %s, titel %s on page %d", evtId, titel, pageNr)
+                    z = allText.find(ETX, y)
+                    titel = allText[y+1:z]
+                    logger.debug("eventid %s, titel %s on page %d", evtId, titel, self.pageNr)
                     event = self.gui.eventServer.getEventById(evtId, titel)
-                    self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
-                    logger.debug("event %s on page %d", self.eventMsg, pageNr)
-                    self.run = ScrbRun("", "MD_P_REGULAR", "MD_C_REGULAR")
-                    self.insertText("Seite " + str(pageNr) + ":\t" + self.eventMsg, self.run)
+                    toc.append((self.pageNr, event))
                     foundEvents += 1
+        logger.debug("sorting")
+        toc.sort(key=lambda x: x[1].getDatumRaw())  # sortieren nach Datum
+        for (pageNr, event) in toc:
+            self.eventMsg = event.getTitel() + " vom " + event.getDatum()[0]
+            logger.debug("event %s on page %d", self.eventMsg, self.pageNr)
+            self.pageNr = pageNr
+            for run in runs:
+                self.run = run
+                self.evalRun(event)
+            self.insertText("\n", self.run)
+        self.pageNr = None
         if foundEvents == 0:
             print("Noch keine Events gefunden")
         else:
@@ -1131,10 +1150,41 @@ class ScrbHandler:
             pos1,pos2,tbox = self.toBeDelPosToc
             scribus.selectText(pos1, pos2 - pos1, tbox)
             scribus.deleteText(tbox)
+            scribus.redrawAll()
 
-
-
-
+    def rmEventIdMarkers(self):
+        pagenum = scribus.pageCount()
+        for page in range(1, pagenum + 1):
+            scribus.gotoPage(page)
+            pageitems = scribus.getPageItems()
+            for item in pageitems:
+                if item[1] != 4:
+                    continue
+                tbox = item[0]
+                # frameLinks nonempty only if starten called from same gui
+                if self.frameLinks.get(tbox) is not None: # i.e. if tbox is not the root of a link chain
+                    continue
+                # TODO find out if tbox is a linked frame
+                tlen = scribus.getTextLength(tbox)
+                if tlen == 0:
+                    continue
+                scribus.selectText(0, tlen, tbox)
+                allText = scribus.getAllText(tbox)  # getAllText returns text of complete link chain!
+                z = 0
+                xl = []
+                while True:
+                    x = allText.find("_evtid_:", z)
+                    if x < 0:
+                        break
+                    y = allText.find(STX, x)
+                    evtId = allText[x+8:y]
+                    z = allText.find(ETX, y)
+                    titel = allText[y+1:z]
+                    xl.append((x,z+1-x))
+                for (x,l) in reversed(xl): # the reversed is important!
+                    scribus.selectText(x, l, tbox)
+                    scribus.deleteText(tbox)
+        scribus.redrawAll()
 
 def main():
     try:

@@ -504,15 +504,16 @@ class MyApp(Frame):
         if self.scribus:
             frm = Frame(master)
             frm.grid_rowconfigure(0, weight=1)
-            frm.grid_columnconfigure(0, weight=1)
-            frm.grid_columnconfigure(1, weight=1)
-            frm.grid_columnconfigure(2, weight=1)
+            for i in range(4):
+                frm.grid_columnconfigure(i, weight=1)
             self.startBtn = Button(frm, text="Start", bg="red", command=self.starten)
             self.tocBtn = Button(frm, text="InhVerzAktu", bg="red", command=self.makeToc)
             self.startPgNr = LabelEntry(frm, "1.Seitennr:", "1")
+            self.rmBtn = Button(frm, text="LöscheEventMarker", bg="red", command=self.rmEventIdMarkers)
             self.startBtn.grid(row=0, column=0, padx=5, pady=2, sticky="w")
             self.tocBtn.grid(row=0, column=1, padx=5, pady=2, sticky="w")
             self.startPgNr.grid(row=0, column=2, padx=5, pady=2, sticky="w")
+            self.rmBtn.grid(row=0, column=3, padx=5, pady=2, sticky="w")
             frm.grid(row=5, padx=5, pady=2, sticky="w")
         else:
             self.startBtn.grid(row=5, padx=5, pady=2, sticky="w")
@@ -656,8 +657,7 @@ class MyApp(Frame):
         with contextlib.redirect_stdout(txtWriter):
             self.eventServer = tourServer.EventServer(False, False)
             if self.scrbHandler is None:
-                print("Sie müssen erst den Start-Knopf anklicken")
-                return
+                self.scrbHandler = scrbHandler.ScrbHandler(self)
             try:
                 self.tocBtn.config(state=DISABLED)
                 self.scrbHandler.makeToc(int(firstPageNr))
@@ -666,6 +666,22 @@ class MyApp(Frame):
                 print("Error ", e, ", see ", logFilePath)
             finally:
                 self.tocBtn.config(state=NORMAL)
+
+    def rmEventIdMarkers(self):
+        self.text.delete("1.0", END)
+        txtWriter = TxtWriter(self.text)
+        with contextlib.redirect_stdout(txtWriter):
+            self.eventServer = tourServer.EventServer(False, False)
+            if self.scrbHandler is None:
+                self.scrbHandler = scrbHandler.ScrbHandler(self)
+            try:
+                self.rmBtn.config(state=DISABLED)
+                self.scrbHandler.rmEventIdMarkers()
+            except Exception as e:
+                logger.exception("Error during script evaluation")
+                print("Error ", e, ", see ", logFilePath)
+            finally:
+                self.rmBtn.config(state=NORMAL)
 
 def main(args):
     locale.setlocale(locale.LC_TIME, "German")

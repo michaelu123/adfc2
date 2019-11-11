@@ -29,8 +29,8 @@ MD_C_ITALIC = { "name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTS
 MD_C_UNDERLINE = { "name": "MD_C_UNDERLINE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["underline"], "language": LANG_CODE}
 MD_C_STRIKE = { "name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["strike"], "language": LANG_CODE}
 MD_C_BULLET = { "name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_C_TOC = {"name": "MD_C_TOC", "font": "Arial Regular", "fontsize": 1, "fillcolor": "None", "scaleh": 0.1, "tracking": -70}
-#MD_C_TOC should display Fontsize 1, Tracking -7%, Horizontal Scaling 10%, units seem to be confused
+MD_C_TOC = {"name": "MD_C_TOC", "font": "Arial Regular", "fontsize": 1, "fillcolor": "None", "scaleh": 0.1}
+#MD_C_TOC should display Fontsize 1, Tracking 0%, Horizontal Scaling 10%, units seem to be confused
 
 MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":0, "linespacing": 24, "charstyle": "MD_C_H1" }
 MD_C_H1 = { "name": "MD_C_H1", "font": BASE_FONT, "fontsize": 24, "fillcolor": BASE_COLOR, "language": LANG_CODE}
