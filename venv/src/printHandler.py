@@ -3,10 +3,12 @@
 # printHandler produziert output a la KV Starnberg
 from myLogger import logger
 
-class DatenTest: # just log data
+
+class DatenTest:  # just log data
     def insertText(self, text):
         logger.info(text)
-        print (text, end="")
+        print(text, end="")
+
 
 class PrintHandler:
     def __init__(self):
@@ -22,12 +24,12 @@ class PrintHandler:
         uhrzeit = abfahrt[1]
         ort = abfahrt[2]
         logger.info("Abfahrt: type=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
-        self.scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n')
+        self.scribus.insertText(typ + (': ' + uhrzeit if uhrzeit != "" else "") + ', ' + ort + '\n')
 
     def handleTextfeld(self, textelement):
         logger.info("Textfeld: text=%s", textelement)
-        if textelement != None:
-            self.scribus.insertText(textelement+'\n')
+        if textelement is not None:
+            self.scribus.insertText(textelement + '\n')
 
     def handleTextfeldList(self, textList):
         logger.info("TextfeldList: text=%s", str(textList))
@@ -35,7 +37,7 @@ class PrintHandler:
             if len(text) == 0:
                 continue
             logger.info("Text: text=%s", text)
-            self.scribus.insertText(text+'\n')
+            self.scribus.insertText(text + '\n')
 
     def handleBeschreibung(self, textelement):
         self.handleTextfeld(textelement)
@@ -43,12 +45,12 @@ class PrintHandler:
     def handleTel(self, Name):
         telfestnetz = Name.getElementsByTagName("TelFestnetz")
         telmobil = Name.getElementsByTagName("TelMobil")
-        if len(telfestnetz)!=0:
+        if len(telfestnetz) != 0:
             logger.info("Tel: festnetz=%s", telfestnetz[0].firstChild.data)
-            self.scribus.insertText(' ('+telfestnetz[0].firstChild.data+')')
-        if len(telmobil)!=0:
+            self.scribus.insertText(' (' + telfestnetz[0].firstChild.data + ')')
+        if len(telmobil) != 0:
             logger.info("Tel: mobil=%s", telmobil[0].firstChild.data)
-            self.scribus.insertText(' ('+telmobil[0].firstChild.data+')')
+            self.scribus.insertText(' (' + telmobil[0].firstChild.data + ')')
 
     def handleName(self, name):
         logger.info("Name: name=%s", name)
@@ -63,16 +65,16 @@ class PrintHandler:
 
     def handleTitel(self, tt):
         logger.info("Titel: titel=%s", tt)
-        self.scribus.insertText(tt+'\n')
+        self.scribus.insertText(tt + '\n')
 
     def handleKopfzeile(self, dat, kat, schwierig, strecke):
         logger.info("Kopfzeile: dat=%s kat=%s schwere=%s strecke=%s", dat, kat, schwierig, strecke)
-        self.scribus.insertText(dat+':	'+kat+'	'+schwierig+'	'+strecke+'\n')
+        self.scribus.insertText(dat + ':	' + kat + '	' + schwierig + '	' + strecke + '\n')
 
     def handleKopfzeileMehrtage(self, anfang, ende, kat, schwierig, strecke):
         logger.info("Mehrtage: anfang=%s ende=%s kat=%s schwere=%s strecke=%s", anfang, ende, kat, schwierig, strecke)
-        self.scribus.insertText(anfang+' bis '+ende+':\n')
-        self.scribus.insertText('	'+kat+'	'+schwierig+'	'+strecke+'\n')
+        self.scribus.insertText(anfang + ' bis ' + ende + ':\n')
+        self.scribus.insertText('	' + kat + '	' + schwierig + '	' + strecke + '\n')
 
     def handleTour(self, tour):
         try:
@@ -104,7 +106,7 @@ class PrintHandler:
                 schwierigkeit = str(tour.getSchwierigkeit())
                 if schwierigkeit == "0":
                     schwierigkeit = "1"
-                if schwierigkeit >= "1" and schwierigkeit <= "5":
+                if "1" <= schwierigkeit <= "5":
                     schwierigkeit = "*" * int(schwierigkeit)
             logger.info("schwierigkeit %s", schwierigkeit)
             strecke = tour.getStrecke()
@@ -116,8 +118,8 @@ class PrintHandler:
             if kategorie == 'Mehrtagestour':
                 enddatum = tour.getEndDatum()[0]
                 logger.info("enddatum %s", enddatum)
-
             personen = tour.getPersonen()
+
             logger.info("personen %s", str(personen))
             if len(personen) == 0:
                 logger.error("Tour %s hat keinen Tourleiter", titel)

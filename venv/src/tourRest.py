@@ -10,6 +10,7 @@ character = ["", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "
 span1RE = r'<span.*?>'
 span2RE = r'</span>'
 
+
 def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     # scribus/Python2 does not support %z
     beginning = beginning[0:19]  # '2018-04-29T06:30:00'
@@ -24,7 +25,7 @@ def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     elif beginning.startswith("2019"):
         begSZ = "2019-03-31"
         endSZ = "2019-10-27"
-    #Zeitumstellung wird eh 2020 abgeschafft!?
+    # Zeitumstellung wird eh 2020 abgeschafft!?
     elif beginning.startswith("2020"):
         begSZ = "2020-03-29"
         endSZ = "2020-10-25"
@@ -67,6 +68,7 @@ class SAXHandler(xml.sax.handler.ContentHandler):
     def val(self):
         return "".join(self.r)
 
+
 def removeSpcl(s):
     while s.count("<br>"):
         s = s.replace("<br>", "\n")
@@ -78,6 +80,7 @@ def removeSpcl(s):
         s = s.replace("</u>", "^^")
     return s
 
+
 def OLDremoveHTML(s):
     if s.find("</") == -1:  # no HTML
         return s
@@ -85,14 +88,16 @@ def OLDremoveHTML(s):
         htmlHandler = SAXHandler()
         xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
         return htmlHandler.val()
-    except Exception as e:
+    except:
         logger.exception("can not parse '%s'", s)
         return s
+
 
 def removeHTML(s):
     s = re.sub(span1RE, "", s)
     s = re.sub(span2RE, "", s)
     return s
+
 
 # Clean text
 def normalizeText(t):
@@ -190,7 +195,8 @@ class Event:
             if typ != "Startpunkt" and typ != "Treffpunkt":
                 continue
             if not tourLoc.get("withoutTime"):
-                if len(abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
+                if len(
+                        abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
                     beginning = self.getDatum()[1]
                 else:
                     beginning = tourLoc.get("beginning")
@@ -273,7 +279,7 @@ class Event:
             tag = itemTag.get("tag")
             category = itemTag.get("category")
             if category.startswith("Aktionen,") or category.startswith("Radlertreff") or category.startswith("Service") \
-                    or category.startswith("Versammlungen") or category.startswith("Vortr")\
+                    or category.startswith("Versammlungen") or category.startswith("Vortr") \
                     or category.startswith("Typen "):
                 return tag
         return "Ohne"
@@ -394,6 +400,7 @@ class Event:
 
     def isExternalEvent(self):
         return self.eventItem.get("cExternalEvent") == "true"
+
 
 class User:
     def __init__(self, userJS):

@@ -25,14 +25,14 @@ class EventServer:
         self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
-    def getEvents(self, unitKey, start, end, type):
+    def getEvents(self, unitKey, start, end, typ):
         unit = "Alles" if unitKey is None or unitKey == "" else unitKey
         startYear = start[0:4]
         jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + startYear + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             req = "/api/eventItems/search?limit=10000"
             par = ""
-            if unitKey != None and unitKey != "":
+            if unitKey is not None and unitKey != "":
                 par += "&unitKey=" + unitKey
                 if self.includeSub:
                     par += "&includeSubsidiary=true"
@@ -51,11 +51,11 @@ class EventServer:
         events = []
         if len(items) == 0:
             return events
-        if not resp is None:  # a REST call result always overwrites jsonPath
+        if resp is not None:  # a REST call result always overwrites jsonPath
             with open(jsonPath, "w") as jsonFile:
                 json.dump(jsRoot, jsonFile, indent=4)
         for item in iter(items):
-            #item["imagePreview"] = ""  # save space
+            # item["imagePreview"] = ""  # save space
             titel = item.get("title")
             if titel is None:
                 logger.error("Kein Titel für den Event %s", str(item))
@@ -63,7 +63,7 @@ class EventServer:
             if item.get("cStatus") == "Cancelled" or item.get("isCancelled"):
                 logger.info("Event %s ist gecancelt", titel)
                 continue
-            if type != "Alles" and item.get("eventType") != type:
+            if typ != "Alles" and item.get("eventType") != typ:
                 continue
             beginning = item.get("beginning")
             if beginning is None:
@@ -86,13 +86,12 @@ class EventServer:
         return events
 
     def getEvent(self, eventJsSearch):
-        global tpConn
         eventItemId = eventJsSearch.get("eventItemId")
         event = self.events.get(eventItemId)
         if event is not None:
             return event
         imagePreview = eventJsSearch.get("imagePreview")
-        escTitle = "".join([ (ch if ch.isalnum() else "_") for ch in eventJsSearch.get("title")])
+        escTitle = "".join([(ch if ch.isalnum() else "_") for ch in eventJsSearch.get("title")])
         jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             resp = self.httpget("/api/eventItems/" + eventItemId)
@@ -113,12 +112,11 @@ class EventServer:
         return event
 
     def getEventById(self, eventItemId, titel):
-        ejs = { "eventItemId":eventItemId, "imagePreview": "", "title": titel}
+        ejs = {"eventItemId": eventItemId, "imagePreview": "", "title": titel}
         return self.getEvent(ejs)
 
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
-        global tpConn
         jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             resp = self.httpget("/api/users/" + userId)
@@ -139,7 +137,6 @@ class EventServer:
     def loadUnits(self):
         if self.py2:
             return
-        global tpConn
         jsonPath = "c:/temp/tpjson/units.json"
         if not os.path.exists(jsonPath):
             resp = self.httpget("/api/units/")

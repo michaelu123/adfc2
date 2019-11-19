@@ -2,8 +2,8 @@
 
 from myLogger import logger
 
+schwierigkeitMap = {0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 
-schwierigkeitMap = { 0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 
 class RawHandler:
     def nothingFound(self):
@@ -98,17 +98,16 @@ class RawHandler:
             logger.exception("Fehler im Termin '%s': %s", titel, e)
             return
 
-        print("{} - {}".format(titel, kategorie)) # terminTyp z.B. Stammtisch, entbehrlich?
+        print("{} - {}".format(titel, kategorie))  # terminTyp z.B. Stammtisch, entbehrlich?
         print("{} {}-{}".format(datum[0], datum[1], enddatum[1]))
         for zeit in zeiten:
             if zeit[1] != "":
                 print("{}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
             else:
-                 print("{}: {}".format(zeit[0], zeit[2]))
+                print("{}: {}".format(zeit[0], zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:
             if len(info) == 0:
                 continue
             print(info)
         print()
-

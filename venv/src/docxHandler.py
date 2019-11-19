@@ -1,14 +1,13 @@
 # encoding: utf-8
 
-import tourRest
 import selektion
+import expand
 import os
-import sys
 import re
-import datetime
-import time
 import markdown
 import copy
+
+import tourRest
 from myLogger import logger
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -17,6 +16,7 @@ from docx.shared import RGBColor
 from docx.oxml.shared import OxmlElement
 from docx.oxml.ns import qn
 
+""" XXX
 schwierigkeitMap = { 0: "sehr einfach",
                      1: "sehr einfach",
                      2: "einfach",
@@ -30,6 +30,7 @@ schwierigkeitMMap = { 0: "\u00a3\u00a3\u00a3\u00a3\u00a3",
                       3: "\u00a2\u00a2\u00a2\u00a3\u00a3",
                       4: "\u00a2\u00a2\u00a2\u00a2\u00a3",
                       5: "\u00a2\u00a2\u00a2\u00a2\u00a2"}
+"""
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
@@ -37,18 +38,21 @@ ulRE = r'(\^{2})(.+?)\1'
 STX = '\u0002'  # Use STX ("Start of text") for start-of-placeholder
 ETX = '\u0003'  # Use ETX ("End of text") for end-of-placeholder
 stxEtxRE = re.compile(r'%s(\d+)%s' % (STX, ETX))
-headerFontSizes = [ 0, 24, 18, 14, 12, 10, 8 ] # h1-h6 headers have fontsizes 24-8
+headerFontSizes = [0, 24, 18, 14, 12, 10, 8]  # h1-h6 headers have fontsizes 24-8
 debug = False
 nlctr = 0
 adfc_blue = 0x004b7c  # CMYK=90 60 10 30
-adfc_yellow = 0xee7c00 # CMYK=0 60 100 0
+adfc_yellow = 0xee7c00  # CMYK=0 60 100 0
+
 
 def str2hex(s: str):
     return ":".join("{:04x}".format(ord(c)) for c in s)
 
+
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
 """
+""" XXX
 def convertToMEZOrMSZ(s: str):  # '2018-04-29T06:30:00+00:00'
     dt = time.strptime(s, "%Y-%m-%dT%H:%M:%S%z")
     t = time.mktime(dt)
@@ -69,6 +73,8 @@ def pyinst(path):
         if os.path.exists(pypath):
             return pypath
     return path
+"""
+
 
 def delete_paragraph(paragraph):
     # https://github.com/python-openxml/python-docx/issues/33
@@ -76,10 +82,12 @@ def delete_paragraph(paragraph):
     p.getparent().remove(p)
     p._p = p._element = None
 
+
 def delete_run(run):
     r = run._element
     r.getparent().remove(r)
     r._p = r._element = None
+
 
 def add_run_copy(paragraph, run, text=None, style=None):
     newr = paragraph.add_run(text=run.text if text is None else text,
@@ -89,11 +97,11 @@ def add_run_copy(paragraph, run, text=None, style=None):
     newr.underline = run.underline
     newr.font.all_caps = run.font.all_caps
     newr.font.bold = run.font.bold
-    if run.font.color != None and run.font.color.rgb != None:
+    if run.font.color is not None and run.font.color.rgb is not None:
         newr.font.color.rgb = run.font.color.rgb
-    if run.font.color != None and run.font.color.theme_color != None:
+    if run.font.color is not None and run.font.color.theme_color is not None:
         newr.font.color.theme_color = run.font.color.theme_color
-    #newr.font.color.type = run.font.color.type is readonly
+    # newr.font.color.type = run.font.color.type is readonly
     newr.font.complex_script = run.font.complex_script
     newr.font.cs_bold = run.font.cs_bold
     newr.font.cs_italic = run.font.cs_italic
@@ -120,6 +128,7 @@ def add_run_copy(paragraph, run, text=None, style=None):
     newr.font.web_hidden = run.font.web_hidden
     return newr
 
+
 def copyPara(para, newp):
     newp.alignment = para.alignment
     newp.style = para.style
@@ -138,8 +147,9 @@ def copyPara(para, newp):
         newp.paragraph_format.tab_stops.add_tab_stop(ts.position, ts.alignment, ts.leader)
     newp.paragraph_format.widow_control = para.paragraph_format.widow_control
 
+
 def insert_paragraph_copy_before(doc, paraBefore, para):
-    if paraBefore == None:
+    if paraBefore is None:
         newp = doc.add_paragraph()
     else:
         newp = paraBefore.insert_paragraph_before()
@@ -148,10 +158,12 @@ def insert_paragraph_copy_before(doc, paraBefore, para):
         add_run_copy(newp, run)
     return newp
 
+
 def insert_paragraph_before(paraBefore, text, para):
     newp = paraBefore.insert_paragraph_before(text, para.style)
     copyPara(para, newp)
     return newp
+
 
 def eqFont(f1, f2):
     if f1.name != f2.name:
@@ -160,10 +172,12 @@ def eqFont(f1, f2):
         return False
     return True
 
+
 def eqStyle(s1, s2):
     if s1.name != s2.name:
         return False
     return True
+
 
 def eqColor(r1, r2):
     p1 = hasattr(r1._element, "rPr")
@@ -185,15 +199,16 @@ def eqColor(r1, r2):
     try:
         c1 = r1._element.rPr.color
         c2 = r2._element.rPr.color
-        if c1 == None and c2 == None:
+        if c1 is None and c2 is None:
             return True
-        if c1 != None and c2 == None:
+        if c1 is not None and c2 is None:
             return False
-        if c1 == None and c2 != None:
+        if c1 is None and c2 is not None:
             return False
         return c1.val == c2.val
     except:
         logger.exception("eqcolor")
+
 
 def split_run(para, runs, run, x):
     runX = runs.index(run) + 1
@@ -213,6 +228,7 @@ def split_run(para, runs, run, x):
     if debug:
         print("splitRes:", " ".join(["<" + run.text + ">" for run in para.runs]))
 
+
 """
     This function combines the texts of successive runs with same 
     font,style,color into one run. Word splits for unknown reasons continuous 
@@ -222,6 +238,8 @@ def split_run(para, runs, run, x):
     But then we may have several ${param}s within one run. We then split 
     the runs again so that each parameter is in its own run.
 """
+
+
 def combineRuns(doc):
     paras = doc.paragraphs
     for para in paras:
@@ -236,13 +254,13 @@ def combineRuns(doc):
                       " font:", run.font.name, run.font.size,
                       " style:", run.style.name)
                 # print("len ", len(run.text), " hex ", str2hex(run.text))
-            if prevRun != None and prevRun.bold == run.bold and \
-                prevRun.italic == run.italic and \
-                prevRun.underline == run.underline and \
-                eqColor(prevRun, run) and \
-                eqFont(prevRun.font, run.font) and \
-                eqStyle(prevRun.style, run.style) and \
-                run.text != "":
+            if prevRun is not None and prevRun.bold == run.bold and \
+                    prevRun.italic == run.italic and \
+                    prevRun.underline == run.underline and \
+                    eqColor(prevRun, run) and \
+                    eqFont(prevRun.font, run.font) and \
+                    eqStyle(prevRun.style, run.style) and \
+                    run.text != "":
                 prevRun.text += run.text
                 delete_run(run)
             else:
@@ -256,12 +274,13 @@ def combineRuns(doc):
                 runs = para.runs
                 for run in runs:
                     mp = paramRE.search(run.text, 1)
-                    if mp == None:
+                    if mp is None:
                         continue
                     sp = mp.span()
                     split_run(para, runs, run, sp[0])
                     splitted = True
                     break
+
 
 def add_hyperlink_into_run(paragraph, run, i, url):
     runs = paragraph.runs
@@ -279,32 +298,35 @@ def add_hyperlink_into_run(paragraph, run, i, url):
     hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
     hyperlink.append(run._r)
     # see above comment about insert
-    #paragraph._p.insert(i+1, hyperlink)
+    # paragraph._p.insert(i+1, hyperlink)
     paragraph._p.append(hyperlink)
     i += 1
     while i < len(runs):
         paragraph._p.append(runs[i]._r)
         i += 1
 
+
 def insertHR(paragraph):
     p = paragraph._p  # p is the <w:p> XML element
     pPr = p.get_or_add_pPr()
+
     pBdr = OxmlElement('w:pBdr')
     pPr.insert_element_before(pBdr,
-        'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:kinsoku', 'w:wordWrap',
-        'w:overflowPunct', 'w:topLinePunct', 'w:autoSpaceDE', 'w:autoSpaceDN',
-        'w:bidi', 'w:adjustRightInd', 'w:snapToGrid', 'w:spacing', 'w:ind',
-        'w:contextualSpacing', 'w:mirrorIndents', 'w:suppressOverlap', 'w:jc',
-        'w:textDirection', 'w:textAlignment', 'w:textboxTightWrap',
-        'w:outlineLvl', 'w:divId', 'w:cnfStyle', 'w:rPr', 'w:sectPr',
-        'w:pPrChange'
-    )
+                              'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:kinsoku', 'w:wordWrap',
+                              'w:overflowPunct', 'w:topLinePunct', 'w:autoSpaceDE', 'w:autoSpaceDN',
+                              'w:bidi', 'w:adjustRightInd', 'w:snapToGrid', 'w:spacing', 'w:ind',
+                              'w:contextualSpacing', 'w:mirrorIndents', 'w:suppressOverlap', 'w:jc',
+                              'w:textDirection', 'w:textAlignment', 'w:textboxTightWrap',
+                              'w:outlineLvl', 'w:divId', 'w:cnfStyle', 'w:rPr', 'w:sectPr',
+                              'w:pPrChange'
+                              )
     bottom = OxmlElement('w:bottom')
     bottom.set(qn('w:val'), 'single')
     bottom.set(qn('w:sz'), '6')
     bottom.set(qn('w:space'), '1')
     bottom.set(qn('w:color'), 'auto')
     pBdr.append(bottom)
+
 
 def move_run_before(i, para):
     runs = para.runs
@@ -339,29 +361,30 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             "li": self.li,
             "a": self.a,
             "img": self.img,
-            "hr": self.hr }
+            "hr": self.hr}
 
     def run(self, root):
-        self.paraBefore = self.docxHandler.para # we insert everything before this paragraph
+        self.paraBefore = self.docxHandler.para  # we insert everything before this paragraph
         self.para = copy.deepcopy(self.paraBefore)
         # self.para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
         # self.para.style = "Normal"
         self.curPara = None
         self.lvl = 4
         self.fontStyles = ""
-        for child in root: # skip <div> root
+        for child in root:  # skip <div> root
             self.walkOuter(child)
         root.clear()
 
     def setDeps(self, docxHandler):
         self.docxHandler = docxHandler
 
-    def unescape(self, m):
+    @staticmethod
+    def unescape(m):
         return chr(int(m.group(1)))
 
     def printLines(self, s):
         s = stxEtxRE.sub(self.unescape, s)  # "STX40ETX" -> chr(40), see markdown/postprocessors/UnescapePostprocessor
-        r = self.curPara.add_run(s) # style?
+        r = self.curPara.add_run(s)  # style?
         r.bold = r.italic = r.font.strike = r.font.underline = False
         for fst in self.fontStyles:
             if fst == 'B':
@@ -377,20 +400,20 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def walkOuter(self, node):
         global nlctr
         if debug:
-            if node.text != None:
+            if node.text is not None:
                 ltext = node.text.replace("\n", "<" + str(nlctr) + "nl>")
                 # node.text = node.text.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltext = "None"
-            if node.tail != None:
+            if node.tail is not None:
                 ltail = node.tail.replace("\n", "<" + str(nlctr) + "nl>")
                 # node.tail = node.tail.replace("\n", str(nlctr) + "\n")
                 nlctr += 1
             else:
                 ltail = "None"
             self.lvl += 4
-            print(" " * self.lvl,"<<<<")
+            print(" " * self.lvl, "<<<<")
             print(" " * self.lvl, "node=", node.tag, ",text=", ltext,
                   "tail=", ltail)
         try:
@@ -398,12 +421,12 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             if node.tail is not None:
                 self.printLines(node.tail)
         except Exception:
-            msg = "Fehler während der Behandlung der Beschreibung des Events " +\
+            msg = "Fehler während der Behandlung der Beschreibung des Events " + \
                   self.docxHandler.eventMsg
             logger.exception(msg)
             print(msg)
         if debug:
-            print(" " * self.lvl,">>>>")
+            print(" " * self.lvl, ">>>>")
             self.lvl -= 4
 
     def walkInner(self, node):
@@ -521,7 +544,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
         url = node.attrib["href"]
         self.walkInner(node)
         add_hyperlink_into_run(self.curPara, self.curRun, None, url)
-        self.curRun.font.color.rgb = RGBColor(238,126,13)
+        self.curRun.font.color.rgb = RGBColor(238, 126, 13)
 
     def blockQuote(self, node):
         node.text = node.tail = None
@@ -539,6 +562,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def img(self, node):
         self.walkInner(node)
 
+
 class DocxExtension(markdown.Extension):
     def extendMarkdown(self, md):
         self.docxTreeHandler = DocxTreeHandler(md)
@@ -551,8 +575,9 @@ class DocxExtension(markdown.Extension):
                 ulRE, 'underline'), 'underline', 41)
 
 
-class DocxHandler:
+class DocxHandler(expand.Expand):
     def __init__(self, gui):
+        super().__init__()
         self.gui = gui
         self.terminselections = {}
         self.tourselections = {}
@@ -563,6 +588,7 @@ class DocxHandler:
         self.run = None
         self.ausgabedatei = None
         self.runX = 0
+        self.selecter = selektion.Selektion()
         global debug
         try:
             _ = os.environ["DEBUG"]
@@ -572,31 +598,6 @@ class DocxHandler:
         self.docxExtension = DocxExtension()
         self.md = markdown.Markdown(extensions=[self.docxExtension])
         self.docxExtension.docxTreeHandler.setDeps(self)
-        self.selFunctions = selektion.getSelFunctions()
-        self.expFunctions = { # keys in lower case
-            "heute": self.expHeute,
-            "start": self.expStart,
-            "end": self.expEnd,
-            "nummer": self.expNummer,
-            "titel": self.expTitel,
-            "beschreibung": self.expBeschreibung,
-            "kurz": self.expKurzBeschreibung,
-            "tourleiter": self.expTourLeiter,
-            "betreuer": self.expBetreuer,
-            "name": self.expName,
-            "city": self.expCity,
-            "street": self.expStreet,
-            "kategorie": self.expKategorie,
-            "schwierigkeit": self.expSchwierigkeit,
-            "tourlänge": self.expTourLength,
-            "abfahrten": self.expAbfahrten,
-            "zusatzinfo": self.expZusatzInfo,
-            "höhenmeter": self.expHöhenMeter,
-            "character": self.expCharacter,
-            "schwierigkeitm": self.expSchwierigkeitM,
-            "abfahrtenm": self.expAbfahrtenM,
-            "tourleiterm": self.expTourLeiterM
-        }
 
     def openDocx(self, pp):
         self.doc = docx.Document(self.gui.docxTemplateName)
@@ -611,7 +612,8 @@ class DocxHandler:
         wd2_font = wd2_style.font
         wd2_font.name = "Wingdings 2"
 
-    def nothingFound(self):
+    @staticmethod
+    def nothingFound():
         logger.info("Nichts gefunden")
         print("Nichts gefunden")
 
@@ -625,11 +627,11 @@ class DocxHandler:
                 continue
             if para.style.name.startswith("List"):
                 continue
-            if para.paragraph_format.left_indent != None:
+            if para.paragraph_format.left_indent is not None:
                 continue
             texts.append(para.text)
         lines = "\n".join(texts).split('\n')
-        #defaults:
+        # defaults:
         self.linkType = "Frontend"
         self.includeSub = True
         lx = 0
@@ -652,12 +654,12 @@ class DocxHandler:
                     raise ValueError(
                         "Unbekannter Parameter " + word0 +
                         ", erwarte linktyp oder ausgabedatei")
-            elif word0 not in ["selektion", "terminselektion", "tourselektion" ]:
+            elif word0 not in ["selektion", "terminselektion", "tourselektion"]:
                 raise ValueError(
                     "Unbekannter Parameter " + word0 +
                     ", erwarte selektion, terminselektion oder tourselektion")
             else:
-                lx = self.parseSel(word0, lines, lx+1, selections)
+                lx = self.parseSel(word0, lines, lx + 1, selections)
 
         selection = selections.get("selektion")
         self.gliederung = selection.get("gliederungen")
@@ -671,7 +673,7 @@ class DocxHandler:
                 self.terminselections[sel.get("name")] = sel
                 for key in sel.keys():
                     if key != "name" and not isinstance(sel[key], list):
-                        sel[key] = [ sel[key] ]
+                        sel[key] = [sel[key]]
 
         sels = selections.get("tourselektion")
         if sels is not None:
@@ -679,17 +681,17 @@ class DocxHandler:
                 self.tourselections[sel.get("name")] = sel
                 for key in sel.keys():
                     if key != "name" and not isinstance(sel[key], list):
-                        sel[key] = [ sel[key] ]
+                        sel[key] = [sel[key]]
 
     def setGuiParams(self):
         self.gui.setLinkType(self.linkType)
-        if self.gliederung != None and self.gliederung != "":
+        if self.gliederung is not None and self.gliederung != "":
             self.gui.setGliederung(self.gliederung)
         self.gui.setIncludeSub(self.includeSub)
-        if self.start != None and self.start != "":
+        if self.start is not None and self.start != "":
             self.gui.setStart(self.start)
-        if self.end != None and self.end != "":
-             self.gui.setEnd(self.end)
+        if self.end is not None and self.end != "":
+            self.gui.setEnd(self.end)
         self.setEventType()
         self.setRadTyp()
 
@@ -722,6 +724,7 @@ class DocxHandler:
 
     def getIncludeSub(self):
         return self.includeSub
+
     def getEventType(self):
         if len(self.terminselections) != 0 and len(self.tourselections) != 0:
             return "Alles"
@@ -730,6 +733,7 @@ class DocxHandler:
         if len(self.tourselections) != 0:
             return "Radtour"
         return self.gui.getEventType()
+
     def getRadTyp(self):
         rts = set()
         for sel in self.tourselections.values():
@@ -743,14 +747,18 @@ class DocxHandler:
         if len(rts) == 1:
             return rts[0]
         return "Alles"
+
     def getUnitKeys(self):
         return self.gliederung
+
     def getStart(self):
         return self.start
+
     def getEnd(self):
         return self.end
 
-    def parseSel(self, word, lines, lx, selections):
+    @staticmethod
+    def parseSel(word, lines, lx, selections):
         selections[word] = sel = sel2 = {}
         while lx < len(lines):
             line = lines[lx]
@@ -804,14 +812,14 @@ class DocxHandler:
                 paraNo += 1
                 self.paraBefore = \
                     None if paraNo == paraCnt else paragraphs[paraNo]
-                tempParas = paragraphs[p1:p2+1]
+                tempParas = paragraphs[p1:p2 + 1]
                 self.evalTemplate(tempParas)
             else:
                 self.evalPara(para)
                 paraNo += 1
 
         ausgabedatei = self.ausgabedatei
-        if ausgabedatei == None or ausgabedatei == "":
+        if ausgabedatei is None or ausgabedatei == "":
             ausgabedatei = os.path.join(
                 os.path.dirname(self.gui.docxTemplateName),
                 "ADFC_" +
@@ -864,7 +872,7 @@ class DocxHandler:
             raise ValueError("Drittes Wort nach /template muß mit /selektion= beginnen")
         sel = sel[11:].lower()
         sels = self.tourselections if typ == "tour" else self.terminselections
-        if not sel in sels:
+        if sel not in sels:
             raise ValueError("Selektion " + sel + " nicht in " + typ + "selektion")
         sel = sels[sel]
         events = self.touren if typ == "tour" else self.termine
@@ -873,7 +881,7 @@ class DocxHandler:
     def evalEvents(self, sel, events, paras):
         selectedEvents = []
         for event in events:
-            if selektion.selected(event, sel):
+            if self.selecter.selected(event, sel):
                 selectedEvents.append(event)
         if len(selectedEvents) == 0:
             return
@@ -889,7 +897,7 @@ class DocxHandler:
                         continue
                     rtext = run.text.strip()
                     self.evalRun(run, event)
-                    if rtext == "${titel}" and self.url != None:
+                    if rtext == "${titel}" and self.url is not None:
                         add_hyperlink_into_run(newp, run, self.runX, self.url)
                 if newp.text == "":
                     delete_paragraph(newp)
@@ -900,89 +908,19 @@ class DocxHandler:
         linesOut = []
         linesIn = run.text.split('\n')
         for line in linesIn:
-            if not line.startswith("/template") and\
+            if not line.startswith("/template") and \
                     not line.startswith("/endtemplate"):
                 exp = self.expand(line, event)
-                if exp != None:
+                if exp is not None:
                     linesOut.append(exp)
         newtext = '\n'.join(linesOut)
         if run.text != newtext:
             if run.text == "${schwierigkeitM}":
-                self.para.add_run(text=newtext, style= "WD2_STYLE")
+                self.para.add_run(text=newtext, style="WD2_STYLE")
                 move_run_before(self.runX, self.para)
                 delete_run(run)
             else:
                 run.text = newtext  # assignment to run.text lets images disappear!?!?
-
-    def expand(self, s, event):
-        while True:
-            mp = paramRE.search(s)
-            if mp == None:
-                return s
-            gp = mp.group(1).lower()
-            sp = mp.span()
-            mf = fmtRE.search(s, pos=sp[1])
-            if mf != None and sp[1] == mf.span()[0]: # i.e. if ${param] is followed immediately by .fmt()
-                gf = mf.group(1)
-                sf = mf.span()
-                s = s[0:sf[0]] + s[sf[1]:]
-                expanded = self.expandParam(gp, event, gf)
-            else:
-                expanded = self.expandParam(gp, event, None)
-            if expanded == None: # special case for beschreibung, handled as markdown
-                return None
-            try:
-                s = s[0:sp[0]] + expanded + s[sp[1]:]
-            except Exception:
-                logger.error("expanded = " + expanded)
-
-    def expandParam(self, param, event, format):
-        try:
-            f = self.expFunctions[param]
-            return f(event, format)
-        except Exception as e:
-            err = 'Fehler mit dem Parameter "' + param + \
-                  '" des Events ' + self.eventMsg
-            print(err)
-            logger.exception(err)
-            return param
-
-    def expHeute(self, _, format):
-        if format == None:
-            return str(datetime.date.today())
-        else:
-            #return datetime.date.today().strftime(format)
-            return datetime.datetime.now().strftime(format)
-
-    def expStart(self, event, format):
-        dt = convertToMEZOrMSZ(event.getDatumRaw())
-        if format == None:
-            return str(dt)
-        else:
-            return dt.strftime(format)
-
-    def expEnd(self, event, format):
-        dt = convertToMEZOrMSZ(event.getEndDatumRaw())
-        if format == None:
-            return str(dt)
-        else:
-            return dt.strftime(format)
-
-    def expNummer(self, tour, _):
-        k = tour.getKategorie()[0]
-        if k == "T":
-            k = "G" # Tagestour -> Ganztagestour
-        return tour.getRadTyp()[0].upper() + " " + tour.getNummer() + " " + k
-
-    def expTitel(self, event, _):
-        if self.linkType == "Frontend":
-            self.url = event.getFrontendLink()
-        elif self.linkType == "Backend":
-            self.url = event.getBackendLink()
-        else:
-            self.url = None
-        logger.info("Titel: " + event.getTitel())
-        return event.getTitel()
 
     def expBeschreibung(self, event, _):
         if len(self.para.runs) != 1:
@@ -990,31 +928,10 @@ class DocxHandler:
         desc = event.eventItem.get("description")
         desc = tourRest.removeSpcl(desc)
         desc = tourRest.removeHTML(desc)
-        #desc = codecs.decode(desc, encoding = "unicode_escape")
+        # desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()
         return None
-
-    def expName(self, event, _):
-        return event.getName()
-    def expKurzBeschreibung(self, event, _):
-        return event.getShortDesc()
-    def expCity(self, event, _):
-        return event.getCity()
-    def expStreet(self, event, _):
-        return event.getStreet()
-
-    def expKategorie(self, event, _):
-        return event.getKategorie()
-
-    def expSchwierigkeit(self, tour, _):
-        return schwierigkeitMap[tour.getSchwierigkeit()]
-
-    def expSchwierigkeitM(self, tour, _):
-        return schwierigkeitMMap[tour.getSchwierigkeit()]
-
-    def expTourLength(self, tour, _):
-        return tour.getStrecke()
 
     def expPersonen(self, bezeichnung, event):
         tl = event.getPersonen()
@@ -1033,18 +950,6 @@ class DocxHandler:
         # print("TL2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
         return ""
 
-    def expTourLeiter(self, tour, _):
-        return self.expPersonen("Tourleiter", tour)
-
-    def expBetreuer(self, termin, _):
-        return self.expPersonen("Betreuer", termin)
-
-    def expTourLeiterM(self, tour, _):
-        tl = tour.getPersonen()
-        if len(tl) == 0:
-            return ""
-        return ", ".join(tl)
-
     def expAbfahrten(self, tour, _):
         afs = tour.getAbfahrten()
         if len(afs) == 0:
@@ -1055,17 +960,17 @@ class DocxHandler:
                 afl.append(af[2])
             else:
                 afl.append(af[0] + " " + af[1] + " " + af[2])
-        #print("AB0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        # print("AB0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>", " ".join(["<" + run.text + ">" for run in self.para.runs]))
 
         run = self.para.add_run(text="Ort" + ("" if len(afs) == 1 else "e") + ": ", style=self.run.style)
         run.bold = True
         move_run_before(self.runX, self.para)
-        #print("AB1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        # print("AB1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
         self.runX += 1
 
         self.para.add_run(text=", ".join(afl), style=self.run.style)
         move_run_before(self.runX, self.para)
-        #print("AB2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+        # print("AB2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
 
         return ""
 
@@ -1074,32 +979,17 @@ class DocxHandler:
         if len(zi) == 0:
             return None
         for z in zi:
-            #print("ZU0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>",
+            # print("ZU0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>",
             # " ".join(["<" + run.text + ">" for run in self.para.runs]))
             x = z.find(':') + 1
             run = self.para.add_run(text=z[0:x], style=self.run.style)
             run.bold = True
             move_run_before(self.runX, self.para)
-            #print("ZU1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+            # print("ZU1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
             self.runX += 1
 
-            self.para.add_run(text=z[x+1:] + "\n", style=self.run.style)
+            self.para.add_run(text=z[x + 1:] + "\n", style=self.run.style)
             move_run_before(self.runX, self.para)
-            #print("ZU2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
+            # print("ZU2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
             self.runX += 1
         return ""
-
-    def expHöhenMeter(self, tour, _):
-        return tour.getHoehenmeter()
-
-    def expCharacter(self, tour, _):
-        return tour.getCharacter()
-
-    def expAbfahrtenM(self, tour, _):
-        afs = tour.getAbfahrten()
-        if len(afs) == 0:
-            return ""
-        s = afs[0][1] + " Uhr; " + afs[0][2]
-        for afx, af in enumerate(afs[1:]):
-            s = s + "\n " + str(afx+2) + ". Startpunkt: " + afs[afx][1] + " Uhr;" + afs[afx][2]
-        return s

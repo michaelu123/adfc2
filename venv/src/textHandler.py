@@ -16,7 +16,7 @@ class TextHandler:
             radTyp = tour.getRadTyp()[0]  # T,R,M
             kategorie = tour.getKategorie()[0]
             if kategorie == "T":  # Tagestour
-                kategorie = "G"   # Ganztagstour...
+                kategorie = "G"  # Ganztagstour...
             datum = tour.getDatum()[0]
             logger.info("tourNummer %s radTyp %s kategorie %s datum %s", tourNummer, radTyp, kategorie, datum)
 
@@ -64,10 +64,10 @@ class TextHandler:
             print(character)
         for abfahrt in abfahrten:
             if abfahrt[1] != "":
-#                print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
+                # print("${}: {} Uhr; {}".format(abfahrt[0], abfahrt[1], abfahrt[2]))
                 print("${} Uhr; {}".format(abfahrt[1], abfahrt[2]))
             else:
-#                print("${}: {}".format(abfahrt[0], abfahrt[2]))
+                # print("${}: {}".format(abfahrt[0], abfahrt[2]))
                 print("${}".format(abfahrt[2]))
 
         print(beschreibung)
@@ -97,17 +97,17 @@ class TextHandler:
             logger.info("zusatzinfo %s", str(zusatzinfo))
 
         except Exception as e:
-            logger.exception("Fehler im Termin '%s': %s",   titel, e)
+            logger.exception("Fehler im Termin '%s': %s", titel, e)
             return
 
         print("{} - {}".format(titel, kategorie))  # terminTyp z.B. Stammtisch, entbehrlich?
         print("{}".format(datum))
         for zeit in zeiten:
             if zeit[1] != "":
-#                print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
+                # print("${}: {} Uhr; {}".format(zeit[0], zeit[1], zeit[2]))
                 print("{} Uhr; {}".format(zeit[1], zeit[2]))
             else:
-#                print("${}: {}".format(zeit[0], zeit[2]))
+                # print("${}: {}".format(zeit[0], zeit[2]))
                 print("{}".format(zeit[2]))
         print(beschreibung)
         for info in zusatzinfo:

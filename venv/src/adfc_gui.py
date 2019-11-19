@@ -9,6 +9,7 @@ import textHandler
 import rawHandler
 import printHandler
 import csvHandler
+
 # import pdfHandler
 try:
     import docxHandler  # not in Scribus context
@@ -19,7 +20,7 @@ import base64
 import locale
 import json
 import os
-from myLogger import logger,logFilePath
+from myLogger import logger, logFilePath
 
 import adfc_gliederungen
 from PIL import ImageTk
@@ -48,6 +49,7 @@ class TxtWriter:
     def write(self, s):
         self.txt.insert("end", s)
 
+
 class Prefs:
     def __init__(self):
         self.isDefault = True
@@ -62,10 +64,10 @@ class Prefs:
         self.end = "31.12.2020"
         self.docxTemplateName = ""
 
-    def set(self, useRest, includeSub, format, linkType, eventType, radTyp, unitKeys, start, end, docxTN):
+    def set(self, useRest, includeSub, pformat, linkType, eventType, radTyp, unitKeys, start, end, docxTN):
         self.useRest = useRest
         self.includeSub = includeSub
-        self.format = format
+        self.format = pformat
         self.linkType = linkType
         self.eventType = eventType
         self.radTyp = radTyp
@@ -94,17 +96,10 @@ class Prefs:
             pass
 
     def save(self):
-        prefJS = {}
-        prefJS["userest"] = self.useRest
-        prefJS["includesub"] = self.includeSub
-        prefJS["format"] = self.format
-        prefJS["linktype"] = self.linkType
-        prefJS["eventtype"] = self.eventType
-        prefJS["radtyp"] = self.radTyp
-        prefJS["unitkeys"] = ",".join(self.unitKeys)
-        prefJS["start"] = self.start
-        prefJS["end"] = self.end
-        prefJS["docxtemplatename"] = self.docxTemplateName
+        prefJS = {"userest": self.useRest, "includesub": self.includeSub, "format": self.format,
+                  "linktype": self.linkType, "eventtype": self.eventType, "radtyp": self.radTyp,
+                  "unitkeys": ",".join(self.unitKeys), "start": self.start, "end": self.end,
+                  "docxtemplatename": self.docxTemplateName}
         try:
             os.makedirs("c:/temp/tpjson")
         except:
@@ -114,38 +109,48 @@ class Prefs:
 
     def getUseRest(self):
         return self.useRest
+
     def getIncludeSub(self):
         return self.includeSub
+
     def getFormat(self):
         return self.format
+
     def getLinkType(self):
         return self.linkType
+
     def getEventType(self):
         return self.eventType
+
     def getRadTyp(self):
         return self.radTyp
+
     def getUnitKeys(self):
         return self.unitKeys
+
     def getStart(self):
         return self.start
+
     def getEnd(self):
         return self.end
+
     def getDocxTemplateName(self):
         return self.docxTemplateName
 
+
 class LabelEntry(Frame):
-    def __init__(self, master, labeltext, stringtext,**kw):
+    def __init__(self, master, labeltext, stringtext, **kw):
         super().__init__(master)
         self.label = Label(self, text=labeltext)
         self.svar = StringVar()
         self.svar.set(stringtext)
         self.entry = Entry(self, textvariable=self.svar,
-                    width=len(stringtext) + 2, borderwidth=2, **kw)
+                           width=len(stringtext) + 2, borderwidth=2, **kw)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.label.grid(row=0, column=0, sticky="w")
         self.entry.grid(row=0, column=1, sticky="w")
-        
+
     def get(self):
         return self.svar.get()
 
@@ -179,7 +184,7 @@ class ListBoxSB(Frame):
         # for the "exportselection" param see
         # https://stackoverflow.com/questions/10048609/how-to-keep-selections-highlighted-in-a-tkinter-listbox
         self.lb = Listbox(self, borderwidth=2, selectmode="extended",
-                    exportselection=False, width=50)
+                          exportselection=False, width=50)
         self.lb.bind("<<ListboxSelect>>", selFunc)
 
         self.entries = sorted(entries)
@@ -264,7 +269,8 @@ class MyApp(Frame):
             if self.prefs.format == "Scribus":
                 self.prefs.format = "Text"
 
-    def createPhoto(self, b64):
+    @staticmethod
+    def createPhoto(b64):
         binary = base64.decodebytes(b64.encode())
         photo = ImageTk.PhotoImage(data=binary)
         return photo
@@ -294,7 +300,6 @@ class MyApp(Frame):
     #         filetypes=[("JSON", ".json")])
 
     def docxTemplate(self, *args):
-        old = self.docxTemplateName
         if self.docxTemplateName == "" or len(args) == 0 or args[0] != "NO":
             self.docxTemplateName = askopenfilename(
                 title="Word Template auswählen",
@@ -303,7 +308,7 @@ class MyApp(Frame):
             raise ValueError("Dateipfad des .docx Templates fehlt!")
         self.docxHandler = docxHandler.DocxHandler(self)
         self.startBtn.config(state=DISABLED)
-        self.docxHandler.openDocx(self.prefsDefault) # set GUI from doc params unless obtained from prefs
+        self.docxHandler.openDocx(self.prefsDefault)  # set GUI from doc params unless obtained from prefs
         self.startBtn.config(state=NORMAL)
 
     def setGliederung(self, gl):
@@ -392,27 +397,30 @@ class MyApp(Frame):
         self.useRestVar = BooleanVar()
         self.useRestVar.set(self.prefs.useRest)
         useRestCB = Checkbutton(master,
-                    text="Aktuelle Daten werden vom Server geholt",
-                    variable=self.useRestVar)
+                                text="Aktuelle Daten werden vom Server geholt",
+                                variable=self.useRestVar)
 
         self.includeSubVar = BooleanVar()
         self.includeSubVar.set(True)
         includeSubCB = Checkbutton(master,
-                    text="Untergliederungen einbeziehen",
-                    variable=self.includeSubVar)
+                                   text="Untergliederungen einbeziehen",
+                                   variable=self.includeSubVar)
 
         if self.scribus:
             self.formatOM = LabelOM(master, "Ausgabeformat:",
-                        ["Scribus"], "Scribus", command=self.formatSelektor)
+                                    ["Scribus"], "Scribus", command=self.formatSelektor)
             self.formatOM.optionMenu.config(state=DISABLED)
         else:
+            f = self.prefs.getFormat()
+            if f == "Scribus":  # not outside scribus
+                f = "Text"
             self.formatOM = LabelOM(master, "Ausgabeformat:",
-                        ["München", "Starnberg", "CSV", "Text", "Word"], # "PDF"
-                        self.prefs.getFormat(), command=self.formatSelektor)
+                                    ["München", "Starnberg", "CSV", "Text", "Word", "PDF"],  # "PDF"
+                                    f, command=self.formatSelektor)
 
         self.linkTypeOM = LabelOM(master, "Links ins:",
-                        ["Frontend", "Backend", ""],
-                        self.prefs.getLinkType())
+                                  ["Frontend", "Backend", ""],
+                                  self.prefs.getLinkType())
 
         eventTypes = ["Radtour", "Termin", "Alles"]
         eventTypesLF = LabelFrame(master)
@@ -436,7 +444,7 @@ class MyApp(Frame):
         self.radTypBtns = []
         for radTyp in radTyps:
             radTypRB = Radiobutton(radTypsLF, text=radTyp, value=radTyp,
-                    variable=self.radTypVar) #, command=self.radTypHandler)
+                                   variable=self.radTypVar)  # , command=self.radTypHandler)
             self.radTypBtns.append(radTypRB)
             if radTyp == self.prefs.getRadTyp():
                 radTypRB.select()
@@ -468,12 +476,12 @@ class MyApp(Frame):
         glContainer.grid_rowconfigure(1, weight=1)
         glContainer.grid_columnconfigure(0, weight=1)
 
-        self.startDateLE = LabelEntry(master,  "Start Datum:", self.prefs.getStart())
+        self.startDateLE = LabelEntry(master, "Start Datum:", self.prefs.getStart())
         self.endDateLE = LabelEntry(master, "Ende Datum:", self.prefs.getEnd())
 
         textContainer = Frame(master, borderwidth=2, relief="sunken")
         self.text = Text(textContainer, wrap="none", borderwidth=0,
-                         cursor="arrow") # width=100, height=40,
+                         cursor="arrow")  # width=100, height=40,
         textVsb = Scrollbar(textContainer, orient="vertical",
                             command=self.text.yview)
         textHsb = Scrollbar(textContainer, orient="horizontal",
@@ -516,6 +524,7 @@ class MyApp(Frame):
             self.rmBtn.grid(row=0, column=3, padx=5, pady=2, sticky="w")
             frm.grid(row=5, padx=5, pady=2, sticky="w")
         else:
+            self.startBtn = Button(master, text="Start", bg="red", command=self.starten)
             self.startBtn.grid(row=5, padx=5, pady=2, sticky="w")
 
         textContainer.grid(row=6, columnspan=2, padx=5, pady=2, sticky="nsew")
@@ -550,9 +559,10 @@ class MyApp(Frame):
     def getIncludeSub(self):
         return self.includeSubVar.get()
 
-    def checkDate(self, d):
+    @staticmethod
+    def checkDate(d):
         dparts = d.split(".")
-        if len(dparts) != 3 or len(dparts[0]) != 2  or len(dparts[1]) != 2  or len(dparts[2]) != 4:
+        if len(dparts) != 3 or len(dparts[0]) != 2 or len(dparts[1]) != 2 or len(dparts[2]) != 4:
             raise ValueError("Datum im Format dd.mm.yyyy")
         return d
 
@@ -591,6 +601,9 @@ class MyApp(Frame):
             handler = self.docxHandler
         elif formatS == "Scribus":
             handler = self.scrbHandler
+        elif formatS == "PDF":
+            import pdfHandler
+            handler = pdfHandler.PDFHandler(self)
         # elif formatS == "PDF":
         #     handler = pdfHandler.PDFHandler(self)
         #     # conditions obtained from PDF template!
@@ -603,7 +616,8 @@ class MyApp(Frame):
         else:
             handler = rawHandler.RawHandler()
 
-        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(), unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
+        self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(),
+                       unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
         self.prefs.save()
 
         with contextlib.redirect_stdout(txtWriter):
@@ -616,16 +630,14 @@ class MyApp(Frame):
                     events.extend(self.eventServer.getEvents(
                         unitKey.strip(), start, end, typ))
 
-                    self.eventServer.calcNummern()
-                    logger.exception("calcn")
-
+                self.eventServer.calcNummern()
                 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 
                 if len(events) == 0:
                     handler.nothingFound()
                 for event in events:
                     event = self.eventServer.getEvent(event)
-                    if event is None or event.isExternalEvent():   # add a GUI switch?
+                    if event is None or event.isExternalEvent():  # add a GUI switch?
                         continue
                     if event.isTermin():
                         if isinstance(handler, rawHandler.RawHandler):
@@ -634,7 +646,8 @@ class MyApp(Frame):
                     else:
                         # docx and scrb have own radtyp selections
                         if radTyp != "Alles" and self.docxHandler is None and self.scrbHandler is None and event.getRadTyp() != radTyp:
-                            logger.debug("tour %s hat radtyp %s, nicht radtyp %s", event.getTitel(), event.getRadTyp(), radTyp)
+                            logger.debug("tour %s hat radtyp %s, nicht radtyp %s", event.getTitel(), event.getRadTyp(),
+                                         radTyp)
                             continue
                         if isinstance(handler, rawHandler.RawHandler):
                             self.insertImage(event)
@@ -647,7 +660,6 @@ class MyApp(Frame):
             except Exception as e:
                 logger.exception("Error during script evaluation")
                 print("Error ", e, ", see ", logFilePath)
-
 
     def makeToc(self):
         firstPageNr = self.startPgNr.get()
@@ -683,6 +695,7 @@ class MyApp(Frame):
             finally:
                 self.rmBtn.config(state=NORMAL)
 
+
 def main(args):
     locale.setlocale(locale.LC_TIME, "German")
     root = Tk()
@@ -694,6 +707,6 @@ def main(args):
     except:
         pass
 
+
 if __name__ == '__main__':
     main(None)
-

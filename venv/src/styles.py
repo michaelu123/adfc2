@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 import copy
-import enum
 from myLogger import logger
 
 try:
@@ -10,43 +9,50 @@ except ImportError:
     import scribusTest
 
 # change here
-BASE_FONT= "Cambria Regular"
+BASE_FONT = "Cambria Regular"
 BASE_FONTSIZE = 8.0
 BASE_COLOR = "Black"
 LANG_CODE = "de_DE"
-INDENT = 12 # indentation of (bulleted, numbered) list, in Points (!?)
+INDENT = 12  # indentation of (bulleted, numbered) list, in Points (!?)
 BULLET_FONT = "Symbol Regular"
 BULLET_CHAR = "\xB7"
 HYPHEN_FONT = "Symbol"
 HYPhEN_CHAR = "\x2D"
 
-MD_P_REGULAR = { "name": "MD_P_REGULAR", "linespacingmode":1, "alignment": 0, "charstyle": "MD_C_REGULAR" }
-MD_P_BLOCK = { "name": "MD_P_BLOCK", "linespacingmode":1, "alignment": 3, "charstyle": "MD_C_REGULAR" }
+MD_P_REGULAR = {"name": "MD_P_REGULAR", "linespacingmode": 1, "alignment": 0, "charstyle": "MD_C_REGULAR"}
+MD_P_BLOCK = {"name": "MD_P_BLOCK", "linespacingmode": 1, "alignment": 3, "charstyle": "MD_C_REGULAR"}
 
-MD_C_REGULAR = { "name": "MD_C_REGULAR", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_C_BOLD = { "name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": "bold", "language": LANG_CODE}
-MD_C_ITALIC = { "name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["italic"], "language": LANG_CODE}
-MD_C_UNDERLINE = { "name": "MD_C_UNDERLINE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["underline"], "language": LANG_CODE}
-MD_C_STRIKE = { "name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "features": ["strike"], "language": LANG_CODE}
-MD_C_BULLET = { "name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_C_REGULAR = {"name": "MD_C_REGULAR", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+                "language": LANG_CODE}
+MD_C_BOLD = {"name": "MD_C_BOLD", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+             "features": "bold", "language": LANG_CODE}
+MD_C_ITALIC = {"name": "MD_C_ITALIC", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+               "features": ["italic"], "language": LANG_CODE}
+MD_C_UNDERLINE = {"name": "MD_C_UNDERLINE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+                  "features": ["underline"], "language": LANG_CODE}
+MD_C_STRIKE = {"name": "MD_C_STRIKE", "font": BASE_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+               "features": ["strike"], "language": LANG_CODE}
+MD_C_BULLET = {"name": "MD_C_BULLET", "font": BULLET_FONT, "fontsize": BASE_FONTSIZE, "fillcolor": BASE_COLOR,
+               "language": LANG_CODE}
 MD_C_TOC = {"name": "MD_C_TOC", "font": "Arial Regular", "fontsize": 1, "fillcolor": "None", "scaleh": 0.1}
-#MD_C_TOC should display Fontsize 1, Tracking 0%, Horizontal Scaling 10%, units seem to be confused
+# MD_C_TOC should display Fontsize 1, Tracking 0%, Horizontal Scaling 10%, units seem to be confused
 
-MD_P_H1 = { "name": "MD_P_H1", "linespacingmode":0, "linespacing": 24, "charstyle": "MD_C_H1" }
-MD_C_H1 = { "name": "MD_C_H1", "font": BASE_FONT, "fontsize": 24, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H2 = { "name": "MD_P_H2", "linespacingmode":0, "linespacing": 18, "charstyle": "MD_C_H2" }
-MD_C_H2 = { "name": "MD_C_H2", "font": BASE_FONT, "fontsize": 18, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H3 = { "name": "MD_P_H3", "linespacingmode":0, "linespacing": 14, "charstyle": "MD_C_H3" }
-MD_C_H3 = { "name": "MD_C_H3", "font": BASE_FONT, "fontsize": 14, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H4 = { "name": "MD_P_H4", "linespacingmode":0, "linespacing": 12, "charstyle": "MD_C_H4" }
-MD_C_H4 = { "name": "MD_C_H4", "font": BASE_FONT, "fontsize": 12, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H5 = { "name": "MD_P_H5", "linespacingmode":0, "linespacing": 10, "charstyle": "MD_C_H5" }
-MD_C_H5 = { "name": "MD_C_H5", "font": BASE_FONT, "fontsize": 10, "fillcolor": BASE_COLOR, "language": LANG_CODE}
-MD_P_H6 = { "name": "MD_P_H6", "linespacingmode":0, "linespacing": 8, "charstyle": "MD_C_H6" }
-MD_C_H6 = { "name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H1 = {"name": "MD_P_H1", "linespacingmode": 0, "linespacing": 24, "charstyle": "MD_C_H1"}
+MD_C_H1 = {"name": "MD_C_H1", "font": BASE_FONT, "fontsize": 24, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H2 = {"name": "MD_P_H2", "linespacingmode": 0, "linespacing": 18, "charstyle": "MD_C_H2"}
+MD_C_H2 = {"name": "MD_C_H2", "font": BASE_FONT, "fontsize": 18, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H3 = {"name": "MD_P_H3", "linespacingmode": 0, "linespacing": 14, "charstyle": "MD_C_H3"}
+MD_C_H3 = {"name": "MD_C_H3", "font": BASE_FONT, "fontsize": 14, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H4 = {"name": "MD_P_H4", "linespacingmode": 0, "linespacing": 12, "charstyle": "MD_C_H4"}
+MD_C_H4 = {"name": "MD_C_H4", "font": BASE_FONT, "fontsize": 12, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H5 = {"name": "MD_P_H5", "linespacingmode": 0, "linespacing": 10, "charstyle": "MD_C_H5"}
+MD_C_H5 = {"name": "MD_C_H5", "font": BASE_FONT, "fontsize": 10, "fillcolor": BASE_COLOR, "language": LANG_CODE}
+MD_P_H6 = {"name": "MD_P_H6", "linespacingmode": 0, "linespacing": 8, "charstyle": "MD_C_H6"}
+MD_C_H6 = {"name": "MD_C_H6", "font": BASE_FONT, "fontsize": 8, "fillcolor": BASE_COLOR, "language": LANG_CODE}
 
 pstyleList = [MD_P_REGULAR, MD_P_BLOCK, MD_P_H1, MD_P_H2, MD_P_H3, MD_P_H4, MD_P_H5, MD_P_H6]
-cstyleList = [MD_C_REGULAR, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_BULLET, MD_C_TOC, MD_C_H1, MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
+cstyleList = [MD_C_REGULAR, MD_C_BOLD, MD_C_ITALIC, MD_C_UNDERLINE, MD_C_STRIKE, MD_C_BULLET, MD_C_TOC, MD_C_H1,
+              MD_C_H2, MD_C_H3, MD_C_H4, MD_C_H5, MD_C_H6]
 pstyles = {}
 cstyles = {}
 pstylesConfigured = {}
@@ -56,6 +62,7 @@ for st in pstyleList:
     pstyles[st["name"]] = st
 for st in cstyleList:
     cstyles[st["name"]] = st
+
 
 def checkPStyleExi(style):
     logger.debug("checkPExi %s", style)
@@ -67,6 +74,7 @@ def checkPStyleExi(style):
         return True
     raise ValueError("Paragraph Style " + style + " not defined")
 
+
 def checkCStyleExi(style):
     logger.debug("checkCExi %s", style)
     if style in cstyles:
@@ -76,6 +84,7 @@ def checkCStyleExi(style):
             cstylesConfigured[style] = style
         return True
     raise ValueError("Character Style " + style + " not defined")
+
 
 def modifyFont(cStyle, fontStyles):
     if fontStyles is None or fontStyles == "":
@@ -121,14 +130,15 @@ def modifyFont(cStyle, fontStyles):
     cstyles[nStyle] = style
     return nStyle
 
+
 # see https://wiki.scribus.net/canvas/Bullets_and_numbered_lists
-def listStyle(pstyle, numbered, ctr, pIndent): # pstyle could be MD_P_REGULAR or MD_P_BLOCK
+def listStyle(pstyle, pIndent):  # pstyle could be MD_P_REGULAR or MD_P_BLOCK
     nStyle = pstyle + "_" + str(pIndent)
     if nStyle in pstylesConfigured:
         return nStyle
     style = copy.deepcopy(pstyles[pstyle])
     style["name"] = nStyle
-    style["tabs"] = [(pIndent * INDENT,0,"")]
+    style["tabs"] = [(pIndent * INDENT, 0, "")]
     style["leftmargin"] = pIndent * INDENT
     style["firstindent"] = INDENT * -1
     logger.debug("createParagraphStyle %s", str(style))
@@ -137,9 +147,11 @@ def listStyle(pstyle, numbered, ctr, pIndent): # pstyle could be MD_P_REGULAR or
     pstyles[nStyle] = style
     return nStyle
 
+
 def bulletStyle():
     checkCStyleExi("MD_C_BULLET")
     return "MD_C_BULLET"
+
 
 """
 FUNCTION:
@@ -224,6 +236,6 @@ printScribusCommands()
 
 if __name__ == '__main__':
     import scribusTest as scribus
+
     checkCStyleExi("MD_C_REGULAR")
     checkPStyleExi("MD_P_REGULAR")
-
