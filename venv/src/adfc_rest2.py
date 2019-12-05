@@ -12,9 +12,10 @@ The script also assumes you have created a styles named 'Radtour_titel' etc,
 which it will apply to the frame.
 """
 import sys
-import tourServer
-import textHandler
+
 import csvHandler
+import textHandler
+import tourServer
 
 
 def toDate(dmy):  # 21.09.2018

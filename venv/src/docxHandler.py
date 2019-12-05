@@ -1,20 +1,20 @@
 # encoding: utf-8
 
-import selektion
-import expand
+import copy
 import os
 import re
-import markdown
-import copy
 
-import tourRest
-from myLogger import logger
 import docx
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import expand
+import markdown
+import selektion
+import tourRest
 from docx.enum.style import WD_STYLE_TYPE
-from docx.shared import RGBColor
-from docx.oxml.shared import OxmlElement
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
+from docx.oxml.shared import OxmlElement
+from docx.shared import RGBColor
+from myLogger import logger
 
 """ XXX
 schwierigkeitMap = { 0: "sehr einfach",

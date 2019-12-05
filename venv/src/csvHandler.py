@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import csv
+
 from myLogger import logger
 
 schwierigkeitMap = {0: "sehr einfach",

@@ -1,14 +1,15 @@
 # encoding: utf-8
 
-import selektion
-import expand
-import os
 import json
+import os
 import re
+
+import expand
 import markdown
+import selektion
 import tourRest
-from myLogger import logger
 from fpdf import FPDF
+from myLogger import logger
 
 schwierigkeitMap = {0: "sehr einfach", 1: "sehr einfach", 2: "einfach", 3: "mittel", 4: "schwer", 5: "sehr schwer"}
 paramRE = re.compile(r"\${(\w*?)}")

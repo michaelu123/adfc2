@@ -1,29 +1,24 @@
+import base64
+import contextlib
+import json
+import locale
+import os
 from tkinter import *
-from tkinter.filedialog import asksaveasfilename
 from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import asksaveasfilename
 from tkinter.simpledialog import askstring
 
+import adfc_gliederungen
+import csvHandler
+# import pdfHandler
+import docxHandler
+import printHandler
+import rawHandler
+import textHandler
 # textHandler produziert output a la KV München
 import tourServer
-import textHandler
-import rawHandler
-import printHandler
-import csvHandler
-
-# import pdfHandler
-try:
-    import docxHandler  # not in Scribus context
-except:
-    pass
-import contextlib
-import base64
-import locale
-import json
-import os
-from myLogger import logger, logFilePath
-
-import adfc_gliederungen
 from PIL import ImageTk
+from myLogger import logger, logFilePath
 
 
 def toDate(dmy):  # 21.09.2018

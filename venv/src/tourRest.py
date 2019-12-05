@@ -1,8 +1,9 @@
 # encoding: utf-8
 
+import re
 import time
 import xml.sax
-import re
+
 from myLogger import logger
 
 weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]

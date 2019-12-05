@@ -4,6 +4,7 @@ import copy
 import os
 import re
 import sys
+
 import adfc_gui
 import expand
 import markdown
@@ -383,7 +384,6 @@ class ScrbHandler(expand.Expand):
         self.md = markdown.Markdown(extensions=[self.scrbExtension, markdown.extensions.tables.makeExtension()],
                                     enable_attributes=True, logger=logger)
         self.scrbExtension.scrbTreeProcessor.setDeps(self)
-        self.selFunctions = selektion.getSelFunctions()
 
     def openScrb(self):
         paraStyles = scribus.getParagraphStyles()

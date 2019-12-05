@@ -1,10 +1,11 @@
-from myLogger import logger
-import re
-import os
-import sys
 import datetime
+import os
+import re
+import sys
 import time
+
 import tourRest
+from myLogger import logger
 
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
