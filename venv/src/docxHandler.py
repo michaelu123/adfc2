@@ -353,6 +353,7 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
             "p": self.p,
             "strong": self.strong,
             "em": self.em,
+            "code": self.code,
             "blockquote": self.blockQuote,
             "stroke": self.stroke,
             "underline": self.underline,
@@ -395,6 +396,8 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
                 r.font.strike = True
             elif fst == 'U':
                 r.font.underline = True
+            elif fst == 'C':
+                r.font.name = "Courier"
         self.curRun = r
 
     def walkOuter(self, node):
@@ -512,6 +515,12 @@ class DocxTreeHandler(markdown.treeprocessors.Treeprocessor):
     def em(self, node):
         sav = self.fontStyles
         self.fontStyles += "I"
+        self.walkInner(node)
+        self.fontStyles = sav
+
+    def code(self, node):
+        sav = self.fontStyles
+        self.fontStyles += "C"
         self.walkInner(node)
         self.fontStyles = sav
 
