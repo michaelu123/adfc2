@@ -3,6 +3,8 @@ import functools
 import http.client
 import json
 import os
+import threading
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import adfc_gliederungen
 import tourRest
@@ -13,7 +15,8 @@ class EventServer:
     def __init__(self, useResta, includeSuba):
         self.useRest = useResta
         self.includeSub = includeSuba
-        self.tpConn = None
+        self.tpConns = []
+        self.tpConnsLock = threading.Lock()
         self.events = {}
         self.alleTouren = []
         self.alleTermine = []
@@ -22,9 +25,24 @@ class EventServer:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
             pass
-        self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
         self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
+
+    def getConn(self):
+        with self.tpConnsLock:
+            try:
+                conn = self.tpConns.pop()
+            except:
+                conn = None
+        if conn is None:
+            conn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+        return conn
+
+    def putConn(self, conn):
+        if conn is None:
+            return
+        with self.tpConnsLock:
+            self.tpConns.insert(0, conn)
 
     def getEvents(self, unitKey, start, end, typ):
         unit = "Alles" if unitKey is None or unitKey == "" else unitKey
@@ -40,10 +58,12 @@ class EventServer:
             par += "&beginning=" + startYear + "-01-01"
             par += "&end=" + startYear + "-12-31"
             req += par
-            resp = self.httpget(req)
+            resp, conn = self.httpget(req)
             if resp is None:
+                self.putConn(conn)
                 return None
             jsRoot = json.load(resp)
+            self.putConn(conn)
         else:
             resp = None
             with open(jsonPath, "r") as jsonFile:
@@ -95,10 +115,12 @@ class EventServer:
         escTitle = "".join([(ch if ch.isalnum() else "_") for ch in eventJsSearch.get("title")])
         jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            resp = self.httpget("/api/eventItems/" + eventItemId)
+            resp, conn = self.httpget("/api/eventItems/" + eventItemId)
             if resp is None:
+                self.putConn(conn)
                 return None
             eventJS = json.load(resp)
+            self.putConn(conn)
             eventJS["eventItemFiles"] = None  # save space
             eventJS["images"] = []  # save space
             eventJS["imagePreview"] = imagePreview
@@ -120,15 +142,16 @@ class EventServer:
     def getUser(self, userId):
         jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
-            resp = self.httpget("/api/users/" + userId)
+            resp, conn = self.httpget("/api/users/" + userId)
             if resp is None:
+                self.putConn(conn)
                 return None
-            else:
-                userJS = json.load(resp)
-                userJS["simpleEventItems"] = None
-                # if not os.path.exists(jsonPath):
-                with open(jsonPath, "w") as jsonFile:
-                    json.dump(userJS, jsonFile, indent=4)
+            userJS = json.load(resp)
+            self.putConn(conn)
+            userJS["simpleEventItems"] = None
+            # if not os.path.exists(jsonPath):
+            with open(jsonPath, "w") as jsonFile:
+                json.dump(userJS, jsonFile, indent=4)
         else:
             with open(jsonPath, "r") as jsonFile:
                 userJS = json.load(jsonFile)
@@ -140,10 +163,12 @@ class EventServer:
             return
         jsonPath = "c:/temp/tpjson/units.json"
         if not os.path.exists(jsonPath):
-            resp = self.httpget("/api/units/")
+            resp, conn = self.httpget("/api/units/")
             if resp is None:
+                self.putConn(conn)
                 return None
             unitsJS = json.load(resp)
+            self.putConn(conn)
             with open(jsonPath, "w") as jsonFile:
                 json.dump(unitsJS, jsonFile, indent=4)
         else:
@@ -152,6 +177,8 @@ class EventServer:
         adfc_gliederungen.load(unitsJS)
 
     def calcNummern(self):
+        # too bad we base numbers on kategorie and radtyp,which we cannot get from the search result
+        ThreadPoolExecutor(max_workers=4).map(self.getEvent, self.alleTouren)
         self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         logger.info("Begin calcNummern")
@@ -179,6 +206,7 @@ class EventServer:
                 num = tnum
                 tnum += 1
             tourJS["eventNummer"] = str(num)
+
         self.alleTermine.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         for tourJS in self.alleTermine:
@@ -192,25 +220,26 @@ class EventServer:
         logger.info("End calcNummern")
 
     def httpget(self, req):
+        conn = None
         for retries in range(2):
             try:
-                self.tpConn.request("GET", req)
+                conn = self.getConn()
+                conn.request("GET", req)
             except Exception as e:
                 logger.exception("error in request " + req)
                 if isinstance(e, http.client.CannotSendRequest):
-                    self.tpConn.close()
-                    self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                    conn.close()
+                    conn = None
                     continue
             try:
-                resp = self.tpConn.getresponse()
+                resp = conn.getresponse()
             except Exception as e:
                 logger.exception("cannot get response for " + req)
                 if isinstance(e, http.client.ResponseNotReady):
-                    self.tpConn.close()
-                    self.tpConn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+                    conn.close()
+                    conn = None
                     continue
             break
-
         try:
             if resp.status >= 300:
                 logger.error("request %s failed: code %s reason %s: %s", req, resp.status, resp.reason, resp.read())
@@ -219,4 +248,4 @@ class EventServer:
                 logger.debug("resp %d %s", resp.status, resp.reason)
         except:
             pass
-        return resp
+        return (resp, conn)

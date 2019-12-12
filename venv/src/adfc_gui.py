@@ -3,6 +3,7 @@ import contextlib
 import json
 import locale
 import os
+from concurrent.futures.thread import ThreadPoolExecutor
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
@@ -625,11 +626,12 @@ class MyApp(Frame):
                     events.extend(self.eventServer.getEvents(
                         unitKey.strip(), start, end, typ))
 
-                self.eventServer.calcNummern()
-                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
-
                 if len(events) == 0:
                     handler.nothingFound()
+
+                self.eventServer.calcNummern()
+                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
+                ThreadPoolExecutor(max_workers=4).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)
                     if event is None or event.isExternalEvent():  # add a GUI switch?
