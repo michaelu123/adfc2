@@ -42,7 +42,7 @@ try:
     import httplib  # scribus seems to use Python 2
     handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.EventServer(True, handler.getUseRest(),
-                                          handler.getIncludeSub())
+                                          handler.getIncludeSub(), 4)
     unitKeys = handler.getUnitKeys().split(",")
     start = handler.getStart()
     end = handler.getEnd()

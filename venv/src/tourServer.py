@@ -12,15 +12,17 @@ from myLogger import logger
 
 
 class EventServer:
-    def __init__(self, useResta, includeSuba):
-        self.useRest = useResta
-        self.includeSub = includeSuba
+    def __init__(self, useRest, includeSub, max_workers):
+        self.useRest = useRest
+        self.includeSub = includeSub
+        self.max_workers = max_workers
         self.tpConns = []
         self.tpConnsLock = threading.Lock()
         self.events = {}
         self.alleTouren = []
         self.alleTermine = []
         self.py2 = False
+
         try:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
@@ -178,7 +180,7 @@ class EventServer:
 
     def calcNummern(self):
         # too bad we base numbers on kategorie and radtyp,which we cannot get from the search result
-        ThreadPoolExecutor(max_workers=4).map(self.getEvent, self.alleTouren)
+        ThreadPoolExecutor(max_workers=self.max_workers).map(self.getEvent, self.alleTouren)
         self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         logger.info("Begin calcNummern")

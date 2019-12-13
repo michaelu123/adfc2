@@ -224,6 +224,7 @@ class MyApp(Frame):
         self.docxHandler = None
         self.scrbHandler = None
         self.eventServer = None
+        self.max_workers = 1
         if self.scribus:
             import scrbHandler
             self.scrbHandler = scrbHandler.ScrbHandler(self)
@@ -452,7 +453,7 @@ class MyApp(Frame):
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
         # need an eventServer here early for list of LVs
-        _ = tourServer.EventServer(True, False)
+        _ = tourServer.EventServer(True, False, self.max_workers)
         lvMap = adfc_gliederungen.getLVs()
         self.lvList = [key + " " + lvMap[key] for key in lvMap.keys()]
         self.lvList = sorted(self.lvList)
@@ -618,7 +619,7 @@ class MyApp(Frame):
 
         with contextlib.redirect_stdout(txtWriter):
             try:
-                self.eventServer = tourServer.EventServer(useRest, includeSub)
+                self.eventServer = tourServer.EventServer(useRest, includeSub, self.max_workers)
                 events = []
                 for unitKey in unitKeys:
                     if unitKey == "Alles":
@@ -628,10 +629,9 @@ class MyApp(Frame):
 
                 if len(events) == 0:
                     handler.nothingFound()
-
                 self.eventServer.calcNummern()
                 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
-                ThreadPoolExecutor(max_workers=4).map(self.eventServer.getEvent, events)
+                ThreadPoolExecutor(max_workers=self.max_workers).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)
                     if event is None or event.isExternalEvent():  # add a GUI switch?
@@ -664,7 +664,7 @@ class MyApp(Frame):
         txtWriter = TxtWriter(self.text)
 
         with contextlib.redirect_stdout(txtWriter):
-            self.eventServer = tourServer.EventServer(False, False)
+            self.eventServer = tourServer.EventServer(False, False, self.max_workers)
             if self.scrbHandler is None:
                 self.scrbHandler = scrbHandler.ScrbHandler(self)
             try:
@@ -680,7 +680,7 @@ class MyApp(Frame):
         self.text.delete("1.0", END)
         txtWriter = TxtWriter(self.text)
         with contextlib.redirect_stdout(txtWriter):
-            self.eventServer = tourServer.EventServer(False, False)
+            self.eventServer = tourServer.EventServer(False, False, self.max_workers)
             if self.scrbHandler is None:
                 self.scrbHandler = scrbHandler.ScrbHandler(self)
             try:
