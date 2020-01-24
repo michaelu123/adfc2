@@ -159,13 +159,15 @@ class Expand:
             "kategorie": expKategorie,
             "schwierigkeit": expSchwierigkeit,
             "tourlänge": expTourLength,
+            "tourstufe": expTourStufe,
             "abfahrten": self.expAbfahrten,
             "zusatzinfo": self.expZusatzInfo,
             "höhenmeter": expHoehenMeter,
             "character": expCharacter,
             "schwierigkeitm": self.expSchwierigkeitM,
             "abfahrtenm": expAbfahrtenM,
-            "tourleiterm": expTourLeiterM
+            "tourleiterm": expTourLeiterM,
+            "seite": lambda e, f: "{:>2}".format(self.pageNr),  # 01-99
         }
 
     def expand(self, s, event):
