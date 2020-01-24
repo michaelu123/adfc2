@@ -12,7 +12,10 @@ from tkinter.simpledialog import askstring
 import adfc_gliederungen
 import csvHandler
 # import pdfHandler
-import docxHandler
+try:
+    import docxHandler
+except:
+    pass
 import printHandler
 import rawHandler
 import textHandler
