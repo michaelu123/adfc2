@@ -1,10 +1,15 @@
 # encoding: utf-8
 import functools
-import http.client
+try:
+    import http.client as httplib
+    from concurrent.futures.thread import ThreadPoolExecutor
+    import threading
+    py2 = False
+except:
+    import httplib
+    py2 = True
 import json
 import os
-import threading
-from concurrent.futures.thread import ThreadPoolExecutor
 
 import adfc_gliederungen
 import tourRest
@@ -15,9 +20,12 @@ class EventServer:
     def __init__(self, useRest, includeSub, max_workers):
         self.useRest = useRest
         self.includeSub = includeSub
-        self.max_workers = max_workers
-        self.tpConns = []
-        self.tpConnsLock = threading.Lock()
+        if py2:
+            self.tpConn = None
+        else:
+            self.max_workers = max_workers
+            self.tpConns = []
+            self.tpConnsLock = threading.Lock()
         self.events = {}
         self.alleTouren = []
         self.alleTermine = []
@@ -27,20 +35,27 @@ class EventServer:
             os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
         except:
             pass
-        self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
+        if not py2:
+            self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
     def getConn(self):
+        if py2:
+            if self.tpConn is None:
+                self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+            return self.tpConn
         with self.tpConnsLock:
             try:
                 conn = self.tpConns.pop()
             except:
                 conn = None
         if conn is None:
-            conn = http.client.HTTPSConnection("api-touren-termine.adfc.de")
+            conn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
         return conn
 
     def putConn(self, conn):
+        if py2:
+            return
         if conn is None:
             return
         with self.tpConnsLock:
@@ -174,13 +189,18 @@ class EventServer:
             with open(jsonPath, "w") as jsonFile:
                 json.dump(unitsJS, jsonFile, indent=4)
         else:
-            with open(jsonPath, "r", encoding="utf-8") as jsonFile:
-                unitsJS = json.load(jsonFile)
+            if py2:
+                with open(jsonPath, "r") as jsonFile:
+                    unitsJS = json.load(jsonFile)
+            else:
+                with open(jsonPath, "r", encoding="utf-8") as jsonFile:
+                    unitsJS = json.load(jsonFile)
         adfc_gliederungen.load(unitsJS)
 
     def calcNummern(self):
         # too bad we base numbers on kategorie and radtyp,which we cannot get from the search result
-        ThreadPoolExecutor(max_workers=self.max_workers).map(self.getEvent, self.alleTouren)
+        if not py2:
+            ThreadPoolExecutor(max_workers=self.max_workers).map(self.getEvent, self.alleTouren)
         self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         logger.info("Begin calcNummern")
@@ -229,7 +249,7 @@ class EventServer:
                 conn.request("GET", req)
             except Exception as e:
                 logger.exception("error in request " + req)
-                if isinstance(e, http.client.CannotSendRequest):
+                if isinstance(e, httplib.CannotSendRequest):
                     conn.close()
                     conn = None
                     continue
@@ -237,7 +257,7 @@ class EventServer:
                 resp = conn.getresponse()
             except Exception as e:
                 logger.exception("cannot get response for " + req)
-                if isinstance(e, http.client.ResponseNotReady):
+                if isinstance(e, httplib.ResponseNotReady):
                     conn.close()
                     conn = None
                     continue

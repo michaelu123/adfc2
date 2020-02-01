@@ -41,7 +41,7 @@ try:
         import scribusHandler
     import httplib  # scribus seems to use Python 2
     handler = scribusHandler.ScribusHandler()
-    tourServerVar = tourServer.EventServer(True, handler.getUseRest(),
+    tourServerVar = tourServer.EventServer(handler.getUseRest(),
                                           handler.getIncludeSub(), 4)
     unitKeys = handler.getUnitKeys().split(",")
     start = handler.getStart()
@@ -115,7 +115,7 @@ else:
 
 touren = []
 for unitKey in unitKeys:
-    touren.extend(tourServerVar.getTouren(unitKey.strip(), start, end, eventType))
+    touren.extend(tourServerVar.getEvents(unitKey.strip(), start, end, eventType))
 
 
 touren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
@@ -124,7 +124,7 @@ tourServerVar.calcNummern()
 if len(touren) == 0:
     handler.nothingFound()
 for tour in touren:
-    tour = tourServerVar.getTour(tour)
+    tour = tourServerVar.getEvent(tour)
     if tour.isTermin():
         handler.handleTermin(tour)
     else:
