@@ -644,8 +644,7 @@ class PDFHandler(expand.Expand):
         self.pdf.set_y(self.pdf.get_y() + 7)
 
     def expBeschreibung(self, tour, _):
-        desc = tour.eventItem.get("description")
-        desc = tourRest.removeHTML(desc)
+        desc = tour.getBeschreibung(True)
         # desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()

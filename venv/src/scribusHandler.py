@@ -149,7 +149,7 @@ class ScribusHandler:
                 raise ValueError("kein Startpunkt in tour %s", titel)
             logger.info("abfahrten %s ", str(abfahrten))
 
-            beschreibung = tour.getBeschreibung(True)
+            beschreibung = tour.getBeschreibung(False)
             logger.info("beschreibung %s", beschreibung)
             zusatzinfo = tour.getZusatzInfo()
             logger.info("zusatzinfo %s", str(zusatzinfo))

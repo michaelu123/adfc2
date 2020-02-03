@@ -1,165 +1,9 @@
 # encoding: utf-8
-
-import re
+import event
 import time
-import xml.sax
-
 from myLogger import logger
 
-weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-character = ["", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
-span1RE = r'<span.*?>'
-span2RE = r'</span>'
-
-
-def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
-    # scribus/Python2 does not support %z
-    beginning = beginning[0:19]  # '2018-04-29T06:30:00'
-    d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
-    oldDay = d.tm_yday
-    if beginning.startswith("2017"):
-        begSZ = "2017-03-26"
-        endSZ = "2017-10-29"
-    elif beginning.startswith("2018"):
-        begSZ = "2018-03-25"
-        endSZ = "2018-10-28"
-    elif beginning.startswith("2019"):
-        begSZ = "2019-03-31"
-        endSZ = "2019-10-27"
-    # Zeitumstellung wird eh 2020 abgeschafft!?
-    elif beginning.startswith("2020"):
-        begSZ = "2020-03-29"
-        endSZ = "2020-10-25"
-    elif beginning.startswith("2021"):
-        begSZ = "2021-03-28"
-        endSZ = "2021-10-31"
-    else:
-        raise ValueError("year " + beginning + " not configured")
-    sz = begSZ <= beginning < endSZ
-    epochGmt = time.mktime(d)
-    epochMez = epochGmt + ((2 if sz else 1) * 3600)
-    mezTuple = time.localtime(epochMez)
-    newDay = mezTuple.tm_yday
-    mez = time.strftime("%Y-%m-%dT%H:%M:%S", mezTuple)
-    if oldDay != newDay:
-        logger.warning("day rollover from %s to %s", beginning, mez)
-    return mez
-
-
-class SAXHandler(xml.sax.handler.ContentHandler):
-    def __init__(self):
-        super().__init__()
-        self.r = []
-
-    def startElement(self, name, attrs):
-        pass
-
-    def endElement(self, name):
-        pass
-
-    def characters(self, content):
-        self.r.append(content)
-
-    def ignorableWhiteSpace(self, whitespace):
-        pass
-
-    def skippedEntity(self, name):
-        pass
-
-    def val(self):
-        return "".join(self.r)
-
-
-def removeSpcl(s):
-    while s.count("<br>"):
-        s = s.replace("<br>", "\n")
-    while s.count("&nbsp;"):
-        s = s.replace("&nbsp;", " ")
-    while s.count("<u>"):
-        s = s.replace("<u>", "^^")
-    while s.count("</u>"):
-        s = s.replace("</u>", "^^")
-    return s
-
-
-def OLDremoveHTML(s):
-    if s.find("</") == -1:  # no HTML
-        return s
-    try:
-        htmlHandler = SAXHandler()
-        xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
-        return htmlHandler.val()
-    except:
-        logger.exception("can not parse '%s'", s)
-        return s
-
-
-def removeHTML(s):
-    s = re.sub(span1RE, "", s)
-    s = re.sub(span2RE, "", s)
-    return s
-
-
-# Clean text
-def normalizeText(t):
-    # Rip off blank paragraphs, double spaces, html tags, quotes etc.
-    changed = True
-    while changed:
-        changed = False
-        t = t.strip()
-        while t.count('***'):
-            t = t.replace('***', '**')
-            changed = True
-        while t.count('**'):
-            t = t.replace('**', '')
-            changed = True
-        while t.count('###'):
-            t = t.replace('###', '##')
-            changed = True
-        while t.count('##'):
-            t = t.replace('##', '')
-            changed = True
-        while t.count('~~~'):
-            t = t.replace('~~~', '~~')
-            changed = True
-        while t.count('~~'):
-            t = t.replace('~~', '')
-            changed = True
-        while t.count('\t'):
-            t = t.replace('\t', ' ')
-            changed = True
-        if isinstance(t, str):  # crashes with Unicode/Scribus ??
-            while t.count('\xa0'):
-                t = t.replace('\xa0', ' ')
-                changed = True
-        while t.count('  '):
-            t = t.replace('  ', ' ')
-            changed = True
-        while t.count('<br>'):
-            t = t.replace('<br>', '\n')
-            changed = True
-        while t.count('\r'):  # DOS/Windows paragraph end.
-            t = t.replace('\r', '\n')  # Change by new line
-            changed = True
-        while t.count('\n> '):
-            t = t.replace('\n> ', '\n')
-            changed = True
-        while t.count(' \n'):
-            t = t.replace(' \n', '\n')
-            changed = True
-        while t.count('\n '):
-            t = t.replace('\n ', '\n')
-            changed = True
-        while t.count('\n\n'):
-            t = t.replace('\n\n', '\n')
-            changed = True
-        if t.startswith('> '):
-            t = t.replace('> ', '')
-            changed = True
-    return t
-
-
-class Event:
+class RestEvent(event.Event):
     def __init__(self, eventJS, eventJSSearch, eventServer):
         self.eventJS = eventJS
         self.eventJSSearch = eventJSSearch
@@ -202,7 +46,7 @@ class Event:
                 else:
                     beginning = tourLoc.get("beginning")
                     logger.debug("beginning %s", beginning)  # '2018-04-24T12:00:00'
-                    beginning = convertToMEZOrMSZ(beginning)  # '2018-04-24T14:00:00'
+                    beginning = event.convertToMEZOrMSZ(beginning)  # '2018-04-24T14:00:00'
                     beginning = beginning[11:16]  # 14:00
             else:
                 beginning = ""
@@ -230,15 +74,18 @@ class Event:
             abfahrten.append(abfahrt)
         return abfahrten
 
-    def getBeschreibung(self, _):
+    def getBeschreibung(self, raw):
         desc = self.eventItem.get("description")
-        desc = normalizeText(desc)
-        desc = removeHTML(desc)
+        desc = event.removeHTML(desc)
+        desc = event.removeSpcl(desc)
+        if raw:
+            return desc
+        desc = event.normalizeText(desc)
         return desc
 
     def getKurzbeschreibung(self):
         desc = self.eventItem.get("cShortDescription")
-        desc = normalizeText(desc)
+        desc = event.normalizeText(desc)
         return desc
 
     def isTermin(self):
@@ -335,17 +182,17 @@ class Event:
 
     def getCharacter(self):
         c = self.eventItem.get("cTourSurface")
-        return character[c]
+        return event.character[c]
 
     def getDatum(self):
         datum = self.eventItem.get("beginning")
-        datum = convertToMEZOrMSZ(datum)
+        datum = event.convertToMEZOrMSZ(datum)
         # fromisoformat defined in Python3.7, not used by Scribus
         # date = datetime.fromisoformat(datum)
         logger.debug("datum <%s>", str(datum))
         day = str(datum[0:10])
         date = time.strptime(day, "%Y-%m-%d")
-        weekday = weekdays[date.tm_wday]
+        weekday = event.weekdays[date.tm_wday]
         res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
         return res
 
@@ -354,13 +201,13 @@ class Event:
 
     def getEndDatum(self):
         enddatum = self.eventItem.get("end")
-        enddatum = convertToMEZOrMSZ(enddatum)
+        enddatum = event.convertToMEZOrMSZ(enddatum)
         # fromisoformat defined in Python3.7, not used by Scribus
         # enddatum = datetime.fromisoformat(enddatum)
         logger.debug("enddatum %s", str(enddatum))
         day = str(enddatum[0:10])
         date = time.strptime(day, "%Y-%m-%d")
-        weekday = weekdays[date.tm_wday]
+        weekday = event.weekdays[date.tm_wday]
         res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], enddatum[11:16])
         return res
 
@@ -396,9 +243,6 @@ class Event:
         tourLoc = self.tourLocations[0]
         return tourLoc.get("street")
 
-    def getShortDesc(self):
-        return self.eventItem.get("cShortDescription")
-
     def isExternalEvent(self):
         return self.eventItem.get("cExternalEvent") == "true"
 
@@ -420,3 +264,16 @@ class User:
         if self.phone is not None and self.phone != "":
             name += " (" + self.phone + ")"
         return name
+
+
+"""
+    "isTemplate": false,
+    "isDraft": true,
+    "isReview": false,
+    "isPublished": false,
+    "isFinished": false,
+    "isTour": true,
+    "isOptional": false
+    "isCancelled": false,
+
+"""

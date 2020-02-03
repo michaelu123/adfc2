@@ -1,0 +1,265 @@
+import re
+import time
+import xml.sax
+from abc import ABC, abstractmethod
+
+from myLogger import logger
+
+weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+character = ["", "durchgehend Asphalt", "fester Belag", "unebener Untergrund", "unbefestigte Wege"]
+span1RE = r'<span.*?>'
+span2RE = r'</span>'
+
+
+def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
+    # scribus/Python2 does not support %z
+    beginning = beginning[0:19]  # '2018-04-29T06:30:00'
+    d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
+    oldDay = d.tm_yday
+    if beginning.startswith("2017"):
+        begSZ = "2017-03-26"
+        endSZ = "2017-10-29"
+    elif beginning.startswith("2018"):
+        begSZ = "2018-03-25"
+        endSZ = "2018-10-28"
+    elif beginning.startswith("2019"):
+        begSZ = "2019-03-31"
+        endSZ = "2019-10-27"
+    # Zeitumstellung wird eh 2020 abgeschafft!?
+    elif beginning.startswith("2020"):
+        begSZ = "2020-03-29"
+        endSZ = "2020-10-25"
+    elif beginning.startswith("2021"):
+        begSZ = "2021-03-28"
+        endSZ = "2021-10-31"
+    else:
+        raise ValueError("year " + beginning + " not configured")
+    sz = begSZ <= beginning < endSZ
+    epochGmt = time.mktime(d)
+    epochMez = epochGmt + ((2 if sz else 1) * 3600)
+    mezTuple = time.localtime(epochMez)
+    newDay = mezTuple.tm_yday
+    mez = time.strftime("%Y-%m-%dT%H:%M:%S", mezTuple)
+    if oldDay != newDay:
+        logger.warning("day rollover from %s to %s", beginning, mez)
+    return mez
+
+
+class SAXHandler(xml.sax.handler.ContentHandler):
+    def __init__(self):
+        super().__init__()
+        self.r = []
+
+    def startElement(self, name, attrs):
+        pass
+
+    def endElement(self, name):
+        pass
+
+    def characters(self, content):
+        self.r.append(content)
+
+    def ignorableWhiteSpace(self, whitespace):
+        pass
+
+    def skippedEntity(self, name):
+        pass
+
+    def val(self):
+        return "".join(self.r)
+
+
+def removeSpcl(s):
+    while s.count("<br>"):
+        s = s.replace("<br>", "\n")
+    while s.count("&nbsp;"):
+        s = s.replace("&nbsp;", " ")
+    while s.count("<u>"):
+        s = s.replace("<u>", "^^")
+    while s.count("</u>"):
+        s = s.replace("</u>", "^^")
+    return s
+
+
+def OLDremoveHTML(s):
+    if s.find("</") == -1:  # no HTML
+        return s
+    try:
+        htmlHandler = SAXHandler()
+        xml.sax.parseString("<xxxx>" + s + "</xxxx>", htmlHandler)
+        return htmlHandler.val()
+    except:
+        logger.exception("can not parse '%s'", s)
+        return s
+
+
+def removeHTML(s):
+    s = re.sub(span1RE, "", s)
+    s = re.sub(span2RE, "", s)
+    return s
+
+
+# Clean text
+def normalizeText(t):
+    # Rip off blank paragraphs, double spaces, html tags, quotes etc.
+    changed = True
+    while changed:
+        changed = False
+        t = t.strip()
+        while t.count('***'):
+            t = t.replace('***', '**')
+            changed = True
+        while t.count('**'):
+            t = t.replace('**', '')
+            changed = True
+        while t.count('###'):
+            t = t.replace('###', '##')
+            changed = True
+        while t.count('##'):
+            t = t.replace('##', '')
+            changed = True
+        while t.count('~~~'):
+            t = t.replace('~~~', '~~')
+            changed = True
+        while t.count('~~'):
+            t = t.replace('~~', '')
+            changed = True
+        while t.count('\t'):
+            t = t.replace('\t', ' ')
+            changed = True
+        if isinstance(t, str):  # crashes with Unicode/Scribus ??
+            while t.count('\xa0'):
+                t = t.replace('\xa0', ' ')
+                changed = True
+        while t.count('  '):
+            t = t.replace('  ', ' ')
+            changed = True
+        while t.count('<br>'):
+            t = t.replace('<br>', '\n')
+            changed = True
+        while t.count('\r'):  # DOS/Windows paragraph end.
+            t = t.replace('\r', '\n')  # Change by new line
+            changed = True
+        while t.count('\n> '):
+            t = t.replace('\n> ', '\n')
+            changed = True
+        while t.count(' \n'):
+            t = t.replace(' \n', '\n')
+            changed = True
+        while t.count('\n '):
+            t = t.replace('\n ', '\n')
+            changed = True
+        while t.count('\n\n'):
+            t = t.replace('\n\n', '\n')
+            changed = True
+        if t.startswith('> '):
+            t = t.replace('> ', '')
+            changed = True
+    return t
+
+
+class Event(ABC):
+    @abstractmethod
+    def getTitel(self):
+        pass
+
+    @abstractmethod
+    def getEventItemId(self):
+        pass
+
+    @abstractmethod
+    def getFrontendLink(self):
+        pass
+
+    @abstractmethod
+    def getBackendLink(self):
+        pass
+
+    @abstractmethod
+    def getAbfahrten(self):
+        pass
+
+    @abstractmethod
+    def getBeschreibung(self, raw):
+        pass
+
+    @abstractmethod
+    def getKurzbeschreibung(self):
+        pass
+
+    @abstractmethod
+    def isTermin(self):
+        pass
+
+    @abstractmethod
+    def getSchwierigkeit(self):
+        pass
+
+    @abstractmethod
+    def getMerkmale(self):
+        pass
+
+    @abstractmethod
+    def getKategorie(self):
+        pass
+
+    @abstractmethod
+    def getRadTyp(self):
+        pass
+
+    @abstractmethod
+    def getZusatzInfo(self):
+        pass
+
+    @abstractmethod
+    def getStrecke(self):
+        pass
+
+    @abstractmethod
+    def getHoehenmeter(self):
+        pass
+
+    @abstractmethod
+    def getCharacter(self):
+        pass
+
+    @abstractmethod
+    def getDatum(self):
+        pass
+
+    @abstractmethod
+    def getDatumRaw(self):
+        pass
+
+    @abstractmethod
+    def getEndDatum(self):
+        pass
+
+    @abstractmethod
+    def getEndDatumRaw(self):
+        pass
+
+    @abstractmethod
+    def getPersonen(self):
+        pass
+
+    @abstractmethod
+    def getImagePreview(self):
+        pass
+
+    @abstractmethod
+    def getName(self):
+        pass
+
+    @abstractmethod
+    def getCity(self):
+        pass
+
+    @abstractmethod
+    def getStreet(self):
+        pass
+
+    @abstractmethod
+    def isExternalEvent(self):
+        pass
+

@@ -10,9 +10,11 @@ except:
     py2 = True
 import json
 import os
+import ssl
 
 import adfc_gliederungen
 import tourRest
+import event
 from myLogger import logger
 
 
@@ -50,7 +52,10 @@ class EventServer:
             except:
                 conn = None
         if conn is None:
-            conn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
+            ctx = ssl._create_default_https_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            conn = httplib.HTTPSConnection("api-touren-termine.adfc.de", context = ctx)
         return conn
 
     def putConn(self, conn):
@@ -114,7 +119,7 @@ class EventServer:
                 self.alleTouren.append(item)
             else:
                 self.alleTermine.append(item)
-            begDate = tourRest.convertToMEZOrMSZ(beginning)[0:10]
+            begDate = event.convertToMEZOrMSZ(beginning)[0:10]
             if begDate < start or begDate > end:
                 logger.info("event " + titel + " not in timerange")
                 continue
@@ -147,7 +152,7 @@ class EventServer:
         else:
             with open(jsonPath, "r") as jsonFile:
                 eventJS = json.load(jsonFile)
-        event = tourRest.Event(eventJS, eventJsSearch, self)
+        event = tourRest.RestEvent(eventJS, eventJsSearch, self)
         self.events[eventItemId] = event
         return event
 

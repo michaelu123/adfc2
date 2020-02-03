@@ -89,8 +89,7 @@ def expName(event, _):
 
 
 def expKurzBeschreibung(event, _):
-    return event.getShortDesc()
-
+    return event.getKurzbeschreibung()
 
 def expCity(event, _):
     return event.getCity()
@@ -214,9 +213,7 @@ class Expand:
         return event.getTitel()
 
     def expBeschreibung(self, event, _):
-        desc = event.eventItem.get("description")
-        desc = tourRest.removeSpcl(desc)
-        desc = tourRest.removeHTML(desc)
+        desc = event.getBeschreibung(False)
         return desc
 
     def expSchwierigkeitM(self, tour, _):

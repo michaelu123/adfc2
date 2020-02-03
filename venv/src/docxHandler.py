@@ -934,9 +934,7 @@ class DocxHandler(expand.Expand):
     def expBeschreibung(self, event, _):
         if len(self.para.runs) != 1:
             raise ValueError("${beschreibung} muß in einem Paragraphen einzeln stehen")
-        desc = event.eventItem.get("description")
-        desc = tourRest.removeSpcl(desc)
-        desc = tourRest.removeHTML(desc)
+        desc = event.getBeschreibung(True)
         # desc = codecs.decode(desc, encoding = "unicode_escape")
         self.md.convert(desc)
         self.md.reset()

@@ -884,9 +884,7 @@ class ScrbHandler(expand.Expand):
         return [run, titel]
 
     def expBeschreibung(self, event, _):
-        desc = event.eventItem.get("description")
-        desc = tourRest.removeSpcl(desc)
-        desc = tourRest.removeHTML(desc)
+        desc = event.getBeschreibung(True)
         # did I ever need this?
         # desc = codecs.decode(desc, encoding = "unicode_escape")
         # logger.debug("desc type:%s <<<%s>>>", type(desc), desc)
