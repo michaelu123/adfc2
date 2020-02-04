@@ -250,9 +250,5 @@ class Expand:
             return None
         txt = ""
         for z in zi:
-            # print("ZU0:", self.runX, "<<" + self.para.runs[self.runX].text + ">>",
-            # " ".join(["<" + run.text + ">" for run in self.para.runs]))
-            x = z.find(':') + 1
-            txt += z[0:x]
-            txt += z[x + 1:] + "\n"
+            txt += z + "\n"
         return txt

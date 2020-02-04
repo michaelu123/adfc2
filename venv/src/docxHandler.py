@@ -966,7 +966,7 @@ class DocxHandler(expand.Expand):
             # print("ZU1:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
             self.runX += 1
 
-            self.para.add_run(text=z[x + 1:] + "\n", style=self.run.style)
+            self.para.add_run(text=z[x:] + "\n", style=self.run.style)
             move_run_before(self.runX, self.para)
             # print("ZU2:", " ".join(["<" + run.text + ">" for run in self.para.runs]))
             self.runX += 1
