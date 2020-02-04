@@ -31,7 +31,7 @@ see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-l
 
 
 def convertToMEZOrMSZ(s: str):  # '2018-04-29T06:30:00+00:00'
-    dt = time.strptime(s, "%Y-%m-%dT%H:%M:%S%z")
+    dt = time.strptime(s[0:19], "%Y-%m-%dT%H:%M:%S")
     t = time.mktime(dt)
     dt1 = datetime.datetime.fromtimestamp(t)
     dt2 = datetime.datetime.utcfromtimestamp(t)

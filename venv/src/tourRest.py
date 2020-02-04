@@ -246,6 +246,8 @@ class RestEvent(event.Event):
     def isExternalEvent(self):
         return self.eventItem.get("cExternalEvent") == "true"
 
+    def istEntwurf(self):
+        return False  # Rest gibt keine Entwürfe zurück
 
 class User:
     def __init__(self, userJS):
@@ -264,16 +266,3 @@ class User:
         if self.phone is not None and self.phone != "":
             name += " (" + self.phone + ")"
         return name
-
-
-"""
-    "isTemplate": false,
-    "isDraft": true,
-    "isReview": false,
-    "isPublished": false,
-    "isFinished": false,
-    "isTour": true,
-    "isOptional": false
-    "isCancelled": false,
-
-"""

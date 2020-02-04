@@ -75,6 +75,14 @@ def selMerkmalEnthaeltNicht(event, lst):
     return True
 
 
+def selIstEntwurf(event, _):
+    return event.istEntwurf()
+
+def selIstNichtEntwurf(event, _):
+    return not event.istEntwurf()
+
+
+
 class Selektion:
     def __init__(self):
         self.selFunctions = {
@@ -87,7 +95,9 @@ class Selektion:
             "radtyp": selRadTyp,
             "kategorie": selKategorie,
             "merkmalenthält": selMerkmalEnthaelt,
-            "merkmalenthältnicht": selMerkmalEnthaeltNicht
+            "merkmalenthältnicht": selMerkmalEnthaeltNicht,
+            "istentwurf": selIstEntwurf,
+            "istnichtentwurf": selIstNichtEntwurf
         }
 
     def selected(self, event, sel):

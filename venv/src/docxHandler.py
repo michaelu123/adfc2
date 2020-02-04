@@ -48,40 +48,11 @@ adfc_yellow = 0xee7c00  # CMYK=0 60 100 0
 def str2hex(s: str):
     return ":".join("{:04x}".format(ord(c)) for c in s)
 
-
-"""
-see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
-"""
-""" XXX
-def convertToMEZOrMSZ(s: str):  # '2018-04-29T06:30:00+00:00'
-    dt = time.strptime(s, "%Y-%m-%dT%H:%M:%S%z")
-    t = time.mktime(dt)
-    dt1 = datetime.datetime.fromtimestamp(t)
-    dt2 = datetime.datetime.utcfromtimestamp(t)
-    diff = (dt1 - dt2).seconds
-    t += diff
-    dt = datetime.datetime.fromtimestamp(t)
-    return dt
-
-#  it seems that with "pyinstaller -F" tkinter (resp. TK) does not find data files relative to the MEIPASS dir
-def pyinst(path):
-    path = path.strip()
-    if os.path.exists(path):
-        return path
-    if hasattr(sys, "_MEIPASS"): # i.e. if running as exe produced by pyinstaller
-        pypath = sys._MEIPASS + "/" + path
-        if os.path.exists(pypath):
-            return pypath
-    return path
-"""
-
-
 def delete_paragraph(paragraph):
     # https://github.com/python-openxml/python-docx/issues/33
     p = paragraph._element
     p.getparent().remove(p)
     p._p = p._element = None
-
 
 def delete_run(run):
     r = run._element

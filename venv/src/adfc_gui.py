@@ -12,6 +12,8 @@ from tkinter.simpledialog import askstring
 import adfc_gliederungen
 import csvHandler
 # import pdfHandler
+import eventXml
+
 try:
     import docxHandler
 except:
@@ -62,8 +64,9 @@ class Prefs:
         self.start = "01.01.2020"
         self.end = "31.12.2020"
         self.docxTemplateName = ""
+        self.xmlFileName = ""
 
-    def set(self, useRest, includeSub, pformat, linkType, eventType, radTyp, unitKeys, start, end, docxTN):
+    def set(self, useRest, includeSub, pformat, linkType, eventType, radTyp, unitKeys, start, end, docxTN, xmlFN):
         self.useRest = useRest
         self.includeSub = includeSub
         self.format = pformat
@@ -74,6 +77,7 @@ class Prefs:
         self.start = start
         self.end = end
         self.docxTemplateName = docxTN
+        self.xmlFileName = xmlFN
         self.isDefault = False
 
     def load(self):
@@ -90,6 +94,7 @@ class Prefs:
                 self.start = prefJS.get("start")
                 self.end = prefJS.get("end")
                 self.docxTemplateName = prefJS.get("docxtemplatename")
+                self.xmlFileName = prefJS.get("xmlfilename")
                 self.isDefault = False
         except:
             pass
@@ -98,7 +103,7 @@ class Prefs:
         prefJS = {"userest": self.useRest, "includesub": self.includeSub, "format": self.format,
                   "linktype": self.linkType, "eventtype": self.eventType, "radtyp": self.radTyp,
                   "unitkeys": ",".join(self.unitKeys), "start": self.start, "end": self.end,
-                  "docxtemplatename": self.docxTemplateName}
+                  "docxtemplatename": self.docxTemplateName, "xmlfilename": self.xmlFileName}
         try:
             os.makedirs("c:/temp/tpjson")
         except:
@@ -135,6 +140,10 @@ class Prefs:
 
     def getDocxTemplateName(self):
         return self.docxTemplateName
+
+    def getXmlFileName(self):
+        return self.xmlFileName
+
 
 
 class LabelEntry(Frame):
@@ -196,6 +205,12 @@ class ListBoxSB(Frame):
         self.lb.grid(row=0, column=0, sticky="nsew")
         self.lbVsb.grid(row=0, column=1, sticky="ns")
 
+    def disable(self):
+        self.lb.config(state=DISABLED)
+
+    def enable(self):
+        self.lb.config(state=NORMAL)
+
     def curselection(self):
         names = [self.entries[i] for i in self.lb.curselection()]
         if "0 Alles" in names:
@@ -224,6 +239,7 @@ class MyApp(Frame):
         self.images = []
         # self.pdfTemplateName = ""
         self.docxTemplateName = ""
+        self.xmlFileName = ""
         self.docxHandler = None
         self.scrbHandler = None
         self.eventServer = None
@@ -241,6 +257,8 @@ class MyApp(Frame):
             menuFile.add_command(label="Speichern unter", command=self.storeas)
             # menuFile.add_command(label="PDF Template", command=self.pdfTemplate)
             menuFile.add_command(label="Word Template", command=self.docxTemplate)
+            menuFile.add_command(label="XML Datei öffnen", command=self.xmlFile)
+            menuFile.add_command(label="XML Datei schließen", command=self.xmlFileClose)
             menuBar.add_cascade(label="Datei", menu=menuFile)
 
             menuEdit = Menu(menuBar)
@@ -310,6 +328,18 @@ class MyApp(Frame):
         self.startBtn.config(state=DISABLED)
         self.docxHandler.openDocx(self.prefsDefault)  # set GUI from doc params unless obtained from prefs
         self.startBtn.config(state=NORMAL)
+
+    def xmlFile(self, *args):
+        self.xmlFileName = askopenfilename(
+            title="XML File (XML export aus dem TP) auswählen",
+            defaultextension=".xml", filetypes=[("XML", ".xml")])
+        self.gliederungLB.disable()
+        self.gliederungSvar.set("")
+
+    def xmlFileClose(self, *args):
+        self.xmlFileName = ""
+        self.gliederungLB.enable()
+        self.gliederungSvar.set(self.gliederungLB.curselection())
 
     def setGliederung(self, gl):
         self.gliederungSvar.set(gl)
@@ -452,6 +482,8 @@ class MyApp(Frame):
                 radTypRB.deselect()
             radTypRB.grid(sticky="w")
         self.docxTemplateName = self.prefs.getDocxTemplateName()
+        self.xmlFileName = self.prefs.getXmlFileName()
+
 
         # container for LV selector and Listbox for KVs
         glContainer = Frame(master, borderwidth=2, relief="sunken", width=100)
@@ -531,6 +563,10 @@ class MyApp(Frame):
 
         self.pos = "1.0"
         self.text.mark_set(INSERT, self.pos)
+
+        if self.xmlFileName is not None and self.xmlFileName != "":
+            self.gliederungLB.disable()
+            self.gliederungSvar.set("")
 
     def disableStart(self):
         self.startBtn.config(state=DISABLED)
@@ -617,12 +653,14 @@ class MyApp(Frame):
             handler = rawHandler.RawHandler()
 
         self.prefs.set(useRest, includeSub, formatS, self.getLinkType(), self.getEventType(), self.getRadTyp(),
-                       unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName)
+                       unitKeys, self.getStart(), self.getEnd(), self.docxTemplateName, self.xmlFileName)
         self.prefs.save()
 
         with contextlib.redirect_stdout(txtWriter):
             try:
                 self.eventServer = tourServer.EventServer(useRest, includeSub, self.max_workers)
+                if self.xmlFileName != "":
+                    self.eventServer = eventXml.EventServer(self.xmlFileName, self.eventServer)
                 events = []
                 for unitKey in unitKeys:
                     if unitKey == "Alles":
@@ -633,7 +671,7 @@ class MyApp(Frame):
                 if len(events) == 0:
                     handler.nothingFound()
                 self.eventServer.calcNummern()
-                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
+                events.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
                 ThreadPoolExecutor(max_workers=self.max_workers).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)

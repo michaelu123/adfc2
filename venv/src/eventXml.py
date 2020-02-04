@@ -1,11 +1,12 @@
 import time
+from concurrent.futures.thread import ThreadPoolExecutor
 from xml.dom.minidom import *
 import event
 import tourServer
 from myLogger import logger
 
 schwierList = ["unbekannt", "sehr einfach", "einfach", "mittel", "schwer", "sehr schwer"]
-eventServer = None
+restServer = None
 
 # from https://stackoverflow.com/questions/191536/converting-xml-to-json-using-python Paulo Vj
 def parse_element(element):
@@ -62,39 +63,35 @@ class XMLFilter():
         s = s.replace("&#x1", "§§§§")  # ????
         return s
 
-def getTouren(fn):
-    with open(fn, "r", encoding="utf-8") as f:
-        f = XMLFilter(f)
-        xmlt = parse(f)
-    n, d = parse_element(xmlt)
-    jsRoot = elimText(d)
-    # jsonPath = "xml2.json"
-    # with open(jsonPath, "w") as jsonFile:
-    #     json.dump(jsRoot, jsonFile, indent=4)
-    return jsRoot
-
 class XmlEvent(event.Event):
     def __init__(self, eventItem):
         self.eventItem = eventItem
         self.tourLocations = eventItem.get("TourLocations")
         self.titel = self.eventItem.get("Title").strip()
+        self.eventNummer = 0
         logger.info("eventItemId %s %s", self.titel, self.getEventItemId())
 
     def getTitel(self):
-        return self.titel
+        if self.istEntwurf():
+            return self.titel + " (Entwurf)"
+        else:
+            return self.titel
 
     def getEventItemId(self):
         return self.eventItem.get("EventItemId")
 
     def getFrontendLink(self):
-        evR = eventServer.getEvent({"eventItemId": self.getEventItemId(), "title": self.getTitel()})
-        return evR.getFrontendLink()
+        try:
+            evR = restServer.getEventById(self.getEventItemId(), self.getTitel())
+            return evR.getFrontendLink()
+        except:
+            return None
 
     def getBackendLink(self):
         return "https://intern-touren-termine.adfc.de/modules/events/" + self.getEventItemId()
 
     def getNummer(self):
-        num = self.eventJSSearch.get("eventNummer")
+        num = self.eventNummer
         if num is None:
             num = "999"
         return num
@@ -208,8 +205,11 @@ class XmlEvent(event.Event):
 
     def getKategorie(self):
         # until portal issues fixed:
-        evR = eventServer.getEvent({"eventItemId": self.getEventItemId(), "title": self.getTitel()})
-        return evR.getKategorie()
+        try:
+            evR = restServer.getEventById(self.getEventItemId(), self.getTitel())
+            return evR.getKategorie()
+        except:
+            return "Ohne"
 
     def getRadTyp(self):
         """
@@ -343,72 +343,124 @@ class XmlEvent(event.Event):
     def isExternalEvent(self):
         return self.eventItem.get("CExternalEvent") == "Ja"
 
-    def isEntwurf(self):
+    def istEntwurf(self):
         return self.eventItem.get("CPublishDate") == ""
 
+class EventServer:
+    def __init__(self, fn, rs):
+        global restServer
+        self.fn = fn
+        restServer = rs
+        self.events = {}
+        self.alleTouren = []
+        self.alleTermine = []
 
-if __name__ == "__main__":
-    eventServer = tourServer.EventServer(False, True, 1)
-#    js = getTouren("C:\\Users\\Michael\\PycharmProjects\\ADFC1\\venv\\src\Veranstaltungs-Export.xml")
-    js = getTouren("C:\\Users\\Michael\\Downloads\Veranstaltungs-Export_BY2020.xml")
-    js = js.get("ExportEventItemList")
-    js = js.get("EventItems")
-    js = js.get("ExportEventItem")
-    for ev in js:
-        ev = XmlEvent(ev)
-        x = ev.getTitel()
-        print("Titel", x)
-        x = ev.getEventItemId()
-        print("Id", x)
-        x = ev.getFrontendLink()
-        print("Frontend", x)
-        x = ev.getBackendLink()
-        print("Backend", x)
-        x = ev.getAbfahrten()
-        print("Abfahrten", x)
-        x = ev.getBeschreibung(False)
-        print("Beschreibung", x)
-        x = ev.getKurzbeschreibung()
-        print("Kurzbes.", x)
-        x = ev.isTermin()
-        print("isTermin", x)
-        x = ev.getSchwierigkeit()
-        print("Schwierigkeit", x)
-        x = ev.getMerkmale()
-        print("Merkmale", x)
-        x = ev.getKategorie()
-        print("Kategorie", x)
-        x = ev.getRadTyp()
-        print("RadTyp", x)
-        x = ev.getZusatzInfo()
-        print("Zusatzinfo", x)
-        x = ev.getStrecke()
-        print("Strecke", x)
-        x = ev.getHoehenmeter()
-        print("Höhenmeter", x)
-        x = ev.getCharacter()
-        print("Character", x)
-        x = ev.getDatum()
-        print("Datum", x)
-        x = ev.getDatumRaw()
-        print("DatumRaw", x)
-        x = ev.getEndDatum()
-        print("EndDatum", x)
-        x = ev.getEndDatumRaw()
-        print("EndDatumRa", x)
-        x = ev.getPersonen()
-        print("Personen", x)
-        x = ev.getImagePreview()
-        #print(x)
-        x = ev.getName()
-        print("Name", x)
-        x = ev.getCity()
-        print("City", x)
-        x = ev.getStreet()
-        print("Street", x)
-        x = ev.isExternalEvent()
-        print("isExternalEvent", x)
-        x = ev.isEntwurf()
-        print("isEntwurf", x)
-        print()
-        print()
+    def getEvents(self, unitKey, start, end, typ):
+        unit = "Alles" if unitKey is None or unitKey == "" else unitKey
+        startYear = start[0:4]
+
+        with open(self.fn, "r", encoding="utf-8") as f:
+            f = XMLFilter(f)
+            xmlt = parse(f)
+        n, d = parse_element(xmlt)
+        jsRoot = elimText(d)
+        # jsonPath = "xml2.json"
+        # with open(jsonPath, "w") as jsonFile:
+        #     json.dump(jsRoot, jsonFile, indent=4)
+        js = jsRoot.get("ExportEventItemList")
+        js = js.get("EventItems")
+        items = js.get("ExportEventItem")
+        events = []
+        if len(items) == 0:
+            return events
+        for item in iter(items):
+            # item["imagePreview"] = ""  # save space
+            titel = item.get("Title")
+            if titel is None:
+                logger.error("Kein Titel für den Event %s", str(item))
+                continue
+            if item.get("IsCancelled") != "Nein":
+                logger.info("Event %s ist gecancelt", titel)
+                continue
+            if typ != "Alles" and item.get("EventType") != typ:
+                continue
+            beginning = item.get("Beginning")
+            if beginning is None:
+                logger.error("Kein Beginn für den Event %s", titel)
+                continue
+            begDate = beginning[0:4]
+            if begDate < start[0:4] or begDate > end[0:4]:
+                continue
+            ev = XmlEvent(item)
+            if ev.isTermin():
+                self.alleTermine.append(ev)
+            else:
+                self.alleTouren.append(ev)
+            begDate = event.convertToMEZOrMSZ(beginning)[0:10]
+            if begDate < start or begDate > end:
+                logger.info("event " + titel + " not in timerange")
+                continue
+            # add other filter conditions here
+            logger.info("event " + titel + " OK")
+            self.events[ev.getEventItemId()] = ev
+        return self.events.values()
+
+    def getEvent(self, ev):
+        return ev
+
+    def getEventById(self, eventItemId, titel):
+        return self.events[eventItemId]
+
+    def calcNummern(self):
+        # too bad we base numbers on kategorie and radtyp,which we cannot get from the search result
+        self.alleTouren.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
+        yyyy = ""
+        logger.info("Begin calcNummern")
+        for tour in self.alleTouren:
+            datum = tour.getDatumRaw()
+            if datum[0:4] != yyyy:
+                yyyy = datum[0:4]
+                tnum = 100
+                rnum = 300
+                mnum = 400
+                mtnum = 600
+            radTyp = tour.getRadTyp()
+            kategorie = tour.getKategorie()
+            if kategorie == "Mehrtagestour":
+                num = mtnum
+                mtnum += 1
+            elif radTyp == "Rennrad":
+                num = rnum
+                rnum += 1
+            elif radTyp == "Mountainbike":
+                num = mnum
+                mnum += 1
+            else:
+                num = tnum
+                tnum += 1
+            tour.eventNummer = str(num)
+
+        self.alleTermine.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
+        yyyy = ""
+        for termin in self.alleTermine:
+            datum = termin.getDatumRaw()
+            if datum[0:4] != yyyy:
+                yyyy = datum[0:4]
+                tnum = 700
+            num = tnum
+            tnum += 1
+            termin.eventNummer = str(num)
+        logger.info("End calcNummern")
+
+
+"""
+    "isTemplate": false,
+    "isDraft": true,
+    "isReview": false,
+    "isPublished": false,
+    "isFinished": false,
+    "isTour": true,
+    "isOptional": false
+    "isCancelled": false,
+
+"""
