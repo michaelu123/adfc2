@@ -61,8 +61,8 @@ class Prefs:
         self.eventType = "Alles"
         self.radTyp = "Alles"
         self.unitKeys = "152"
-        self.start = "01.01.2020"
-        self.end = "31.12.2020"
+        self.start = "01.01.2000"
+        self.end = "02.01.2000"
         self.docxTemplateName = ""
         self.xmlFileName = ""
 
@@ -84,17 +84,17 @@ class Prefs:
         try:
             with open("c:/temp/tpjson/prefs.json", "r") as jsonFile:
                 prefJS = json.load(jsonFile)
-                self.useRest = prefJS.get("userest")
-                self.includeSub = prefJS.get("includesub")
-                self.format = prefJS.get("format")
-                self.linkType = prefJS.get("linktype")
-                self.eventType = prefJS.get("eventtype")
-                self.radTyp = prefJS.get("radtyp")
-                self.unitKeys = prefJS.get("unitkeys")
-                self.start = prefJS.get("start")
-                self.end = prefJS.get("end")
-                self.docxTemplateName = prefJS.get("docxtemplatename")
-                self.xmlFileName = prefJS.get("xmlfilename")
+                self.useRest = prefJS.get("userest", "false")
+                self.includeSub = prefJS.get("includesub", "true")
+                self.format = prefJS.get("format", "Text")
+                self.linkType = prefJS.get("linktype", "Frontend")
+                self.eventType = prefJS.get("eventtype", "Alles")
+                self.radTyp = prefJS.get("radtyp", "Alles")
+                self.unitKeys = prefJS.get("unitkeys", "152")
+                self.start = prefJS.get("start", "01.01.2000")
+                self.end = prefJS.get("end", "02.01.2000")
+                self.docxTemplateName = prefJS.get("docxtemplatename", "")
+                self.xmlFileName = prefJS.get("xmlfilename", "")
                 self.isDefault = False
         except:
             pass
@@ -318,7 +318,7 @@ class MyApp(Frame):
     #         filetypes=[("JSON", ".json")])
 
     def docxTemplate(self, *args):
-        if self.docxTemplateName == "" or len(args) == 0 or args[0] != "NO":
+        if self.docxTemplateName is None or self.docxTemplateName == "" or len(args) == 0 or args[0] != "NO":
             self.docxTemplateName = askopenfilename(
                 title="Word Template auswählen",
                 defaultextension=".docx", filetypes=[("DOCX", ".docx")])
@@ -659,7 +659,7 @@ class MyApp(Frame):
         with contextlib.redirect_stdout(txtWriter):
             try:
                 self.eventServer = tourServer.EventServer(useRest, includeSub, self.max_workers)
-                if self.xmlFileName != "":
+                if self.xmlFileName is not None and self.xmlFileName != "":
                     self.eventServer = eventXml.EventServer(self.xmlFileName, self.eventServer)
                 events = []
                 for unitKey in unitKeys:
@@ -671,7 +671,7 @@ class MyApp(Frame):
                 if len(events) == 0:
                     handler.nothingFound()
                 self.eventServer.calcNummern()
-                events.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
+                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
                 ThreadPoolExecutor(max_workers=self.max_workers).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)

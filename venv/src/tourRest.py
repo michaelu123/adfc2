@@ -20,6 +20,11 @@ class RestEvent(event.Event):
     def getEventItemId(self):
         return self.eventItem.get("eventItemId")
 
+    def getPublishDate(self):
+        datum = self.eventItem.get("cPublishDate")
+        datum = event.convertToMEZOrMSZ(datum)
+        return datum
+
     def getFrontendLink(self):
         return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
 
@@ -40,8 +45,7 @@ class RestEvent(event.Event):
             if typ != "Startpunkt" and typ != "Treffpunkt":
                 continue
             if not tourLoc.get("withoutTime"):
-                if len(
-                        abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
+                if len(abfahrten) == 0:  # for first loc, get starttime from eventItem, beginning in tourloc is often wrong
                     beginning = self.getDatum()[1]
                 else:
                     beginning = tourLoc.get("beginning")
@@ -73,6 +77,20 @@ class RestEvent(event.Event):
             abfahrt = (typ, beginning, loc)
             abfahrten.append(abfahrt)
         return abfahrten
+
+    def getStartpunkt(self):
+        # return first loc that is Startpunkt or Treffpunkt
+        for tourLoc in self.tourLocations:
+            typ = tourLoc.get("type")
+            if typ != "Startpunkt" and typ != "Treffpunkt":
+                continue
+            name = tourLoc.get("name")
+            street = tourLoc.get("street")
+            city = tourLoc.get("city")
+            latitude = tourLoc.get("latitude")
+            longitude = tourLoc.get("longitude")
+            return (name, street, city, latitude, longitude)
+        return None
 
     def getBeschreibung(self, raw):
         desc = self.eventItem.get("description")
@@ -230,6 +248,10 @@ class RestEvent(event.Event):
 
     def getImagePreview(self):
         return self.eventJS.get("imagePreview")
+
+    def getImageUrl(self):
+        imageId = self.eventJS.get("eventItemImages")[0].get("imageId")
+        return f"https://intern-touren-termine.adfc.de/api/images/{imageId}/download"
 
     def getName(self):
         tourLoc = self.tourLocations[0]

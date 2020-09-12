@@ -151,7 +151,11 @@ class EventServer:
                 json.dump(eventJS, jsonFile, indent=4)
         else:
             with open(jsonPath, "r") as jsonFile:
-                eventJS = json.load(jsonFile)
+                try:
+                    eventJS = json.load(jsonFile)
+                except:
+                    print("cannot parse " + jsonPath)
+                    return None
         event = tourRest.RestEvent(eventJS, eventJsSearch, self)
         self.events[eventItemId] = event
         return event
@@ -218,6 +222,8 @@ class EventServer:
                 mnum = 400
                 mtnum = 600
             tour = self.getEvent(tourJS)
+            if tour is None:
+                continue
             radTyp = tour.getRadTyp()
             kategorie = tour.getKategorie()
             if kategorie == "Mehrtagestour":

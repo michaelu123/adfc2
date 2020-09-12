@@ -1,0 +1,170 @@
+<!-- attribute id: unique identifier in foreign system -->
+<Event id="${eventItemId}">
+    <entityState>UNPUBLISHED</entityState>
+    <client>
+        <EventmanagerClient id="9999">
+            <name>ADFC Hamburg e.V.</name>
+        </EventmanagerClient>
+    </client>
+    <creationTime>${publishDate}</creationTime>
+    <lastChangeTime>${publishDate}</lastChangeTime>
+    <languages multiple="true">
+        <Language id="1">
+            <name>de</name>
+        </Language>
+    </languages>
+    <title>
+        <I18n id="12627993">
+            <de>
+                <![CDATA[${titel}]]>
+            </de>
+        </I18n>
+    </title>
+    <shortDescription>
+        <I18n id="12627992">
+            <de>
+                <![CDATA[${kurz}]]>
+            </de>
+        </I18n>
+    </shortDescription>
+    <link>
+        <!-- has to be a valid URL -->
+        <I18n id="12627988">
+            <de>
+                <![CDATA[${frontendLink}]]>
+            </de>
+        </I18n>
+    </link>
+    <categories multiple="true">
+        <ExpandCategories/>
+    </categories>
+    <pricing>
+        <ExpandPricing/>
+    </pricing>
+    <eventDates>
+        <SpecificEventDate>
+            <date>${date}</date>
+            <startTime>${time}</startTime>
+            <!-- minutes -->
+            <duration>${duration}</duration>
+        </SpecificEventDate>
+    </eventDates>
+    <media>
+        <EventImage>
+            <pooledMedium>
+                <!-- valid file extensions: jpeg, jpg, gif, png -->
+                <PooledEventMedium url="${imageUrl}">
+                    <copyright>
+                        <I18n>
+                            <de>
+                                <![CDATA[image-copyright]]>
+                            </de>
+                        </I18n>
+                    </copyright>
+                </PooledEventMedium>
+            </pooledMedium>
+            <imageType>
+                <!-- note: depending on customer project -->
+                <ImageType id="1"/>
+            </imageType>
+        </EventImage>
+    </media>
+    <location>
+        <!-- the id attribute has to be a unique foreign identifier; providing
+          full POI-information depends upon customer definition for the import, an
+          option is that existing POI-data is being used to map third party POI data,
+          in that case, only an element <AddressPoi id="1" /> is required -->
+        <AddressPoi id="1">
+            <languages>
+                <Language id="1"/>
+            </languages>
+            <types>
+                <!-- valid IDs are: 2 = contributor, 3 = eventlocation -->
+                <AddressPoiType id="2"/>
+                <AddressPoiType id="3"/>
+            </types>
+            <title>
+                <I18n>
+                    <de><![CDATA[${ortsname}]]></de> <!-- locations.name -->
+                </I18n>
+            </title>
+            <geoInfo>
+                <GeoInfo>
+                    <coordinates>
+                        <latitude>${latitude}</latitude>
+                        <longitude>${longitude}</longitude>
+                    </coordinates>
+                    <street>${street}</street>
+                    <city>${city}</city>
+                    <country>Deutschland</country>
+                </GeoInfo>
+            </geoInfo>
+        </AddressPoi>
+    </location>
+    <contributor>
+        <!-- the id attribute has to be a unique foreign identifier; providing
+          full POI-information depends upon customer definition for the import, an
+          option is that existing POI-data is being used to map third party POI data,
+          in that case, only an element <AddressPoi id="1" /> is required -->
+        <AddressPoi id="1">
+            <languages>
+                <Language id="1"/>
+                <Language id="2"/>
+            </languages>
+            <types>
+                <!-- valid IDs are: 2 = contributor, 3 = eventlocation -->
+                <AddressPoiType id="2"/>
+                <AddressPoiType id="3"/>
+            </types>
+            <title>
+                <I18n>
+                    <de><![CDATA[Titel POI Deutsch]]></de>
+                    <en><![CDATA[title POI English]]></en>
+                </I18n>
+            </title>
+            <contact1>
+                <contactName>Kontaktname</contactName>
+                <salutation>Anrede</salutation>
+                <firstname>Vorname</firstname>
+                <lastname>Nachname</lastname>
+                <address>
+                    <street>Straße</street>
+                    <streetNo>1</streetNo>
+                    <zipcode>11111</zipcode>
+                    <city>Meine Stadt</city>
+                    <country>Deutschland</country>
+                    <phone1>+49 123 4567 0</phone1>
+                    <phone2>+49 123 2456 89</phone2>
+                    <fax>+49 123 2456 890</fax>
+                    <email>contact@mywebsite.de</email>
+                    <homepage>
+                        <I18n>
+                            <de><![CDATA[http://www.mywebsite.de]]></de>
+                            <en><![CDATA[http://www.mywebsite.en]]></en>
+                        </I18n>
+                    </homepage>
+                    <homepageLinkText>
+                        <I18n>
+                            <de><![CDATA[Text Deutsch für meine Website]]></de>
+                            <en><![CDATA[text English für my website]]></en>
+                        </I18n>
+                    </homepageLinkText>
+                </address>
+            </contact1>
+            <geoInfo>
+                <GeoInfo>
+                    <coordinates>
+                        <latitude>47.779301</latitude>
+                        <longitude>12.450406599999951</longitude>
+                    </coordinates>
+                    <street>Straße</street>
+                    <streetNo>1</streetNo>
+                    <zipcode>11111</zipcode>
+                    <city>Meine Stadt</city>
+                    <country>Deutschland</country>
+                </GeoInfo>
+            </geoInfo>
+        </AddressPoi>
+    </contributor>
+    <autoTranslated>false</autoTranslated>
+</Event>
