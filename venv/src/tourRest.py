@@ -252,6 +252,8 @@ class RestEvent(event.Event):
     def getImageUrl(self):
         imageId = self.eventJS.get("eventItemImages")[0].get("imageId")
         return f"https://intern-touren-termine.adfc.de/api/images/{imageId}/download"
+        #  Response header von /images/id/download:
+        # Location: https://adfcrtp.blob.core.cloudapi.de/public-production/2b6a400f-d5ac-46bf-9133-b53ecd5a180c/bille-bei-billwerder.jpg
 
     def getName(self):
         tourLoc = self.tourLocations[0]
@@ -271,6 +273,18 @@ class RestEvent(event.Event):
     def istEntwurf(self):
         return False  # Rest gibt keine Entwürfe zurück
 
+    def getPrices(self):
+        minPrice = 9999999.0
+        maxPrice = 0.0
+        itemPrices = self.eventJS.get("eventItemPrices");
+        for itemPrice in itemPrices:
+            price = itemPrice.get("price")
+            if price < minPrice:
+                minPrice = price
+            if price > maxPrice:
+                maxPrice = price
+        return (minPrice, maxPrice)
+
 class User:
     def __init__(self, userJS):
         u = userJS.get("user")
@@ -288,3 +302,4 @@ class User:
         if self.phone is not None and self.phone != "":
             name += " (" + self.phone + ")"
         return name
+

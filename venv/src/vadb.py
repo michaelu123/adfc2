@@ -75,6 +75,18 @@ def expLongitude(tour):
     t = tour.getStartpunkt()
     return str(t[4]) # longitude
 
+def expPricing(tour):
+    (minPrice, maxPrice) = tour.getPrices()
+    if maxPrice == 0.0:
+        return ["           <freeOfCharge>false</freeOfCharge>\n"]
+    else:  return [
+        f"        <fromPrice>€{minPrice}</fromPrice>\n",
+        f"        <toPrice>€{maxPrice}</toPrice>\n",
+        ]
+
+def expCategories(tour):
+    return ["       ???CATEGORIES???\n"]
+
 
 class VADBHandler:
     def __init__(self):
@@ -93,6 +105,8 @@ class VADBHandler:
             "longitude": expLongitude,
             "street": expStreet,
             "city": expCity,
+            "<ExpandCategories/>": expCategories,
+            "<ExpandPricing/>": expPricing,
         }
 
         self.xmlFile = "./events.xml"
@@ -100,7 +114,7 @@ class VADBHandler:
         self.output = open(self.outputFile, "w", encoding="utf-8")
         pass
 
-    def expand(self, tour, cmd):
+    def expandCmd(self, tour, cmd):
         f = self.expFunctions.get(cmd)
         if f is None:
             return "???" + cmd + "???"
@@ -124,9 +138,13 @@ class VADBHandler:
                 if mp is not None:
                     sp = mp.span()
                     cmd = l[sp[0]+2:sp[1]-1]
-                    l = l[0:sp[0]] + self.expand(tour, cmd) + l[sp[1]:]
-                self.output.writelines([l]);
-
+                    l = l[0:sp[0]] + self.expandCmd(tour, cmd) + l[sp[1]:]
+                    self.output.writelines([l]);
+                elif l.find("<Expand") > 0:
+                    ll = self.expandCmd(tour, l.strip())
+                    self.output.writelines(ll);
+                else:
+                    self.output.writelines([l]);
 
 """
 Categories Expansion:
