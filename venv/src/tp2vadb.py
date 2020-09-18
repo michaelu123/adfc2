@@ -80,7 +80,7 @@ for unitKey in unitKeys:
 
 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 # tourServerVar.calcNummern()
-with vadb.VADBHandler() as handler:
+with vadb.VADBHandler(tourServerVar) as handler:
     for event in events:
         event = tourServerVar.getEvent(event)
         if event.isTermin():
@@ -90,3 +90,26 @@ with vadb.VADBHandler() as handler:
                 continue
             handler.handleTour(event)
             # break
+
+"""
+158     Hamburg
+162260  Cuxhaven
+170545  Pinneberg
+170540  Pinneberg (alt)
+162270  Harburg
+162291  Uelzen
+162290  Lüneburg
+170382  Neumünster
+140004  Schwerin
+170180  Lauenburg
+162280  Lüchow-Dannenberg
+170387  Bad Segeberg
+162330  Stade
+170550  Steinburg
+170291  Stormarn
+162320  Heidekreis
+170370  Ostholstein
+162310  Rotenburg
+
+158,162260,170545,170540,162270,162291,162290,170382,140004,170180,162280,170387,162330,170550,170291,162320,170370,162310
+"""

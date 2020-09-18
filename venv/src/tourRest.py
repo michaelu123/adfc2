@@ -28,6 +28,9 @@ class RestEvent(event.Event):
     def getFrontendLink(self):
         return "https://touren-termine.adfc.de/radveranstaltung/" + self.eventItem.get("cSlug")
 
+    def getSlug(self):
+        return self.eventItem.get("cSlug")
+
     def getBackendLink(self):
         return "https://intern-touren-termine.adfc.de/modules/events/" + self.eventItem.get("eventItemId")
 
@@ -266,6 +269,11 @@ class RestEvent(event.Event):
     def getStreet(self):
         tourLoc = self.tourLocations[0]
         return tourLoc.get("street")
+
+    def getLatLon(self):
+        tourLoc = self.tourLocations[0]
+        return (tourLoc.get("latitude"), tourLoc.get("longitude"),)
+
 
     def isExternalEvent(self):
         return self.eventItem.get("cExternalEvent") == "true"

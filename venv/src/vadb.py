@@ -1,43 +1,92 @@
+import json
+import math
 import random
 import re
 from datetime import datetime
-from decimal import Decimal, getcontext
+from decimal import getcontext
 from string import digits, ascii_uppercase
-
 
 decCtx = getcontext()
 decCtx.prec = 7  # 5.2 digits, max=99999.99
 charset = digits + ascii_uppercase
+maxLatLonDiff = 0.005
+maxDist = 100  # meters
 
 paramRE = re.compile(r"\${(\w*?)}")
+
+
+def distance(origin, destination):
+    """
+    Calculate the Haversine distance.
+
+    Parameters
+    ----------
+    origin : tuple of float
+        (lat, long)
+    destination : tuple of float
+        (lat, long)
+
+    Returns
+    -------
+    distance_in_km : float
+
+    Examples
+    --------
+    >>> origin = (48.1372, 11.5756)  # Munich
+    >>> destination = (52.5186, 13.4083)  # Berlin
+    >>> round(distance(origin, destination), 1)
+    504.2
+    """
+    lat1, lon1 = origin
+    lat2, lon2 = destination
+    radius = 6371  # km
+
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) * math.sin(dlat / 2) +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2) * math.sin(dlon / 2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    d = radius * c * 1000.0  # return meters
+    return d
+
 
 def randomId(length):
     r1 = random.choice(ascii_uppercase)  # first a letter
     r2 = [random.choice(charset) for _ in range(length - 1)]  # then any mixture of capitalletters and numbers
     return r1 + ''.join(r2)
 
+
 def expTitel(tour):
     return tour.getTitel()
+
 
 def expEventItemId(tour):
     return tour.getEventItemId()
 
+
 def expKurz(tour):
-    return tour.getKurzbeschreibung()
+    return tour.getKurzbeschreibung() + "<br>Kategorie:" + tour.getKategorie() + "<br>Geeignet für:" + tour.getRadTyp() + "<br>" + "<br>".join(
+        tour.getZusatzInfo())
+
 
 def expFrontendLink(tour):
     return tour.getFrontendLink()
 
+
 def expPublishDate(tour):
     return tour.getPublishDate().replace("T", " ");
+
 
 def expDate(tour):
     t = tour.getDatum();
     return t[0][4:]
 
+
 def expTime(tour):
     t = tour.getDatum();
     return t[1]
+
 
 def expDuration(tour):
     b = tour.getDatumRaw()
@@ -46,50 +95,73 @@ def expDuration(tour):
     e = tour.getEndDatumRaw()
     e = e[0:19]  # '2018-04-29T07:30:00'
     e = datetime.strptime(e, "%Y-%m-%dT%H:%M:%S")
-    d = e - b # a timedelta!
-    d = str(d)[:-3] # strip :seconds
+    d = e - b  # a timedelta!
+    d = str(d)[:-3]  # strip :seconds
     return d
+
 
 def expImageUrl(tour):
     return tour.getImageUrl()
 
+
 def expOrtsname(tour):
     t = tour.getStartpunkt()
     if t[0] != "":
-        return t[0] # name
-    return t[1] # city
+        return t[0]  # name
+    return t[1]  # city
+
 
 def expCity(tour):
     t = tour.getStartpunkt()
-    return t[1] # city
+    return t[1]  # city
+
 
 def expStreet(tour):
     t = tour.getStartpunkt()
-    return t[2] # street
+    return t[2]  # street
+
 
 def expLatitude(tour):
     t = tour.getStartpunkt()
-    return str(t[3]) # latitude
+    return str(t[3])  # latitude
+
 
 def expLongitude(tour):
     t = tour.getStartpunkt()
-    return str(t[4]) # longitude
+    return str(t[4])  # longitude
+
 
 def expPricing(tour):
     (minPrice, maxPrice) = tour.getPrices()
     if maxPrice == 0.0:
         return ["           <freeOfCharge>false</freeOfCharge>\n"]
-    else:  return [
-        f"        <fromPrice>€{minPrice}</fromPrice>\n",
-        f"        <toPrice>€{maxPrice}</toPrice>\n",
+    else:
+        return [
+            f"        <fromPrice>€{minPrice}</fromPrice>\n",
+            f"        <toPrice>€{maxPrice}</toPrice>\n",
         ]
 
-def expCategories(tour):
-    return ["       ???CATEGORIES???\n"]
 
+def expCategories(tour):  # wir belassen es erstmal bei Category Radtouren
+    return ['        <Category id="36"/>\n']
+
+
+def readPOIs():
+    with open("locs.json", "r", encoding="utf-8") as jsonFile:
+        pois = json.load(jsonFile)
+        return pois
+
+def readUnknownLocs():
+    try:
+        with open("unknown_locs.json", "r", encoding="utf-8") as jsonFile:
+            unknownLocs = json.load(jsonFile)
+    except:
+        unknownLocs = {}
+    return unknownLocs
 
 class VADBHandler:
-    def __init__(self):
+    def __init__(self, tourServerVar):
+        self.tourServerVar = tourServerVar
         self.expFunctions = {  # keys in lower case
             "titel": expTitel,
             "eventItemId": expEventItemId,
@@ -105,13 +177,17 @@ class VADBHandler:
             "longitude": expLongitude,
             "street": expStreet,
             "city": expCity,
+            "copyright": self.expCopyRight,
+            "addressPoi": self.expPoi,
             "<ExpandCategories/>": expCategories,
             "<ExpandPricing/>": expPricing,
         }
 
-        self.xmlFile = "./events.xml"
-        self.outputFile = "./output.xml"
+        self.xmlFile = "./ADFC_VADB_template.xml"
+        self.outputFile = "./ADFC-VADB.xml"
         self.output = open(self.outputFile, "w", encoding="utf-8")
+        self.addressPOIs = readPOIs()
+        self.unknownLocs = readUnknownLocs()
         pass
 
     def expandCmd(self, tour, cmd):
@@ -132,12 +208,17 @@ class VADBHandler:
         pass
 
     def handleTour(self, tour):
+        # print(tour.getLatLon(), tour.getName(), tour.getCity(), tour.getStreet())
+        # print(tour.getZusatzInfo());
+        # print(tour.getMerkmale())
+        # print(self.expCopyRight(tour))
+        # if True: return
         with open(self.xmlFile, "r", encoding="utf-8") as input:
             for l in input:
                 mp = paramRE.search(l, 0)
                 if mp is not None:
                     sp = mp.span()
-                    cmd = l[sp[0]+2:sp[1]-1]
+                    cmd = l[sp[0] + 2:sp[1] - 1]
                     l = l[0:sp[0]] + self.expandCmd(tour, cmd) + l[sp[1]:]
                     self.output.writelines([l]);
                 elif l.find("<Expand") > 0:
@@ -145,6 +226,43 @@ class VADBHandler:
                     self.output.writelines(ll);
                 else:
                     self.output.writelines([l]);
+
+    def expCopyRight(self, tour):
+        try:
+            content = self.tourServerVar.readCopyRight(tour.getSlug(), tour.getFrontendLink())
+            x = content.find(b'copyright')
+            if x >= 0:
+                s = content[x:x + 100].decode("utf-8")
+                s = s.replace("\\", "")
+                x = s.find(':"')
+                y = s.find('"', x + 2)
+                return (s[x + 2:y])
+        except:
+            return "ADFC"
+
+    def expPoi(self, tour):
+        (tlat, tlon) = tour.getLatLon()
+        minDist = 999999999.9
+        minPoi = None
+        for poi in self.addressPOIs:
+            plat = poi.get("latitude")
+            plon = poi.get("longitude")
+            if abs(tlat - plat) > maxLatLonDiff or abs(tlon - plon) > maxLatLonDiff:
+                d = maxDist
+            else:
+                d = distance((tlat, tlon), (plat, plon))
+            if d < minDist:
+                minDist = d
+                minPoi = poi
+        if minPoi is not None:
+            return minPoi.get("key")
+
+        self.unknownLocs[str(tlat) + "," + str(tlon)] = tour.getFrontendLink()
+        with open("unknown_locs.json", "w") as jsonFile:
+            json.dump(self.unknownLocs, jsonFile, indent=4)
+
+        return "6137"
+
 
 """
 Categories Expansion:
@@ -242,17 +360,42 @@ imageType??
                 <ImageType id="1"/>
             </imageType>
 
+<!--
+fehlend in shmh:
+entityState
+client
+creationTime
+lastChangeTime
+bookingLink ist leer
+        <categories>
+            <Category id="116"/>
+        </categories>
+        <criteria>
+            <Criterion id="135"/>
+        </criteria>
+        <pricing/>
+
+        <duration>
+           <![CDATA[ ]]>??? anstatt 3:45?
+        </duration>
+
+        <copyright>
+            <I18n>
+                <de>Stiftung Historische Museen Hamburg</de>
+            </I18n>
+
+        <location>
+            <AddressPoi id="811"/>
+        </location>
+        <contributor>
+            <AddressPoi id="811"/>
+        </contributor>
+
+
+locid 6137
+contr 6137
+
+-->
+
 
 """
-
-
-
-
-
-
-
-
-
-
-
-

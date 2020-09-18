@@ -68,64 +68,67 @@ class EventServer:
 
     def getEvents(self, unitKey, start, end, typ):
         unit = "Alles" if unitKey is None or unitKey == "" else unitKey
-        startYear = start[0:4]
-        jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + startYear + ".json"
-        if self.useRest or not os.path.exists(jsonPath):
-            req = "/api/eventItems/search?limit=10000"
-            par = ""
-            if unitKey is not None and unitKey != "":
-                par += "&unitKey=" + unitKey
-                if self.includeSub:
-                    par += "&includeSubsidiary=true"
-            par += "&beginning=" + startYear + "-01-01"
-            par += "&end=" + startYear + "-12-31"
-            req += par
-            resp, conn = self.httpget(req)
-            if resp is None:
-                self.putConn(conn)
-                return None
-            jsRoot = json.load(resp)
-            self.putConn(conn)
-        else:
-            resp = None
-            with open(jsonPath, "r") as jsonFile:
-                jsRoot = json.load(jsonFile)
-        items = jsRoot.get("items")
+        startYear = int(start[0:4])
+        endYear = int(end[0:4])
         events = []
-        if len(items) == 0:
-            return events
-        if resp is not None:  # a REST call result always overwrites jsonPath
-            with open(jsonPath, "w") as jsonFile:
-                json.dump(jsRoot, jsonFile, indent=4)
-        for item in iter(items):
-            # item["imagePreview"] = ""  # save space
-            titel = item.get("title")
-            if titel is None:
-                logger.error("Kein Titel für den Event %s", str(item))
-                continue
-            if item.get("cStatus") == "Cancelled" or item.get("isCancelled"):
-                logger.info("Event %s ist gecancelt", titel)
-                continue
-            if typ != "Alles" and item.get("eventType") != typ:
-                continue
-            beginning = item.get("beginning")
-            if beginning is None:
-                logger.error("Kein Beginn für den Event %s", titel)
-                continue
-            begDate = beginning[0:4]
-            if begDate < start[0:4] or begDate > end[0:4]:
-                continue
-            if item.get("eventType") == "Radtour":
-                self.alleTouren.append(item)
+        for yearI in range(startYear, endYear+1):
+            yearS = str(yearI)
+            jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + yearS + ".json"
+            if self.useRest or not os.path.exists(jsonPath):
+                req = "/api/eventItems/search?limit=10000"
+                par = ""
+                if unitKey is not None and unitKey != "":
+                    par += "&unitKey=" + unitKey
+                    if self.includeSub:
+                        par += "&includeSubsidiary=true"
+                par += "&beginning=" + yearS + "-01-01"
+                par += "&end=" + yearS + "-12-31"
+                req += par
+                resp, conn = self.httpget(req)
+                if resp is None:
+                    jsRoot = {}
+                else:
+                    jsRoot = json.load(resp)
+                self.putConn(conn)
             else:
-                self.alleTermine.append(item)
-            begDate = event.convertToMEZOrMSZ(beginning)[0:10]
-            if begDate < start or begDate > end:
-                logger.info("event " + titel + " not in timerange")
+                resp = None
+                with open(jsonPath, "r") as jsonFile:
+                    jsRoot = json.load(jsonFile)
+            if resp is not None:  # a REST call result always overwrites jsonPath
+                with open(jsonPath, "w") as jsonFile:
+                    json.dump(jsRoot, jsonFile, indent=4)
+            items = jsRoot.get("items")
+            if items is None or len(items) == 0:
                 continue
-            # add other filter conditions here
-            logger.info("event " + titel + " OK")
-            events.append(item)
+            for item in iter(items):
+                # item["imagePreview"] = ""  # save space
+                titel = item.get("title")
+                if titel is None:
+                    logger.error("Kein Titel für den Event %s", str(item))
+                    continue
+                if item.get("cStatus") == "Cancelled" or item.get("isCancelled"):
+                    logger.info("Event %s ist gecancelt", titel)
+                    continue
+                if typ != "Alles" and item.get("eventType") != typ:
+                    continue
+                beginning = item.get("beginning")
+                if beginning is None:
+                    logger.error("Kein Beginn für den Event %s", titel)
+                    continue
+                begDate = beginning[0:4]
+                if begDate < start[0:4] or begDate > end[0:4]:
+                    continue
+                if item.get("eventType") == "Radtour":
+                    self.alleTouren.append(item)
+                else:
+                    self.alleTermine.append(item)
+                begDate = event.convertToMEZOrMSZ(beginning)[0:10]
+                if begDate < start or begDate > end:
+                    logger.info("event " + titel + " not in timerange")
+                    continue
+                # add other filter conditions here
+                logger.info("event " + titel + " OK")
+                events.append(item)
         return events
 
     def getEvent(self, eventJsSearch):
@@ -139,9 +142,9 @@ class EventServer:
         if self.useRest or not os.path.exists(jsonPath):
             resp, conn = self.httpget("/api/eventItems/" + eventItemId)
             if resp is None:
-                self.putConn(conn)
-                return None
-            eventJS = json.load(resp)
+                eventJS = {}
+            else:
+                eventJS = json.load(resp)
             self.putConn(conn)
             eventJS["eventItemFiles"] = None  # save space
             eventJS["images"] = []  # save space
@@ -149,6 +152,8 @@ class EventServer:
             # if not os.path.exists(jsonPath):
             with open(jsonPath, "w") as jsonFile:
                 json.dump(eventJS, jsonFile, indent=4)
+            if resp is None:
+                return None
         else:
             with open(jsonPath, "r") as jsonFile:
                 try:
@@ -282,3 +287,55 @@ class EventServer:
         except:
             pass
         return (resp, conn)
+
+    def readCopyRight(self, cslug, link):
+        path = "c:/temp/tpjson/" + cslug + "_copyright"
+        if self.useRest or not os.path.exists(path):
+            resp, conn = self.httpget(link)
+            if resp is None:
+                content = ""
+            else:
+                content = resp.read()
+                x = content.find(b'copyright')
+                if x > 0:
+                    content = content[x:x + 100]
+                else:
+                    content = b""
+            self.putConn(conn)
+            with open(path, "wb") as outFile:
+                outFile.write(content)
+            if resp is None:
+                return None
+        else:
+            with open(path, "rb") as inFile:
+                try:
+                    content = inFile.read()
+                except:
+                    print("cannot read " + path)
+                    return None
+        return content
+
+
+    """
+
+    {"tourLocations": [
+    {"id": 18884, "eventItemId": "6c58408b-4780-4246-9d3a-afbcece318fc", "position": 0, "type": "Startpunkt",
+     "name": "", "street": "Alte Utting, Lagerhausstr. 15", "city": "München", "zipCode": "81371",
+     "latitude": 48.119942, "longitude": 11.556277, "beginning": "2020-01-28T18:00:00+00:00", "end": null,
+     "created": "2019-12-13T12:03:26.273+00:00", "createUser": "michael.uhlenberg@adfc-bayern.de",
+     "lastUpdate": "2019-12-13T12:06:58.32+00:00", "lastUser": "michael.uhlenberg@adfc-bayern.de",
+     "location": {"isNull": false, "stSrid": 4326, "lat": 48.119942, "long": 11.556277, "z": null, "m": null,
+                  "hasZ": false, "hasM": false}, "withoutTime": false, "seriesIdentifier": null,
+     "locationIdentifier": "11c1ea10-11be-4850-bf6d-a8c66cff643c",
+     "tourLocationId": "3cffe7c8-7221-499e-9050-327000a5911d"}], "eventItemFiles": [], "eventItemImages": [
+    {"imageId": "274626dc-eb55-4daa-ac6e-f0e801e423b1", "eventItemId": "6c58408b-4780-4246-9d3a-afbcece318fc",
+     "seriesIdentifier": "4d929539-a780-4dcb-97c1-00aebf0b2ee3", "id": 20033}], "images": [
+    {"id": 9321, "fileName": "AlteUtting.jpg", "copyright": "alte-utting.de",
+     "downloadLink": "https://adfcrtp.blob.core.cloudapi.de/public-production/274626dc-eb55-4daa-ac6e-f0e801e423b1/alteutting.jpg",
+     "blobName": "274626dc-eb55-4daa-ac6e-f0e801e423b1/alteutting.jpg", "preview": ""}
+
+https://touren-termine.adfc.de/radveranstaltung/23312-winterprogramm-radtour-von-munchen-nach-teheran
+irgendwo im response steht:
+			{"tourLocations":[{"id":18884,"eventItemId":"6c58408b-4780-4246-9d3a-afbcece318fc","position":0,"type":"Startpunkt","name":"","street":"Alte Utting, Lagerhausstr. 15","city":"München","zipCode":"81371","latitude":48.119942,"longitude":11.556277,"beginning":"2020-01-28T18:00:00+00:00","end":null,"created":"2019-12-13T12:03:26.273+00:00","createUser":"michael.uhlenberg@adfc-bayern.de","lastUpdate":"2019-12-13T12:06:58.32+00:00","lastUser":"michael.uhlenberg@adfc-bayern.de","location":{"isNull":false,"stSrid":4326,"lat":48.119942,"long":11.556277,"z":null,"m":null,"hasZ":false,"hasM":false},"withoutTime":false,"seriesIdentifier":null,"locationIdentifier":"11c1ea10-11be-4850-bf6d-a8c66cff643c","tourLocationId":"3cffe7c8-7221-499e-9050-327000a5911d"}],"eventItemFiles":[],"eventItemImages":[{"imageId":"274626dc-eb55-4daa-ac6e-f0e801e423b1","eventItemId":"6c58408b-4780-4246-9d3a-afbcece318fc","seriesIdentifier":"4d929539-a780-4dcb-97c1-00aebf0b2ee3","id":20033}],"images":[{"id":9321,"fileName":"AlteUtting.jpg","copyright":"alte-utting.de","downloadLink":"https://adfcrtp.blob.core.cloudapi.de/public-production/274626dc-eb55-4daa-ac6e-f0e801e423b1/alteutting.jpg","blobName":"274626dc-eb55-4daa-ac6e-f0e801e423b1/alteutting.jpg","preview":""}
+			
+    """
