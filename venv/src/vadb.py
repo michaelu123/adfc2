@@ -151,14 +151,6 @@ def readPOIs():
         pois = json.load(jsonFile)
         return pois
 
-def readUnknownLocs():
-    try:
-        with open("unknown_locs.json", "r", encoding="utf-8") as jsonFile:
-            unknownLocs = json.load(jsonFile)
-    except:
-        unknownLocs = {}
-    return unknownLocs
-
 class VADBHandler:
     def __init__(self, tourServerVar):
         self.tourServerVar = tourServerVar
@@ -187,7 +179,7 @@ class VADBHandler:
         self.outputFile = "./ADFC-VADB.xml"
         self.output = open(self.outputFile, "w", encoding="utf-8")
         self.addressPOIs = readPOIs()
-        self.unknownLocs = readUnknownLocs()
+        self.unknownLocs = self.readUnknownLocs()
         pass
 
     def expandCmd(self, tour, cmd):
@@ -240,28 +232,49 @@ class VADBHandler:
         except:
             return "ADFC"
 
-    def expPoi(self, tour):
-        (tlat, tlon) = tour.getLatLon()
+    def findNearestPoiId(self, lat, lon):
         minDist = 999999999.9
         minPoi = None
         for poi in self.addressPOIs:
             plat = poi.get("latitude")
             plon = poi.get("longitude")
-            if abs(tlat - plat) > maxLatLonDiff or abs(tlon - plon) > maxLatLonDiff:
+            if abs(lat - plat) > maxLatLonDiff or abs(lon - plon) > maxLatLonDiff:
                 d = maxDist
             else:
-                d = distance((tlat, tlon), (plat, plon))
+                d = distance((lat, lon), (plat, plon))
             if d < minDist:
                 minDist = d
                 minPoi = poi
-        if minPoi is not None:
-            return minPoi.get("key")
+        return minPoi.get("key") if minPoi is not None else None
 
+    def expPoi(self, tour):
+        (tlat, tlon) = tour.getLatLon()
+        id = self.findNearestPoiId(tlat, tlon)
+        if id is not None:
+            return id
         self.unknownLocs[str(tlat) + "," + str(tlon)] = tour.getFrontendLink()
         with open("unknown_locs.json", "w") as jsonFile:
             json.dump(self.unknownLocs, jsonFile, indent=4)
-
         return "6137"
+
+    def readUnknownLocs(self):
+        newUL = {}
+        try:
+            with open("unknown_locs.json", "r", encoding="utf-8") as jsonFile:
+                unknownLocs = json.load(jsonFile)
+            # are any unknownlocs in the possibly enhanced locs.json? If yes, remove
+            for ul in unknownLocs.keys():
+                (lat, lon) = ul.split(',')
+                (lat, lon) = (float(lat), float(lon))
+                if self.findNearestPoiId(lat, lon) is None:
+                    newUL[ul] = unknownLocs[ul]
+            if len(newUL) != len(unknownLocs):
+                unknownLocs = newUL
+                with open("unknown_locs.json", "w") as jsonFile:
+                    json.dump(self.unknownLocs, jsonFile, indent=4)
+        except:
+            unknownLocs = {}
+        return unknownLocs
 
 
 """

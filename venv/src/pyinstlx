@@ -1,0 +1,1 @@
+pyinstaller -y -F -p  ../lib/site-packages tp2vadb.py myLogger.py tourRest.py tourServer.py event.py vadb.py
