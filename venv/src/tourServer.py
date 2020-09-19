@@ -1,15 +1,19 @@
 # encoding: utf-8
 import functools
+
 try:
     import http.client as httplib
     from concurrent.futures.thread import ThreadPoolExecutor
     import threading
+
     py2 = False
 except:
     import httplib
+
     py2 = True
 import json
 import os
+import sys
 import ssl
 
 import adfc_gliederungen
@@ -20,6 +24,7 @@ from myLogger import logger
 
 class EventServer:
     def __init__(self, useRest, includeSub, max_workers):
+        self.tmpDir = "/tmp/tpjson" if sys.platform.startswith('linux') else "c:/temp/tpjson"
         self.useRest = useRest
         self.includeSub = includeSub
         if py2:
@@ -34,7 +39,7 @@ class EventServer:
         self.py2 = False
 
         try:
-            os.makedirs("c:/temp/tpjson")  # exist_ok = True does not work with Scribus (Python 2)
+            os.makedirs(self.tmpDir)  # exist_ok = True does not work with Scribus (Python 2)
         except:
             pass
         if not py2:
@@ -55,7 +60,7 @@ class EventServer:
             ctx = ssl._create_default_https_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
-            conn = httplib.HTTPSConnection("api-touren-termine.adfc.de", context = ctx)
+            conn = httplib.HTTPSConnection("api-touren-termine.adfc.de", context=ctx)
         return conn
 
     def putConn(self, conn):
@@ -71,9 +76,9 @@ class EventServer:
         startYear = int(start[0:4])
         endYear = int(end[0:4])
         events = []
-        for yearI in range(startYear, endYear+1):
+        for yearI in range(startYear, endYear + 1):
             yearS = str(yearI)
-            jsonPath = "c:/temp/tpjson/search-" + unit + ("_I_" if self.includeSub else "_") + yearS + ".json"
+            jsonPath = self.tmpDir + "/search-" + unit + ("_I_" if self.includeSub else "_") + yearS + ".json"
             if self.useRest or not os.path.exists(jsonPath):
                 req = "/api/eventItems/search?limit=10000"
                 par = ""
@@ -138,7 +143,7 @@ class EventServer:
             return event
         imagePreview = eventJsSearch.get("imagePreview")
         escTitle = "".join([(ch if ch.isalnum() else "_") for ch in eventJsSearch.get("title")])
-        jsonPath = "c:/temp/tpjson/" + eventItemId[0:6] + "_" + escTitle + ".json"
+        jsonPath = self.tmpDir + "/" + eventItemId[0:6] + "_" + escTitle + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             resp, conn = self.httpget("/api/eventItems/" + eventItemId)
             if resp is None:
@@ -171,7 +176,7 @@ class EventServer:
 
     # not in py2 @functools.lru_cache(100)
     def getUser(self, userId):
-        jsonPath = "c:/temp/tpjson/user_" + userId + ".json"
+        jsonPath = self.tmpDir + "/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
             resp, conn = self.httpget("/api/users/" + userId)
             if resp is None:
@@ -192,7 +197,7 @@ class EventServer:
     def loadUnits(self):
         if self.py2:
             return
-        jsonPath = "c:/temp/tpjson/units.json"
+        jsonPath = self.tmpDir + "/units.json"
         if not os.path.exists(jsonPath):
             resp, conn = self.httpget("/api/units/")
             if resp is None:
@@ -289,7 +294,7 @@ class EventServer:
         return (resp, conn)
 
     def readCopyRight(self, cslug, link):
-        path = "c:/temp/tpjson/" + cslug + "_copyright"
+        path = self.tmpDir + "/" + cslug + "_copyright"
         if self.useRest or not os.path.exists(path):
             resp, conn = self.httpget(link)
             if resp is None:
@@ -314,7 +319,6 @@ class EventServer:
                     print("cannot read " + path)
                     return None
         return content
-
 
     """
 

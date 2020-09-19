@@ -23,7 +23,7 @@ def toDate(dmy):  # 21.09.2018
     return y + "-" + m + "-" + d  # 2018-09-21
 
 
-parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
+parser = argparse.ArgumentParser(description="Erzeuge eine XML-Datei für die VADB HH mit Daten des Tourenportals")
 parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true",
                     help="Aktuelle Daten werden vom Server geholt")
 parser.add_argument("-u", "--unter", dest="includeSub", action="store_true",
@@ -36,8 +36,8 @@ parser.add_argument("-r", "--rad", dest="radTyp",
                     choices=["R", "T", "M", "A"],
                     help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A",
                     default="A")
-parser.add_argument("-s", "--start", dest="start", help="Startdatum (TT.MM.YYYY)", default="")
-parser.add_argument("-e", "--end", dest="end", help="Endedatum (TT.MM.YYYY)", default="")
+parser.add_argument("-s", "--start", dest="start", help="Startdatum (TT.MM.YYYY), Heute falls nicht angegeben", default="")
+parser.add_argument("-e", "--end", dest="end", help="Endedatum (TT.MM.YYYY), Heute+90Tage, falls nicht angegeben", default="")
 parser.add_argument("unitnummern",
                     help="Gliederungsnummer(n), z.B. 152059 für München, komma-separierte Liste")
 
