@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-import sys
-import tourServer
 import argparse
+from datetime import date,timedelta
 
+import tourServer
 import vadb
 
 
@@ -22,30 +22,36 @@ def toDate(dmy):  # 21.09.2018
         raise ValueError("Bitte Datum als dd.mm.jjjj angeben, nicht als " + dmy)
     return y + "-" + m + "-" + d  # 2018-09-21
 
+
 parser = argparse.ArgumentParser(description="Formatiere Daten des Tourenportals")
 parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true",
                     help="Aktuelle Daten werden vom Server geholt")
 parser.add_argument("-u", "--unter", dest="includeSub", action="store_true",
+                    default=True,
                     help="Untergliederungen einbeziehen")
 parser.add_argument("-t", "--type", dest="eventType", choices=["R", "T", "A"],
                     help="Typ (R=Radtour, T=Termin, A=Alles), default=A",
-                    default="A")
+                    default="R")
 parser.add_argument("-r", "--rad", dest="radTyp",
                     choices=["R", "T", "M", "A"],
                     help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A",
                     default="A")
-parser.add_argument("nummer",
+parser.add_argument("-s", "--start", dest="start", help="Startdatum (TT.MM.YYYY)", default="")
+parser.add_argument("-e", "--end", dest="end", help="Endedatum (TT.MM.YYYY)", default="")
+parser.add_argument("unitnummern",
                     help="Gliederungsnummer(n), z.B. 152059 für München, komma-separierte Liste")
-parser.add_argument("start", help="Startdatum (TT.MM.YYYY)")
-parser.add_argument("end", help="Endedatum (TT.MM.YYYY)")
 
 # -u -t A -r A 182 01.08.2020 31.08.2020
 args = parser.parse_args()
-unitKeys = args.nummer.split(",")
+unitKeys = args.unitnummern.split(",")
 useRest = args.useRest
 includeSub = args.includeSub
 start = args.start
+if start == "":
+    start = date.today().strftime("%d.%m.%Y")
 end = args.end
+if end == "":
+    end = (date.today() + timedelta(days=90)).strftime("%d.%m.%Y")
 eventType = args.eventType
 radTyp = args.radTyp
 tourServerVar = tourServer.EventServer(useRest, includeSub, 1)
@@ -76,7 +82,6 @@ else:
 events = []
 for unitKey in unitKeys:
     events.extend(tourServerVar.getEvents(unitKey.strip(), start, end, eventType))
-
 
 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 # tourServerVar.calcNummern()
