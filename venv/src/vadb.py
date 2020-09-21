@@ -58,7 +58,7 @@ def randomId(length):
 
 
 def expTitel(tour):
-    return tour.getTitel()
+    return tour.getTitel().replace("]]>","")
 
 
 def expEventItemId(tour):
@@ -66,8 +66,11 @@ def expEventItemId(tour):
 
 
 def expKurz(tour):
-    return tour.getKurzbeschreibung() + "<br>Kategorie:" + tour.getKategorie() + "<br>Geeignet für:" + tour.getRadTyp() + "<br>" + "<br>".join(
-        tour.getZusatzInfo())
+    kurz = tour.getKurzbeschreibung() + "<br>Kategorie:" + tour.getKategorie() + "<br>Geeignet für:" + \
+           tour.getRadTyp() + "<br>" + "<br>".join(tour.getZusatzInfo()) + "<br>Schwierigkeitsgrad:" + \
+           ["unbekannt", "sehr einfach", "einfach", "mittel", "schwer", "sehr schwer"][tour.getSchwierigkeit()]
+    kurz = kurz.replace("<br><br>", "<br>").replace("]]>","")
+    return kurz
 
 
 def expFrontendLink(tour):
@@ -228,7 +231,7 @@ class VADBHandler:
                 s = s.replace("\\", "")
                 x = s.find(':"')
                 y = s.find('"', x + 2)
-                return (s[x + 2:y])
+                return (s[x + 2:y]).replace("]]>","")
         except:
             return "ADFC"
 

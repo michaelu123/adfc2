@@ -37,9 +37,10 @@ parser.add_argument("-r", "--rad", dest="radTyp",
                     help="Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles), default=A",
                     default="A")
 parser.add_argument("-s", "--start", dest="start", help="Startdatum (TT.MM.YYYY), Heute falls nicht angegeben", default="")
-parser.add_argument("-e", "--end", dest="end", help="Endedatum (TT.MM.YYYY), Heute+90Tage, falls nicht angegeben", default="")
+parser.add_argument("-e", "--end", dest="end", help="Endedatum (TT.MM.YYYY), Heute+<zeitraum> Tage, falls nicht angegeben", default="")
 parser.add_argument("unitnummern",
                     help="Gliederungsnummer(n), z.B. 152059 für München, komma-separierte Liste")
+parser.add_argument("-z", "--zeitraum", dest="zeitraum", help="Tourdaten von heute bis in <zeitraum> Tagen", default=90)
 
 # -u -t A -r A 182 01.08.2020 31.08.2020
 args = parser.parse_args()
@@ -51,7 +52,7 @@ if start == "":
     start = date.today().strftime("%d.%m.%Y")
 end = args.end
 if end == "":
-    end = (date.today() + timedelta(days=90)).strftime("%d.%m.%Y")
+    end = (date.today() + timedelta(days=args.zeitraum)).strftime("%d.%m.%Y")
 eventType = args.eventType
 radTyp = args.radTyp
 tourServerVar = tourServer.EventServer(useRest, includeSub, 1)
