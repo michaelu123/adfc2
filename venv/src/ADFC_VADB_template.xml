@@ -6,21 +6,21 @@
         </Language>
     </languages>
     <title>
-        <I18n id="12627993">
+        <I18n>
             <de>
                 <![CDATA[${titel}]]>
             </de>
         </I18n>
     </title>
     <shortDescription>
-        <I18n id="12627992">
+        <I18n>
             <de>
                 <![CDATA[${kurz}]]>
             </de>
         </I18n>
     </shortDescription>
     <link>
-        <I18n id="12627988">
+        <I18n>
             <de>
                 <![CDATA[${frontendLink}]]>
             </de>
@@ -53,7 +53,6 @@
                 </PooledEventMedium>
             </pooledMedium>
             <imageType>
-                <!-- note: depending on customer project -->
                 <ImageType id="1"/>
             </imageType>
         </EventImage>

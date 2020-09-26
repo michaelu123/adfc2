@@ -137,7 +137,7 @@ def expLongitude(tour):
 def expPricing(tour):
     (minPrice, maxPrice) = tour.getPrices()
     if maxPrice == 0.0:
-        return ["           <freeOfCharge>false</freeOfCharge>\n"]
+        return ["           <freeOfCharge>true</freeOfCharge>\n"]
     else:
         return [
             f"        <fromPrice>€{minPrice}</fromPrice>\n",
@@ -192,11 +192,11 @@ class VADBHandler:
         return f(tour)
 
     def __enter__(self):
-        self.output.write("<Events>\n")
+        self.output.write("<events>\n")
         return self
 
     def __exit__(self, *args):
-        self.output.write("</Events>\n")
+        self.output.write("</events>\n")
         self.output.close()
 
     def handleTermin(self, termin):
@@ -253,8 +253,8 @@ class VADBHandler:
     def expPoi(self, tour):
         (tlat, tlon) = tour.getLatLon()
         id = self.findNearestPoiId(tlat, tlon)
-        if id is not None:
-            return id
+        # if id is not None:
+        #     return id
         self.unknownLocs[str(tlat) + "," + str(tlon)] = tour.getFrontendLink()
         with open("unknown_locs.json", "w") as jsonFile:
             json.dump(self.unknownLocs, jsonFile, indent=4)
