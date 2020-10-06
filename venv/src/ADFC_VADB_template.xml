@@ -1,9 +1,7 @@
 <Event id="${eventItemId}">
     <creationTime>${publishDate}</creationTime>
-    <languages multiple="true">
-        <Language id="1">
-            <name>de</name>
-        </Language>
+    <languages>
+        <Language id="1"/>
     </languages>
     <title>
         <I18n>

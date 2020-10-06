@@ -52,7 +52,7 @@ if start == "":
     start = date.today().strftime("%d.%m.%Y")
 end = args.end
 if end == "":
-    end = (date.today() + timedelta(days=args.zeitraum)).strftime("%d.%m.%Y")
+    end = (date.today() + timedelta(days=int(args.zeitraum))).strftime("%d.%m.%Y")
 eventType = args.eventType
 radTyp = args.radTyp
 tourServerVar = tourServer.EventServer(useRest, includeSub, 1)

@@ -248,13 +248,13 @@ class VADBHandler:
             if d < minDist:
                 minDist = d
                 minPoi = poi
-        return minPoi.get("key") if minPoi is not None else None
+        return minPoi.get("poi") if minPoi is not None else None
 
     def expPoi(self, tour):
         (tlat, tlon) = tour.getLatLon()
         id = self.findNearestPoiId(tlat, tlon)
-        # if id is not None:
-        #     return id
+        if id is not None:
+            return str(id)
         self.unknownLocs[str(tlat) + "," + str(tlon)] = tour.getFrontendLink()
         with open("unknown_locs.json", "w") as jsonFile:
             json.dump(self.unknownLocs, jsonFile, indent=4)
