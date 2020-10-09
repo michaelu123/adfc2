@@ -1,5 +1,4 @@
 <Event id="${eventItemId}">
-    <creationTime>${publishDate}</creationTime>
     <languages>
         <Language id="1"/>
     </languages>

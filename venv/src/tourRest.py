@@ -214,7 +214,7 @@ class RestEvent(event.Event):
         day = str(datum[0:10])
         date = time.strptime(day, "%Y-%m-%d")
         weekday = event.weekdays[date.tm_wday]
-        res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16])
+        res = (weekday + ", " + day[8:10] + "." + day[5:7] + "." + day[0:4], datum[11:16], datum)
         return res
 
     def getDatumRaw(self):

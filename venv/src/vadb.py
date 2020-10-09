@@ -83,7 +83,7 @@ def expPublishDate(tour):
 
 def expDate(tour):
     t = tour.getDatum();
-    return t[0][4:]
+    return t[2][0:10] # YYY-MM-DD
 
 
 def expTime(tour):
@@ -99,8 +99,8 @@ def expDuration(tour):
     e = e[0:19]  # '2018-04-29T07:30:00'
     e = datetime.strptime(e, "%Y-%m-%dT%H:%M:%S")
     d = e - b  # a timedelta!
-    d = str(d)[:-3]  # strip :seconds
-    return d
+    d = d.total_seconds() / 60 # timedelta in minutes
+    return str(int(d))
 
 
 def expImageUrl(tour):
