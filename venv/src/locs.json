@@ -73,7 +73,7 @@
 {"latitude": 53.580743, "longitude":  9.796350, "key": "53.580743:9.79635", "ort": "Hamburg, Sülldorf S-Bahn Sülldorf", "poi": 29513},
 {"latitude": 53.581390, "longitude":  9.704227, "key": "53.58139:9.704227", "ort": "Wedel S-Bahn", "poi": 29517},
 {"latitude": 53.581852, "longitude":  9.705282, "key": "53.581852:9.705282", "ort": "Wedel S-Bahnhof Wedel", "poi": 29517},
-{"latitude": 53.588684, "longitude": 10.032835, "key": "53.588684:10.032835", "ort": "Hamburg, Winterhude Saarlandstraße"},
+{"latitude": 53.588684, "longitude": 10.032835, "key": "53.588684:10.032835", "ort": "Hamburg, Winterhude Saarlandstraße", "poi": 2554},
 {"latitude": 53.591323, "longitude":  9.927598, "key": "53.591323:9.927598", "ort": "Hamburg, Stellingen U-Bahn Hagenbecks Tierpark Ausgang Hagenbecks Tierpark", "poi": 29541},
 {"latitude": 53.592363, "longitude": 10.074790, "key": "53.592363:10.07479", "ort": "Hamburg, Wandsbek Ausgang U-Bahn Wandsbek-Gartenstadt", "poi": 29573},
 {"latitude": 53.593814, "longitude": 10.050927, "key": "53.593814:10.050927", "ort": "Hamburg, Barmbek-Nord U Habichtstraße", "poi": 29540},
