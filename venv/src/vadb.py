@@ -66,9 +66,9 @@ def expEventItemId(tour):
 
 
 def expKurz(tour):
-    kurz = tour.getKurzbeschreibung() + "<br>Kategorie:" + tour.getKategorie() + "<br>Geeignet für:" + \
-           tour.getRadTyp() + "<br>" + "<br>".join(tour.getZusatzInfo()) + "<br>Schwierigkeitsgrad:" + \
-           ["unbekannt", "sehr einfach", "einfach", "mittel", "schwer", "sehr schwer"][tour.getSchwierigkeit()]
+    kurz = "<p>" + tour.getKurzbeschreibung() + "<br>Kategorie: " + tour.getKategorie() + "<br>Geeignet für: " + \
+           tour.getRadTyp() + "<br>" + "<br>".join(tour.getZusatzInfo()) + "<br>Schwierigkeitsgrad: " + \
+           ["unbekannt", "sehr einfach", "einfach", "mittel", "schwer", "sehr schwer"][tour.getSchwierigkeit()] + "</p>"
     kurz = kurz.replace("<br><br>", "<br>").replace("]]>","")
     return kurz
 
