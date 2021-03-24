@@ -6,6 +6,7 @@ from datetime import date,timedelta
 
 import tourServer
 import vadb
+import cal
 
 
 def toDate(dmy):  # 21.09.2018
@@ -29,6 +30,9 @@ parser.add_argument("-a", "--aktuell", dest="useRest", action="store_true",
 parser.add_argument("-u", "--unter", dest="includeSub", action="store_true",
                     default=True,
                     help="Untergliederungen einbeziehen")
+parser.add_argument("-c", "--cal", dest="useCal", action="store_true",
+                    default=False,
+                    help="Erzeuge Kalender-Einträge")
 parser.add_argument("-t", "--type", dest="eventType", choices=["R", "T", "A"],
                     help="Typ (R=Radtour, T=Termin, A=Alles), default=A",
                     default="R")
@@ -47,6 +51,7 @@ args = parser.parse_args()
 unitKeys = args.unitnummern.split(",")
 useRest = args.useRest
 includeSub = args.includeSub
+useCal = args.useCal
 start = args.start
 if start == "":
     start = date.today().strftime("%d.%m.%Y")
@@ -86,7 +91,7 @@ for unitKey in unitKeys:
 
 events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
 # tourServerVar.calcNummern()
-with vadb.VADBHandler(tourServerVar) as handler:
+with cal.CalHandler(tourServerVar) if useCal else vadb.VADBHandler(tourServerVar) as handler:
     for event in events:
         event = tourServerVar.getEvent(event)
         if event.isTermin():
