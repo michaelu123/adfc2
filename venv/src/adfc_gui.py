@@ -671,7 +671,7 @@ class MyApp(Frame):
                 if len(events) == 0:
                     handler.nothingFound()
                 self.eventServer.calcNummern()
-                events.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
+                events.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
                 ThreadPoolExecutor(max_workers=self.max_workers).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)
