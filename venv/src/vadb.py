@@ -236,7 +236,7 @@ class VADBHandler:
             return "ADFC"
 
     def findNearestPoiId(self, lat, lon):
-        minDist = 999999999.9
+        minDist = maxDist
         minPoi = None
         for poi in self.addressPOIs:
             plat = poi.get("latitude")
