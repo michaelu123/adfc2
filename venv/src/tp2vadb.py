@@ -104,24 +104,22 @@ with cal.CalHandler(tourServerVar) if useCal else vadb.VADBHandler(tourServerVar
 
 """
 158     Hamburg
-162260  Cuxhaven
-170545  Pinneberg       170190
-170540  Pinneberg (alt) löschen
-162270  Harburg
-162291  Uelzen
-162290  Lüneburg
-170382  Neumünster      170160
 140004  Schwerin
-170180  Lauenburg       170130
+162260  Cuxhaven
+162270  Harburg
 162280  Lüchow-Dannenberg
-170387  Bad Segeberg   170230
-162330  Stade
-170550  Steinburg       170240
-170291  Stormarn        170291 OK
-162320  Heidekreis
-170370  Ostholstein     170180
+162290  Lüneburg
+162291  Uelzen
 162310  Rotenburg
+162320  Heidekreis
+162330  Stade
+170130  Lauenburg       
+170160  Neumünster      
+170180  Ostholstein     
+170190  Pinneberg       
+170230  Bad Segeberg   
+170240  Steinburg       
+170291  Stormarn
 
-alt: 158,162260,170545,170540,162270,162291,162290,170382,140004,170180,162280,170387,162330,170550,170291,162320,170370,162310
-neu 158,162260,170190,162270,162291,162290,170160,140004,170130,162280,170230,162330,170240,170291,162320,170180,162310
+158,140004,162260,162270,162280,162290,162291,162310,162320,162330,170130,170160,170180,170190,170230,170240,170291
 """
