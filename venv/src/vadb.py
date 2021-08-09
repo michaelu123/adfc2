@@ -111,17 +111,17 @@ def expOrtsname(tour):
     t = tour.getStartpunkt()
     if t[0] != "":
         return t[0]  # name
-    return t[1]  # city
+    return t[2]  # city
 
 
 def expCity(tour):
     t = tour.getStartpunkt()
-    return t[1]  # city
+    return t[2]  # city
 
 
 def expStreet(tour):
     t = tour.getStartpunkt()
-    return t[2]  # street
+    return t[1]  # street
 
 
 def expLatitude(tour):
@@ -208,6 +208,8 @@ class VADBHandler:
         # print(tour.getMerkmale())
         # print(self.expCopyRight(tour))
         # if True: return
+        if self.expPoi(tour) == "6137":
+            return
         with open(self.xmlFile, "r", encoding="utf-8") as input:
             for l in input:
                 mp = paramRE.search(l, 0)
@@ -255,7 +257,13 @@ class VADBHandler:
         id = self.findNearestPoiId(tlat, tlon)
         if id is not None:
             return str(id)
-        self.unknownLocs[str(tlat) + "," + str(tlon)] = tour.getFrontendLink()
+        ort = tour.getStartpunkt()
+        self.unknownLocs[str(tlat) + "," + str(tlon)] = {
+            "link": tour.getFrontendLink(),
+            "name": ort[0] if ort[0] != "" else ort[2],
+            "city": ort[2],
+            "street": ort[1]
+        }
         with open("unknown_locs.json", "w") as jsonFile:
             json.dump(self.unknownLocs, jsonFile, indent=4)
         return "6137"
