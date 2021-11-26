@@ -16,22 +16,18 @@ def convertToMEZOrMSZ(beginning):  # '2018-04-29T06:30:00+00:00'
     beginning = beginning[0:19]  # '2018-04-29T06:30:00'
     d = time.strptime(beginning, "%Y-%m-%dT%H:%M:%S")
     oldDay = d.tm_yday
-    if beginning.startswith("2017"):
-        begSZ = "2017-03-26"
-        endSZ = "2017-10-29"
-    elif beginning.startswith("2018"):
-        begSZ = "2018-03-25"
-        endSZ = "2018-10-28"
-    elif beginning.startswith("2019"):
-        begSZ = "2019-03-31"
-        endSZ = "2019-10-27"
-    # Zeitumstellung wird eh 2020 abgeschafft!?
-    elif beginning.startswith("2020"):
+    if beginning.startswith("2020"):
         begSZ = "2020-03-29"
         endSZ = "2020-10-25"
     elif beginning.startswith("2021"):
         begSZ = "2021-03-28"
         endSZ = "2021-10-31"
+    elif beginning.startswith("2022"):
+        begSZ = "2022-03-27"
+        endSZ = "2022-10-30"
+    elif beginning.startswith("2023"):
+        begSZ = "2023-03-26"
+        endSZ = "2023-10-29"
     else:
         raise ValueError("year " + beginning + " not configured")
     sz = begSZ <= beginning < endSZ
