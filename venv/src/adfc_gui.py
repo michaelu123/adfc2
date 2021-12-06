@@ -661,6 +661,9 @@ class MyApp(Frame):
                 self.eventServer = tourServer.EventServer(useRest, includeSub, self.max_workers)
                 if self.xmlFileName is not None and self.xmlFileName != "":
                     self.eventServer = eventXml.EventServer(self.xmlFileName, self.eventServer)
+                    useXml = True
+                else:
+                    useXml = False
                 events = []
                 for unitKey in unitKeys:
                     if unitKey == "Alles":
@@ -671,7 +674,10 @@ class MyApp(Frame):
                 if len(events) == 0:
                     handler.nothingFound()
                 self.eventServer.calcNummern()
-                events.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum
+                if useXml:
+                    events.sort(key=lambda x: x.getDatumRaw())  # sortieren nach Datum, REST: beginning, XML: beginning
+                else:
+                    events.sort(key=lambda x: x["beginning"]) # sortieren nach Datum, REST: beginning, XML: beginning
                 ThreadPoolExecutor(max_workers=self.max_workers).map(self.eventServer.getEvent, events)
                 for event in events:
                     event = self.eventServer.getEvent(event)
