@@ -16,21 +16,6 @@ from docx.oxml.shared import OxmlElement
 from docx.shared import RGBColor
 from myLogger import logger
 
-""" XXX
-schwierigkeitMap = { 0: "sehr einfach",
-                     1: "sehr einfach",
-                     2: "einfach",
-                     3: "mittel",
-                     4: "schwer",
-                     5: "sehr schwer"}
-# schwarzes Quadrat = Wingdings 2 0xA2, weißes Quadrat = 0xA3
-schwierigkeitMMap = { 0: "\u00a3\u00a3\u00a3\u00a3\u00a3",
-                      1: "\u00a2\u00a3\u00a3\u00a3\u00a3",
-                      2: "\u00a2\u00a2\u00a3\u00a3\u00a3",
-                      3: "\u00a2\u00a2\u00a2\u00a3\u00a3",
-                      4: "\u00a2\u00a2\u00a2\u00a2\u00a3",
-                      5: "\u00a2\u00a2\u00a2\u00a2\u00a2"}
-"""
 paramRE = re.compile(r"\${(\w*?)}")
 fmtRE = re.compile(r"\.fmt\((.*?)\)")
 strokeRE = r'(\~{2})(.+?)\1'
@@ -591,6 +576,9 @@ class DocxHandler(expand.Expand):
         wd2_style = doc_styles.add_style("WD2_STYLE", WD_STYLE_TYPE.CHARACTER)
         wd2_font = wd2_style.font
         wd2_font.name = "Wingdings 2"
+        wd3_style = doc_styles.add_style("WD3_STYLE", WD_STYLE_TYPE.CHARACTER)
+        wd3_font = wd3_style.font
+        wd3_font.name = "Wingdings 3"
 
     @staticmethod
     def nothingFound():
@@ -899,6 +887,10 @@ class DocxHandler(expand.Expand):
                 self.para.add_run(text=newtext, style="WD2_STYLE")
                 move_run_before(self.runX, self.para)
                 delete_run(run)
+            elif run.text == "${schwierigkeitH}":
+                    self.para.add_run(text=newtext, style="WD3_STYLE")
+                    move_run_before(self.runX, self.para)
+                    delete_run(run)
             else:
                 run.text = newtext  # assignment to run.text lets images disappear!?!?
 

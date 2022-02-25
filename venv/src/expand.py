@@ -24,6 +24,13 @@ schwierigkeitMMap = {0: "\u00a3\u00a3\u00a3\u00a3\u00a3",
                      3: "\u00a2\u00a2\u00a2\u00a3\u00a3",
                      4: "\u00a2\u00a2\u00a2\u00a2\u00a3",
                      5: "\u00a2\u00a2\u00a2\u00a2\u00a2"}
+# Dreieck Spitze links unten = Wingdings 3 0x78, Dreieck Spitze Mitte oben = 0x70
+schwierigkeitHMap = {0: "\u0078\u0020\u0020\u0020",
+                     1: "\u0078\u0020\u0020\u0020",
+                     2: "\u0070\u0020\u0020\u0020",
+                     3: "\u0070\u0070\u0020\u0020",
+                     4: "\u0070\u0070\u0070\u0020",
+                     5: "\u0070\u0070\u0070\u0070"}
 
 """
 see https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
@@ -106,6 +113,11 @@ def expKategorie(event, _):
 def expSchwierigkeit(tour, _):
     return schwierigkeitMap[tour.getSchwierigkeit()]
 
+def expSchwierigkeitM(tour, _):
+    return schwierigkeitMMap[tour.getSchwierigkeit()]
+
+def expSchwierigkeitH(tour, _):
+    return schwierigkeitHMap[tour.getSchwierigkeit()]
 
 def expTourLength(tour, _):
     return tour.getStrecke()
@@ -157,13 +169,14 @@ class Expand:
             "street": expStreet,
             "kategorie": expKategorie,
             "schwierigkeit": expSchwierigkeit,
+            "schwierigkeitm": expSchwierigkeitM,
+            "schwierigkeith": expSchwierigkeitH,
             "tourlänge": expTourLength,
             "tourstufe": expTourStufe,
             "abfahrten": self.expAbfahrten,
             "zusatzinfo": self.expZusatzInfo,
             "höhenmeter": expHoehenMeter,
             "character": expCharacter,
-            "schwierigkeitm": self.expSchwierigkeitM,
             "abfahrtenm": expAbfahrtenM,
             "tourleiterm": expTourLeiterM,
             "seite": lambda e, f: "{:>2}".format(self.pageNr),  # 01-99
@@ -215,9 +228,6 @@ class Expand:
     def expBeschreibung(self, event, _):
         desc = event.getBeschreibung(False)
         return desc
-
-    def expSchwierigkeitM(self, tour, _):
-        return schwierigkeitMMap[tour.getSchwierigkeit()]
 
     def expPersonen(self, bezeichnung, event):
         tl = event.getPersonen()

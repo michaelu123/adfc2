@@ -23,7 +23,10 @@ import rawHandler
 import textHandler
 # textHandler produziert output a la KV München
 import tourServer
-from PIL import ImageTk
+try:
+    from PIL import ImageTk
+except:
+    pass
 from myLogger import logger, logFilePath
 
 

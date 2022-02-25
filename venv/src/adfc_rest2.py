@@ -39,7 +39,6 @@ try:
         raise ImportError
     else:
         import scribusHandler
-    import httplib  # scribus seems to use Python 2
     handler = scribusHandler.ScribusHandler()
     tourServerVar = tourServer.EventServer(handler.getUseRest(),
                                           handler.getIncludeSub(), 4)

@@ -316,6 +316,11 @@ class XmlEvent(event.Event):
         return self.eventItem.get("End")
 
     def getPersonen(self):
+        try:
+            evR = restServer.getEventById(self.getEventItemId(), self.getTitel())
+            return evR.getPersonen()
+        except:
+            pass
         personen = []
         org = self.eventItem.get("Organizer")
         if org is not None and org != "":

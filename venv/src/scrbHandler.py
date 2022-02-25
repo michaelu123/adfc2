@@ -459,7 +459,7 @@ class ScrbHandler(expand.Expand):
         global lastPStyle, lastCStyle
         if run.pstyle != lastPStyle:
             scribus.selectText(pos, tlen, self.textbox)
-            scribus.setStyle(noPStyle if run.pstyle is None else run.pstyle, self.textbox)
+            scribus.setParagraphStyle(noPStyle if run.pstyle is None else run.pstyle, self.textbox)
             lastPStyle = run.pstyle
         if run.cstyle != lastCStyle:
             scribus.selectText(pos, tlen, self.textbox)
@@ -590,7 +590,7 @@ class ScrbHandler(expand.Expand):
         self.setRadTyp()
         if self.toBeDelPosParam is None:
             self.gui.disableStart()
-            print("No /parameter - /endparameter section in document, Start Button disabled")
+            logger.error("No /parameter - /endparameter section in document, Start Button disabled")
 
     def setEventType(self):
         typ = ""

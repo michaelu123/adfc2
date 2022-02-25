@@ -8,16 +8,24 @@ try:
 except ModuleNotFoundError:
     raise ImportError
 
-yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
-useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-yOrN = scribus.valueDialog("IncludeSub", "Sollen Untergliederungen einbezogen werden? (j/n)").lower()[0]
-includeSub = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
-eventType = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
-radTyp  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
-unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
-start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
-end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
-
+if True:
+    yOrN = scribus.valueDialog("UseRest", "Sollen aktuelle Daten vom Server geholt werden? (j/n)").lower()[0]
+    useRest = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    yOrN = scribus.valueDialog("IncludeSub", "Sollen Untergliederungen einbezogen werden? (j/n)").lower()[0]
+    includeSub = yOrN == 'j' or yOrN == 'y' or yOrN == 't'
+    eventType = scribus.valueDialog("Typ", "Typ (R=Radtour, T=Termin, A=Alles) (R/T/A)")
+    radTyp  = scribus.valueDialog("Fahrradtyp", "Fahrradtyp (R=Rennrad, T=Tourenrad, M=Mountainbike, A=Alles) (R/T/M/A)")
+    unitKeys = scribus.valueDialog("Gliederung(en)", "Bitte Nummer(n) der Gliederung angeben (komma-separiert)")
+    start = scribus.valueDialog("Startdatum", "Startdatum (TT.MM.YYYY)")
+    end = scribus.valueDialog("Endedatum", "Endedatum (TT.MM.YYYY)")
+else:
+    useRest = False
+    includeSub = False
+    eventType = "R"
+    radTyp = "A"
+    unitKeys="152085"
+    start="01.04.2022"
+    end="31.04.2022"
 
 class ScribusHandler:
     def __init__(self):
@@ -45,8 +53,26 @@ class ScribusHandler:
             sys.exit(2)
 
         scribus.deleteText(self.textbox)
-        scribus.setStyle('Radtouren_titel', self.textbox)
-        scribus.insertText('Radtouren\n', 0, self.textbox)
+        self.insertPos = 0
+        self.lastPStyle = ""
+        self.insertText('Radtouren\n', 'Radtouren_titel')
+
+    def insertText(self, text, pStyle):
+        if text is None or text == "":
+            return
+        pos = self.insertPos
+        scribus.insertText(text, pos, self.textbox)
+        tlen = len(text)
+        if pStyle is None:
+            pStyle = self.lastPStyle
+        # if cStyle is None:
+        #   cStyle = self.lastCStyle
+        scribus.selectText(pos, tlen, self.textbox)
+        scribus.setParagraphStyle(pStyle, self.textbox)
+        self.lastPStyle = pStyle
+        # scribus.setCharacterStyle(cStyle, self.textbox)
+        # self.lastCStyle = cStyle
+        self.insertPos += tlen
 
     def getUseRest(self):
         return useRest
@@ -63,16 +89,16 @@ class ScribusHandler:
     def getRadTyp(self):
         return radTyp
 
-    def addStyle(self, style, frame):
-         try:
-             scribus.setStyle(style, frame)
-         except scribus.NotFoundError:
-             scribus.createParagraphStyle(style)
-             scribus.setStyle(style, frame)
+    # def addStyle(self, style, frame):
+    #      try:
+    #          scribus.setParagraphStyle(style, frame)
+    #      except scribus.NotFoundError:
+    #          scribus.createParagraphStyle(style)
+    #          scribus.setParagraphStyle(style, frame)
 
     def nothingFound(self):
         logger.info("Nichts gefunden")
-        scribus.insertText("Nichts gefunden\n", -1, self.textbox)
+        self.insertText("Nichts gefunden\n", None)
 
     def handleAbfahrt(self, abfahrt):
         # abfahrt = (type, beginning, loc)
@@ -80,8 +106,7 @@ class ScribusHandler:
         uhrzeit = abfahrt[1]
         ort = abfahrt[2]
         logger.info("Abfahrt: type=%s uhrzeit=%s ort=%s", typ, uhrzeit, ort)
-        scribus.setStyle('Radtour_start',self.textbox)
-        scribus.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n', -1, self.textbox)
+        self.insertText(typ + (': '+uhrzeit if uhrzeit != "" else "")+', '+ort+'\n', 'Radtour_start')
 
     def handleTextfeld(self, stil,textelement):
         logger.info("Textfeld: stil=%s text=%s", stil, textelement)
@@ -95,47 +120,40 @@ class ScribusHandler:
             if len(text) == 0:
                 continue
             logger.info("Text: stil=%s text=%s", stil, text)
-            scribus.setStyle(stil, self.textbox)
-            scribus.insertText(text+'\n', -1, self.textbox)
+            self.insertText(text+'\n', stil)
 
     def handleTel(self, Name):
         telfestnetz = Name.getElementsByTagName("TelFestnetz")
         telmobil = Name.getElementsByTagName("TelMobil")
         if len(telfestnetz)!=0:
             logger.info("Tel: festnetz=%s", telfestnetz[0].firstChild.data)
-            scribus.insertText(' ('+telfestnetz[0].firstChild.data+')', -1, self.textbox)
+            self.insertText(' ('+telfestnetz[0].firstChild.data+')', None)
         if len(telmobil)!=0:
             logger.info("Tel: mobil=%s", telmobil[0].firstChild.data)
-            scribus.insertText(' ('+telmobil[0].firstChild.data+')', -1, self.textbox)
+            self.insertText(' ('+telmobil[0].firstChild.data+')', None, self.textbox)
 
     def handleName(self, name):
         logger.info("Name: name=%s", name)
-        scribus.insertText(name, -1, self.textbox)
+        self.insertText(name, None, self.textbox)
         # handleTel(name) ham wer nich!
 
     def handleTourenleiter(self, TLs):
-        scribus.setStyle('Radtour_tourenleiter', self.textbox)
-        scribus.insertText('Tourenleiter: ', -1, self.textbox)
+        self.insertText('Tourenleiter: ', 'Radtour_tourenleiter')
         names = ", ".join(TLs)
-        scribus.insertText(names, -1, self.textbox)
-        scribus.insertText('\n', -1, self.textbox)
+        self.insertText(names + '\n', None)
 
     def handleTitel(self, tt):
         logger.info("Titel: titel=%s", tt)
-        scribus.setStyle('Radtour_titel', self.textbox)
-        scribus.insertText(tt+'\n', -1, self.textbox)
+        self.insertText(tt+'\n', 'Radtour_titel')
 
     def handleKopfzeile(self, dat, kat, schwierig, strecke):
         logger.info("Kopfzeile: dat=%s kat=%s schwere=%s strecke=%s", dat, kat, schwierig, strecke)
-        scribus.setStyle('Radtour_kopfzeile', self.textbox)
-        scribus.insertText(dat+':	'+kat+'	'+schwierig+'	'+strecke+'\n', -1, self.textbox)
+        self.insertText(dat+':	'+kat+'	'+schwierig+'	'+strecke+'\n', 'Radtour_kopfzeile')
 
     def handleKopfzeileMehrtage(self, anfang, ende, kat, schwierig, strecke):
         logger.info("Mehrtage: anfang=%s ende=%s kat=%s schwere=%s strecke=%s", anfang, ende, kat, schwierig, strecke)
-        scribus.setStyle('Radtour_kopfzeile', self.textbox)
-        scribus.insertText(anfang+' bis '+ende+':\n',-1, self.textbox)
-        scribus.setStyle('Radtour_kopfzeile', self.textbox)
-        scribus.insertText('	'+kat+'	'+schwierig+'	'+strecke+'\n',-1, self.textbox)
+        self.insertText(anfang+' bis '+ende+':\n', 'Radtour_kopfzeile')
+        self.insertText('	'+kat+'	'+schwierig+'	'+strecke+'\n', 'Radtour_kopfzeile')
 
     def handleTour(self, tour):
         try:
@@ -184,7 +202,7 @@ class ScribusHandler:
             logger.exception("Fehler in der Tour %s: %s", titel, e)
             return
 
-        scribus.insertText('\n', -1, self.textbox)
+        self.insertText('\n', None)
         if kategorie == 'Mehrtagestour':
             self.handleKopfzeileMehrtage(datum, enddatum, kategorie, schwierigkeit, strecke)
         else:

@@ -1,16 +1,9 @@
 # encoding: utf-8
 import functools
 
-try:
-    import http.client as httplib
-    from concurrent.futures.thread import ThreadPoolExecutor
-    import threading
-
-    py2 = False
-except:
-    import httplib
-
-    py2 = True
+import http.client as httplib
+from concurrent.futures.thread import ThreadPoolExecutor
+import threading
 import json
 import os
 import sys
@@ -27,30 +20,21 @@ class EventServer:
         self.tmpDir = "/tmp/tpjson" if sys.platform.startswith('linux') else "c:/temp/tpjson"
         self.useRest = useRest
         self.includeSub = includeSub
-        if py2:
-            self.tpConn = None
-        else:
-            self.max_workers = max_workers
-            self.tpConns = []
-            self.tpConnsLock = threading.Lock()
+        self.max_workers = max_workers
+        self.tpConns = []
+        self.tpConnsLock = threading.Lock()
         self.events = {}
         self.alleTouren = []
         self.alleTermine = []
-        self.py2 = False
 
         try:
             os.makedirs(self.tmpDir)  # exist_ok = True does not work with Scribus (Python 2)
         except:
             pass
-        if not py2:
-            self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
+        self.getUser = functools.lru_cache(maxsize=100)(self.getUser)
         self.loadUnits()
 
     def getConn(self):
-        if py2:
-            if self.tpConn is None:
-                self.tpConn = httplib.HTTPSConnection("api-touren-termine.adfc.de")
-            return self.tpConn
         with self.tpConnsLock:
             try:
                 conn = self.tpConns.pop()
@@ -64,8 +48,6 @@ class EventServer:
         return conn
 
     def putConn(self, conn):
-        if py2:
-            return
         if conn is None:
             return
         with self.tpConnsLock:
@@ -174,7 +156,7 @@ class EventServer:
         ejs = {"eventItemId": eventItemId, "imagePreview": "", "title": titel}
         return self.getEvent(ejs)
 
-    # not in py2 @functools.lru_cache(100)
+    @functools.lru_cache(100)
     def getUser(self, userId):
         jsonPath = self.tmpDir + "/user_" + userId + ".json"
         if self.useRest or not os.path.exists(jsonPath):
@@ -195,8 +177,6 @@ class EventServer:
         return user
 
     def loadUnits(self):
-        if self.py2:
-            return
         jsonPath = self.tmpDir + "/units.json"
         if not os.path.exists(jsonPath):
             resp, conn = self.httpget("/api/units/")
@@ -208,18 +188,13 @@ class EventServer:
             with open(jsonPath, "w") as jsonFile:
                 json.dump(unitsJS, jsonFile, indent=4)
         else:
-            if py2:
-                with open(jsonPath, "r") as jsonFile:
-                    unitsJS = json.load(jsonFile)
-            else:
-                with open(jsonPath, "r", encoding="utf-8") as jsonFile:
-                    unitsJS = json.load(jsonFile)
+            with open(jsonPath, "r", encoding="utf-8") as jsonFile:
+                unitsJS = json.load(jsonFile)
         adfc_gliederungen.load(unitsJS)
 
     def calcNummern(self):
         # too bad we base numbers on kategorie and radtyp,which we cannot get from the search result
-        if not py2:
-            ThreadPoolExecutor(max_workers=self.max_workers).map(self.getEvent, self.alleTouren)
+        ThreadPoolExecutor(max_workers=self.max_workers).map(self.getEvent, self.alleTouren)
         self.alleTouren.sort(key=lambda x: x.get("beginning"))  # sortieren nach Datum
         yyyy = ""
         logger.info("Begin calcNummern")
